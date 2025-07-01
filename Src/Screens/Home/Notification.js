@@ -1,0 +1,1001 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import Ionicons from "react-native-vector-icons/Ionicons";
+import { useSocket } from "../../Context/socketprovider";
+import * as FileSystem from "expo-file-system";
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
+import moment from "moment";
+
+const NotificationsScreen = ({ navigation, route }) => {
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState("travel");
+  const [previousNotifications, setPreviousNotifications] = useState([]);
+  const [paidNotifications, setPaidNotifications] = useState({});
+  const [phoneNumber, setPhoneNumber] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const { socket } = useSocket();
+
+  useEffect(() => {
+    const loadPhoneNumber = async () => {
+      try {
+        let storedPhoneNumber = await AsyncStorage.getItem("phoneNumber");
+        if (!storedPhoneNumber && route.params?.phoneNumber) {
+          storedPhoneNumber = route.params.phoneNumber;
+          await AsyncStorage.setItem("phoneNumber", storedPhoneNumber);
+          console.log("Phone number saved from route params:", storedPhoneNumber);
+        }
+        if (!storedPhoneNumber) {
+          setError("Phone number not found. Please log in again.");
+          setLoading(false);
+        } else {
+          setPhoneNumber(storedPhoneNumber);
+        }
+      } catch (err) {
+        console.error("Error loading phone number:", err);
+        setError("Failed to load phone number.");
+        setLoading(false);
+      }
+    };
+    loadPhoneNumber();
+  }, [route.params?.phoneNumber]);
+
+  useEffect(() => {
+    if (socket && phoneNumber) {
+      console.log("Socket connected:", socket.connected);
+
+      socket.on("sendnotification", (data) => {
+        console.log("Received real-time notification:", data);
+        if (data && data.message) {
+          const newNotification = {
+            title: data.message,
+            subtitle: `New booking request (Earning: $${data.expectedEarning?.toFixed(2)})`,
+            consignmentId: data.consignmentId || "N/A",
+            travelId: data.travelId || "N/A",
+            notificationType: data.type === "booking_request" ? "consignment_request" : "general",
+            createdAt: new Date(data.timestamp || Date.now()),
+            time: new Date(data.timestamp || Date.now()).toLocaleTimeString(),
+            isUnread: true,
+            amount: data.amount || data.expectedEarning || "0.00",
+          };
+
+          setNotifications((prevNotifications) => [
+            newNotification,
+            ...prevNotifications,
+          ]);
+          setUnreadCount((prev) => prev + 1);
+        } else {
+          console.warn("Invalid notification format:", data);
+        }
+      });
+
+      socket.on("connect_error", (error) => {
+        console.error("Socket.IO connection error:", error.message);
+        setError("Failed to connect to notification server.");
+      });
+
+      return () => {
+        socket.off("sendnotification");
+        socket.off("connect_error");
+      };
+    }
+  }, [socket, phoneNumber]);
+
+  useEffect(() => {
+    const loadPaidNotifications = async () => {
+      try {
+        const storedPaid = await AsyncStorage.getItem("paidNotifications");
+        if (storedPaid) {
+          setPaidNotifications(JSON.parse(storedPaid));
+        }
+      } catch (err) {
+        console.error("Error loading paid notifications:", err);
+      }
+    };
+    loadPaidNotifications();
+  }, [route.params?.paymentSuccess]);
+
+  useEffect(() => {
+    const savePaidNotifications = async () => {
+      try {
+        await AsyncStorage.setItem(
+          "paidNotifications",
+          JSON.stringify(paidNotifications)
+        );
+      } catch (err) {
+        console.error("Error saving paid notifications:", err);
+      }
+    };
+    savePaidNotifications();
+  }, [paidNotifications]);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      if (!phoneNumber) return;
+
+      try {
+        setLoading(true);
+        setError(null);
+        const baseUrl = await AsyncStorage.getItem('apiBaseUrl')
+        // const baseUrl = "http://192.168.1.30:5002/"
+        const endpoint = `${baseUrl}n/getnotification/${activeTab}/${phoneNumber}`;
+        const response = await fetch(endpoint);
+
+        if (!response.ok) {
+          throw new Error(`HTTP error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log("Fetched notifications:", JSON.stringify(data, null, 2));
+
+        if (data && Array.isArray(data.notifications)) {
+          data.notifications.forEach((notif, index) => {
+            console.log(`Notification ${index} rideDetails:`, notif.travelId || "N/A");
+          });
+
+          const lastReadTime = await AsyncStorage.getItem("lastNotificationReadTime");
+          const shouldMarkAsRead = route.params?.markAsRead === true;
+
+          const processedNotifications = data.notifications.map((notif) => {
+            const isUnread = shouldMarkAsRead
+              ? false
+              : !lastReadTime
+              ? true
+              : new Date(notif.createdAt || Date.now()) > new Date(lastReadTime);
+
+            const notificationAmount =
+              notif.amount || notif.earning || notif.expectedEarning || notif.rideDetails?.amount || "0.00";
+
+            return {
+              ...notif,
+              isUnread,
+              amount: notificationAmount,
+              rideDetails: { ...notif.rideDetails, amount: notificationAmount },
+              paymentstatus: notif.paymentstatus || "pending",
+            };
+          });
+
+          // Load stored payment success notifications
+          let storedPaymentNotifications = {};
+          try {
+            const stored = await AsyncStorage.getItem("paymentSuccessNotifications");
+            if (stored) {
+              storedPaymentNotifications = JSON.parse(stored);
+            }
+          } catch (err) {
+            console.error("Error loading payment success notifications:", err);
+          }
+
+          // Handle payment success from WebViewScreen for Consignment tab
+          if (route.params?.paymentSuccess && route.params?.travelId && activeTab === "consignment") {
+            const paymentSuccessNotification = {
+              title: "Payment Successful",
+              subtitle: `You have successfully paid amount ₹${parseFloat(route.params?.amount || "0").toFixed(2)}`,
+              time: new Date().toLocaleTimeString(),
+              notificationType: "payment_success",
+              consignmentId: route.params?.consignmentId || "N/A",
+              travelId: route.params?.travelId,
+              createdAt: new Date().toISOString(),
+              isUnread: false,
+              paymentstatus: "successful",
+            };
+
+            // Update paidNotifications
+            setPaidNotifications((prev) => ({
+              ...prev,
+              [route.params.travelId]: true,
+            }));
+
+            // Store payment success notification
+            storedPaymentNotifications[route.params.travelId] = paymentSuccessNotification;
+            try {
+              await AsyncStorage.setItem(
+                "paymentSuccessNotifications",
+                JSON.stringify(storedPaymentNotifications)
+              );
+            } catch (err) {
+              console.error("Error saving payment success notification:", err);
+            }
+
+            processedNotifications.unshift(paymentSuccessNotification);
+          }
+
+          // Append stored payment success notifications for Consignment tab
+          if (activeTab === "consignment") {
+            Object.values(storedPaymentNotifications).forEach((notif) => {
+              if (!processedNotifications.some((n) => n.travelId === notif.travelId)) {
+                processedNotifications.unshift(notif);
+              }
+            });
+          }
+
+          setNotifications(processedNotifications);
+          setPreviousNotifications(data.notifications);
+
+          if (shouldMarkAsRead && data.notifications.length > 0) {
+            try {
+              await fetch(
+                `${baseUrl}n/mark-read/${phoneNumber}`,
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    notificationIds: data.notifications.map((n) => n.id || n._id),
+                  }),
+                }
+              );
+              setUnreadCount(0);
+            } catch (err) {
+              console.error("Error marking notifications as read:", err);
+            }
+          } else {
+            setUnreadCount(processedNotifications.filter((n) => n.isUnread).length);
+          }
+        } else {
+          console.log("No valid notifications array:", data);
+          setNotifications([]);
+          setUnreadCount(0);
+        }
+      } catch (err) {
+        setError("Error fetching notifications.");
+        console.error("Fetch error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNotifications();
+  }, [activeTab, phoneNumber, route.params?.refresh, route.params?.markAsRead, route.params?.paymentSuccess]);
+
+  const verifyPayment = async ({
+    razorpay_order_id,
+    razorpay_payment_id,
+    razorpay_signature,
+    phoneNumber: paymentPhoneNumber,
+    amount,
+    travelId,
+    title = "Ride Payment",
+  }) => {
+    console.log("Verifying payment for Travel ID:", travelId);
+    try {
+      const finalPhoneNumber = paymentPhoneNumber || phoneNumber;
+      if (!finalPhoneNumber || !/^\d{10}$/.test(finalPhoneNumber)) {
+        throw new Error("Invalid phone number format.");
+      }
+
+      if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+        throw new Error("Missing payment details.");
+      }
+
+      const amountNum = parseFloat(amount);
+      if (isNaN(amountNum) || amountNum <= 0) {
+        throw new Error("Amount must be a positive number.");
+      }
+
+      console.log("Verifying payment with:", {
+        razorpay_order_id,
+        razorpay_payment_id,
+        razorpay_signature,
+        phoneNumber: finalPhoneNumber,
+        amount: amountNum,
+        travelId,
+        title,
+      });
+
+      const response = await fetch(
+        `https://travel.timestringssystem.com/p/verify-order`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({
+            razorpay_order_id,
+            razorpay_payment_id,
+            razorpay_signature,
+            phoneNumber: finalPhoneNumber,
+            amount: amountNum,
+            travelId: travelId || "N/A",
+            title,
+          }),
+        }
+      );
+
+      const json = await response.json();
+      console.log("Payment verification response:", JSON.stringify(json, null, 2));
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${json.message || "Unknown error"}`);
+      }
+
+      if (json.success) {
+        Alert.alert("Success", "Payment verified successfully");
+
+        const notificationId = travelId || `placeholder-${Date.now()}`;
+        setPaidNotifications((prev) => ({
+          ...prev,
+          [notificationId]: true,
+        }));
+
+        const paymentSuccessNotification = {
+          title: "Payment Successful",
+          subtitle: `Payment of ₹${amountNum.toFixed(2)} for ${title} completed.`,
+          time: new Date().toLocaleTimeString(),
+          notificationType: "payment_success",
+          consignmentId: travelId,
+          travelId: travelId,
+          createdAt: new Date().toISOString(),
+          isUnread: false,
+          paymentstatus: "successful",
+        };
+
+        setNotifications((prevNotifications) => [
+          paymentSuccessNotification,
+          ...prevNotifications.filter(
+            (n) => n.title !== "Consignment Approved" || n.travelId !== travelId
+          ),
+        ]);
+
+        const endpoint = `https://travel.timestringssystem.com/n/getnotification/${activeTab}/${finalPhoneNumber}`;
+        const res = await fetch(endpoint);
+        console.log("Not" + res);
+
+        if (res.ok) {
+          const result = await res.json();
+          if (result && Array.isArray(result.notifications)) {
+            setNotifications(
+              result.notifications.map((notif) => ({
+                ...notif,
+                isUnread: false,
+                paymentstatus: notif.paymentstatus,
+              }))
+            );
+            setPreviousNotifications(result.notifications);
+            setUnreadCount(0);
+          }
+        }
+
+        navigation.navigate("NotificationsScreen", { refresh: true, travelId });
+      } else {
+        throw new Error(json.message || "Payment verification failed.");
+      }
+    } catch (error) {
+      console.error("Verify payment error:", error);
+      throw error;
+    }
+  };
+
+
+  const formatTime = (date)=>{
+    const localTime = moment.utc(date).local().format("h:mm A");
+    return localTime;
+  }
+
+  const handleDecline = async (consignmentId, travelId) => {
+    console.log("Declining Consignment ID:", consignmentId, "Travel ID:", travelId);
+    try {
+      const baseurl = await AsyncStorage.getItem("apiBaseUrl");
+      if (!baseurl) {
+        throw new Error("Base URL not found in AsyncStorage.");
+      }
+
+      if (!phoneNumber) {
+        throw new Error("Phone number not found.");
+      }
+
+      const finalConsignmentId = consignmentId || `placeholder-${Date.now()}`;
+      const finalTravelId = travelId || "N/A";
+      console.warn(
+        "Using consignmentId for decline:",
+        finalConsignmentId,
+        "travelId:",
+        finalTravelId
+      );
+
+      const response = await fetch(
+        `${baseurl}api/decline-consignment/${phoneNumber}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            consignmentId: finalConsignmentId,
+            travelId: finalTravelId,
+            response: 'decline',
+          }),
+        }
+      );
+
+      const data = await response.json();
+      if (response.ok) {
+        Alert.alert("Success", "Consignment request declined");
+
+        const endpoint = `${baseurl}n/getnotification/${activeTab}/${phoneNumber}`;
+        const res = await fetch(endpoint);
+        const result = await res.json();
+        if (result && Array.isArray(result.notifications)) {
+          setNotifications(
+            result.notifications.map((notif) => ({
+              ...notif,
+              isUnread: false,
+              paymentstatus: notif.paymentstatus || "pending",
+            }))
+          );
+          setPreviousNotifications(result.notifications);
+          setUnreadCount(0);
+        }
+      } else {
+        throw new Error(data.message || "Failed to decline consignment.");
+      }
+    } catch (error) {
+      console.error("Decline error:", error);
+      Alert.alert("Error", error.message || "Failed to decline consignment.");
+    }
+  };
+
+  // Function to escape special characters for text rendering
+  const escapeText = (str) => {
+    if (!str) return "N/A";
+    return str.replace(/[^\w\s.-]/g, "");
+  };
+
+  // Function to generate and save PDF
+  const generateAndSavePDF = async (item) => {
+    try {
+      const receiptDetails = {
+        pickup: escapeText(item.pickup),
+        dropoff: escapeText(item.dropoff),
+        travelmode: escapeText(item.travelmode),
+        pickuptime: escapeText(item.pickuptime),
+        dropofftime: escapeText(item.dropofftime),
+        amount: escapeText(item.amount),
+      };
+
+      console.log("Generating PDF with details:", receiptDetails);
+
+      const html = `
+        <html>
+          <body style="font-family: Arial, sans-serif; padding: 20px;">
+            <h1 style="text-align: center;">Payment Receipt</h1>
+            <p><strong>Going Location:</strong> ${receiptDetails.pickup}</p>
+            <p><strong>Leaving Location:</strong> ${receiptDetails.dropoff}</p>
+            <p><strong>Travel Mode:</strong> ${receiptDetails.travelmode}</p>
+            <p><strong>Estimated Start Time:</strong> ${receiptDetails.pickuptime}</p>
+            <p><strong>Estimated End Time:</strong> ${receiptDetails.dropofftime}</p>
+            <p><strong>Amount:</strong> ${receiptDetails.amount}</p>
+          </body>
+        </html>
+      `;
+
+      const { uri } = await Print.printToFileAsync({ html });
+      const fileName = `PaymentReceipt_${item.travelId || Date.now()}.pdf`;
+      const finalPath = `${FileSystem.documentDirectory}${fileName}`;
+
+      await FileSystem.moveAsync({ from: uri, to: finalPath });
+
+      console.log("PDF saved to:", finalPath);
+
+      // Check if sharing is available and share the PDF
+      const isSharingAvailable = await Sharing.isAvailableAsync();
+      if (isSharingAvailable) {
+        await Sharing.shareAsync(finalPath, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'Save or Share Payment Receipt',
+          UTI: 'com.adobe.pdf',
+        });
+        Alert.alert("Success", "PDF generated and sharing dialog opened.");
+      } else {
+        Alert.alert("Success", `PDF saved to ${finalPath}, but sharing is not available on this device.`);
+      }
+
+      return finalPath;
+    } catch (error) {
+      console.error("Error generating or saving PDF:", error);
+      Alert.alert("Error", "Failed to generate or save PDF.");
+      return null;
+    }
+  };
+
+  if (loading || !phoneNumber) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#D32F2F" />
+        {error && <Text style={styles.errorText}>{error}</Text>}
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="chevron-back" size={24} color="white" />
+        </TouchableOpacity>
+        <View style={styles.headerTextContainer}>
+          <Text style={styles.headerText}>Notifications</Text>
+          {unreadCount > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{unreadCount}</Text>
+            </View>
+          )}
+        </View>
+      </View>
+
+      <View style={styles.tabsContainer}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === "travel" && styles.activeTab]}
+          onPress={() => setActiveTab("travel")}
+        >
+          <Text
+            style={[styles.tabText, activeTab === "travel" && styles.activeTabText]}
+          >
+            Travel Updates
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === "consignment" && styles.activeTab]}
+          onPress={() => setActiveTab("consignment")}
+        >
+          <Text
+            style={[styles.tabText, activeTab === "consignment" && styles.activeTabText]}
+          >
+            Consignment Updates
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView style={styles.notificationsList}>
+        {error ? (
+          <Text style={styles.errorText}>{error}</Text>
+        ) : notifications.length === 0 ? (
+          <Text style={styles.noDataText}>No notifications found.</Text>
+        ) : (
+          notifications.map((item, index) => {
+            const verificationPhoneNumber =
+              item.notificationType === "consignment_accept"
+                ? item.requestto
+                : item.notificationType === "ride_accept"
+                ? item.requestedby
+                : phoneNumber;
+
+            console.log(
+              "Notification details:",
+              JSON.stringify(
+                {
+                  title: item.title,
+                  consignmentId: item.consignmentId || "N/A",
+                  travelId: item.travelId || "N/A",
+                  notificationType: item.notificationType,
+                  travelmode: item.travelmode,
+                  pickup: item.pickup,
+                  dropoff: item.dropoff,
+                  pickuptime: item.pickuptime || "N/A",
+                  amount: item.amount,
+                  dropofftime: item.dropofftime,
+                  travellername: item.travellername,
+                  requestedby: item.requestedby,
+                  requestto: item.requestto,
+                  paymentstatus: item.paymentstatus || "N/A",
+                  verificationPhoneNumber: verificationPhoneNumber,
+                  createdAt: item.createdAt,
+                },
+                null, 2
+              )
+            );
+
+            return (
+              <TouchableOpacity
+                key={index}
+                onPress={() => {
+                  if (item.notificationType === "consignment_request") {
+                    if (!item.consignmentId || item.consignmentId === "N/A") {
+                      Alert.alert(
+                        "Error",
+                        "Consignment ID is missing. Please try again later."
+                      );
+                      return;
+                    }
+                    console.log(
+                      "Navigating to ConsignmentPayRequest with Consignment ID:",
+                      item.consignmentId,
+                      "Travel ID:",
+                      item.travelId || "N/A"
+                    );
+                    navigation.navigate("ConsignmentPayRequest", {
+                      consignmentId: item.consignmentId,
+                      travelId: item.travelId || "N/A",
+                      phoneNumber,
+                      profilepicture: item.profilepicture,
+                    });
+                  } else if (item.notificationType === "ride_request") {
+                    if (!item.travelId || item.travelId === "N/A") {
+                      Alert.alert(
+                        "Error",
+                        "Travel ID is missing. Please try again later."
+                      );
+                      return;
+                    }
+                    console.log(
+                      "Navigating to TravelPayRequest with Consignment ID:",
+                      item.consignmentId || "N/A",
+                      "Travel ID:",
+                      item.travelId
+                    );
+                    navigation.navigate("TravelPayRequest", {
+                      consignmentId: item.consignmentId || "N/A",
+                      travelId: item.travelId,
+                      phoneNumber: item.requestedby,
+                    });
+                  }
+                }}
+              >
+                <View
+                  style={[
+                    styles.notificationItem,
+                    item.isUnread && styles.unreadNotification,
+                  ]}
+                >
+                  <View style={styles.notificationTextContainer}>
+                    <Text style={styles.notificationTitle}>
+                      {item.title || item.message || "Untitled"}
+                    </Text>
+                    <Text style={styles.notificationSubtitle}>
+                      {item.subtitle || item.description || "No details"}
+                    </Text>
+                  </View>
+                  <Text style={styles.notificationTime}>
+                    {formatTime(item.createdAt)}
+                  </Text>
+                  {/* <Text style={styles.notificationTime}>
+                    {item.time ||
+                      (item.createdAt &&
+                        new Date(item.createdAt).toLocaleTimeString()) ||
+                      new Date().toLocaleTimeString()}
+                  </Text> */}
+
+                  {(item.title === "Consignment Accepted" ||
+                    item.title === "Ride Request accept") &&
+                    !paidNotifications[item.travelId] &&
+                    item.paymentstatus !== "successful" && item.paymentstatus !== "declined" && (
+                      <View style={styles.buttonContainer}>
+                        <TouchableOpacity
+                          style={styles.payButton}
+                          onPress={() => {
+                            const finalConsignmentId =
+                              item.consignmentId || `consignment-${item.travelId || Date.now()}`;
+
+                            if (!item.consignmentId || item.consignmentId === "N/A") {
+                              Alert.alert(
+                                "Error",
+                                "Consignment ID is missing. Please try again later."
+                              );
+                              return;
+                            }
+
+                            if (!item.amount || isNaN(parseFloat(item.amount))) {
+                              Alert.alert(
+                                "Error",
+                                "Amount is missing or invalid. Please try again later."
+                              );
+                              return;
+                            }
+
+                            console.log("Navigating to PayNowScreen with:", {
+                              consignmentId: finalConsignmentId,
+                              travelId: item.travelId || "N/A",
+                              phoneNumber: item.requestedby,
+                              amount: item.amount,
+                              requestTo: item.requestto,
+                              requestedBy: item.requestedby,
+                              verificationPhoneNumber,
+                              notificationType: item.notificationType,
+                              profilePicture: item.profilePicture,
+                              pickuptime: item.pickuptime,
+                              dropofftime: item.dropofftime,
+                            });
+
+                            navigation.navigate("PayNowScreen", {
+                              consignmentId: finalConsignmentId,
+                              travelId: item.travelId || "N/A",
+                              phoneNumber,
+                              amount: item.amount,
+                              notification: item,
+                              travelmode: item.travelmode,
+                              pickup: item.pickup,
+                              dropoff: item.dropoff,
+                              pickuptime: item.pickuptime,
+                              dropofftime: item.dropofftime,
+                              travellername: item.travellername,
+                              requestTo: item.requestto,
+                              requestedBy: item.requestedby,
+                              verificationPhoneNumber: verificationPhoneNumber,
+                              notificationType: item.notificationType,
+                              profilepicture: item.profilepicture,
+                            });
+                          }}
+                        >
+                          <Text style={styles.buttonText}>Pay Now</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.declineButton}
+                          onPress={() => handleDecline(item.consignmentId, item.travelId)}
+                        >
+                          <Text style={styles.declineButtonText}>Decline</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+
+                  {(item.title === "Consignment Accepted" ||
+                    item.title === "Ride Request accept") &&
+                    (paidNotifications[item.travelId] || item.paymentstatus === "successful") && (
+                      <View style={styles.buttonContainer}>
+                        <TouchableOpacity
+                          style={styles.successButton}
+                          onPress={() => {
+                            const receiptDetails = {
+                              pickup: item.pickup || "N/A",
+                              dropoff: item.dropoff || "N/A",
+                              travelmode: item.travelmode || "N/A",
+                              pickuptime: item.pickuptime || "N/A",
+                              dropofftime: item.dropofftime || "N/A",
+                              amount: item.amount || "N/A",
+                            };
+
+                            Alert.alert(
+                              "Payment Receipt",
+                              `Going Location: ${receiptDetails.pickup}\n` +
+                              `Leaving Location: ${receiptDetails.dropoff}\n` +
+                              `Travel Mode: ${receiptDetails.travelmode}\n` +
+                              `Estimated Start Time: ${receiptDetails.pickuptime}\n` +
+                              `Estimated End Time: ${receiptDetails.dropofftime}\n` +
+                              `Amount: ${receiptDetails.amount}`,
+                              [
+                                { text: "OK", style: "cancel" },
+                                {
+                                  text: "Download PDF",
+                                  onPress: async () => {
+                                    console.log("Initiating PDF download for receipt:", receiptDetails);
+                                    await generateAndSavePDF(item);
+                                  },
+                                },
+                              ]
+                            );
+                          }}
+                        >
+                          <Text style={styles.buttonText}>payment has done Successfully</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+
+                  {(item.title === "Consignment Accepted" ||
+                    item.title === " Ride Request accept") &&
+                    (!paidNotifications[item.travelId] && item.paymentstatus === "declined") && (
+                      <View style={styles.buttonContainer}>
+                        <TouchableOpacity
+                          style={[styles.successButton, {backgroundColor: 'darkred'}]}
+                          // onPress={() => {
+                          //   const receiptDetails = {
+                          //     pickup: item.pickup || "N/A",
+                          //     dropoff: item.dropoff || "N/A",
+                          //     travelmode: item.travelmode || "N/A",
+                          //     pickuptime: item.pickuptime || "N/A",
+                          //     dropofftime: item.dropofftime || "N/A",
+                          //     amount: item.amount || "N/A",
+                          //   };
+
+                          //   Alert.alert(
+                          //     "Payment Receipt",
+                          //     `Going Location: ${receiptDetails.pickup}\n` +
+                          //     `Leaving Location: ${receiptDetails.dropoff}\n` +
+                          //     `Travel Mode: ${receiptDetails.travelmode}\n` +
+                          //     `Estimated Start Time: ${receiptDetails.pickuptime}\n` +
+                          //     `Estimated End Time: ${receiptDetails.dropofftime}\n` +
+                          //     `Amount: ${receiptDetails.amount}`,
+                          //     [
+                          //       { text: "OK", style: "cancel" },
+                          //       {
+                          //         text: "Download PDF",
+                          //         onPress: async () => {
+                          //           console.log("Initiating PDF download for receipt:", receiptDetails);
+                          //           await generateAndSavePDF(item);
+                          //         },
+                          //       },
+                          //     ]
+                          //   );
+                          // }}
+                        >
+                          <Text style={[styles.buttonText]}>You have declined the payment</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                </View>
+              </TouchableOpacity>
+            );
+          })
+        )}
+      </ScrollView>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F4F4F4",
+  },
+  noDataText: {
+    textAlign: "center",
+    marginTop: 20,
+    color: "grey",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  header: {
+    backgroundColor: "#D83F3F",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 15,
+    paddingHorizontal: 10,
+  },
+  headerTextContainer: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerText: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  badge: {
+    backgroundColor: "#FFD700",
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 8,
+  },
+  badgeText: {
+    color: "#000",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  backButton: {
+    marginRight: 10,
+  },
+  tabsContainer: {
+    flexDirection: "row",
+    marginTop: 20,
+    margin: 10,
+    borderWidth: 2,
+    borderColor: "#7C7C7C",
+    borderRadius: 5,
+  },
+  tab: {
+    flex: 1,
+    padding: 12,
+    alignItems: "center",
+    borderBottomWidth: 3,
+    borderBottomColor: "transparent",
+  },
+  activeTab: {
+    backgroundColor: "#A4CE39",
+    color: "white",
+  },
+  tabText: {
+    fontSize: 14,
+    color: "#7C7C7C",
+  },
+  activeTabText: {
+    color: "white",
+    fontWeight: "bold",
+  },
+  notificationsList: {
+    padding: 15,
+  },
+  notificationItem: {
+    flexDirection: "column",
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+    borderLeftWidth: 5,
+    borderLeftColor: "#53B175",
+    borderRadius: 5,
+    backgroundColor: "#fff",
+    padding: 15,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
+    marginBottom: 10,
+  },
+  unreadNotification: {
+    backgroundColor: "#E6F3FF",
+    borderLeftColor: "#007BFF",
+  },
+  notificationTextContainer: {
+    flex: 1,
+  },
+  notificationTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  notificationSubtitle: {
+    color: "#333",
+    marginTop: 5,
+  },
+  notificationTime: {
+    color: "#888",
+    fontSize: 14,
+    alignSelf: "flex-end",
+    marginTop: 5,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  errorText: {
+    color: "red",
+    textAlign: "center",
+    marginTop: 20,
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 15,
+  },
+  payButton: {
+    backgroundColor: "#4CAF50",
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+    flex: 1,
+    marginRight: 10,
+    alignItems: "center",
+  },
+  successButton: {
+    backgroundColor: "#4CAF50",
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+    flex: 1,
+    alignItems: "center",
+  },
+  declineButton: {
+    backgroundColor: "#fff",
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: "#F44336",
+    flex: 1,
+    alignItems: "center",
+  },
+  buttonText: {
+    color: "white",
+    fontWeight: "bold",
+  },
+  declineButtonText: {
+    color: "#F44336",
+    fontWeight: "bold",
+  },
+});
+
+export default NotificationsScreen;

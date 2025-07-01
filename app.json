@@ -16,13 +16,33 @@
       "supportsTablet": true
     },
     "android": {
+      "compileSdkVersion": 33,
+      "targetSdkVersion": 33,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.souvik1.trav",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCJbXV5opQV7TQnfQ_d3UISYQhZegrqdec"
+        }
+      },
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "07a0e356-aa89-494b-9d9c-158ee28623b5"
+      }
     }
   }
 }

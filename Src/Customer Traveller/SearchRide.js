@@ -1,0 +1,626 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
+import React, { useCallback, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  Modal,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  Platform,
+  StatusBar,
+} from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome";
+import Ionicons from "react-native-vector-icons/Ionicons";
+import ConsignmentSearchScreen from "./ConsignmentSearchScreen";
+
+const SearchRide = ({ navigation, route }) => {
+  const [data, setData] = useState([]);
+  const [filteredData, setFilteredData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isModalVisible, setModalVisible] = useState(true);
+  const [dates, setDates] = useState([]);
+  const [estimatedFare, setEstimatedFare] = useState(null);
+  const [ridesWithProfile, setRidesWithProfile] = useState(null);
+  const [selectedTravelMode, setSelectedTravelMode] = useState(route.params.mode || null);
+  const [fareDetails, setFareDetails] = useState(null);
+  const [phoneNumber, setPhoneNumber] = useState(null);
+  const [searchFrom, setSearchFrom] = useState(route.params.from || "");
+  const [searchTo, setSearchTo] = useState(route.params.to || "");
+  const [searchDate, setSearchDate] = useState(route.params.date || "");
+  const [waitingForCorrectMode, setWaitingForCorrectMode] = useState(false);
+
+  useEffect(() => {
+    const getPhoneNumber = async () => {
+      try {
+        const storedPhoneNumber = await AsyncStorage.getItem("phoneNumber");
+        setPhoneNumber(storedPhoneNumber);
+      } catch (err) {
+        setError("Failed to retrieve user information");
+      }
+    };
+    getPhoneNumber();
+  }, []);
+
+  // Set default travel mode if none provided
+  useEffect(() => {
+    if (!selectedTravelMode) {
+      setSelectedTravelMode("train");
+    }
+  }, []);
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    try {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        return dateString;
+      }
+      if (dateString.includes("T")) {
+        const date = new Date(dateString);
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+      }
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateString)) {
+        const [day, month, year] = dateString.split("/");
+        return `${year}-${month}-${day}`;
+      }
+      const date = new Date(dateString);
+      if (!isNaN(date.getTime())) {
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+      }
+      throw new Error("Invalid date format");
+    } catch (error) {
+      const today = new Date();
+      return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    }
+  };
+
+  const [selectedDate, setSelectedDate] = useState(
+    searchDate ? formatDate(searchDate) : ""
+  );
+
+  const fetchData = useCallback(
+    async (dateParam, modeFilter = "train") => {
+      if (!dateParam || !searchFrom || !searchTo || !phoneNumber) return;
+      
+      // If we're fetching with a different mode than selected, show loading
+      if (selectedTravelMode && modeFilter !== selectedTravelMode) {
+        setWaitingForCorrectMode(true);
+      }
+      
+      try {
+        setLoading(true);
+        await AsyncStorage.setItem("startingLocation", searchFrom);
+        await AsyncStorage.setItem("goingLocation", searchTo);
+        await AsyncStorage.setItem("searchingDate", searchDate);
+
+        let formattedDate = dateParam;
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateParam)) {
+          const [day, month, year] = dateParam.split("/");
+          formattedDate = `${year}-${month}-${day}`;
+        }
+        const baseurl = await AsyncStorage.getItem("apiBaseUrl");
+        const response = await axios.get(
+          `${baseurl}t/search-rides`,
+          {
+            params: {
+              leavingLocation: searchFrom,
+              goingLocation: searchTo,
+              date: formattedDate,
+              travelMode: modeFilter,
+              phoneNumber: phoneNumber,
+            },
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+        console.log("Search rides raw response:", response);
+        console.log(
+          "Search rides response:",
+          JSON.stringify(response.data, null, 2)
+        );
+        const rides = await response.data.availableRides || [];
+        const profiles = await response.data.ridesWithProfile || [];
+
+        // Merge rides with profiles based on index
+        const mergedRides = await rides.map((ride, index) => ({
+          ...ride,
+          // profilePicture: profiles[index]?.profilePicture || null,
+          // rating: profiles[index]?.rating || 0,
+          // aveargerating: profiles[index]?.aveargerating || 0,
+        }));
+
+        console.log("Merged rides:", JSON.stringify(mergedRides, null, 2));
+        setData(mergedRides);
+        setFilteredData(mergedRides);
+        setEstimatedFare(response.data.estimatedFare);
+        setRidesWithProfile(profiles);
+        setError(null);
+        
+        // Clear waiting state when we get the correct mode data
+        if (modeFilter === selectedTravelMode) {
+          setWaitingForCorrectMode(false);
+        }
+      } catch (err) {
+        console.error("Fetch error:", err.message, err.response?.data);
+        setError(
+          err.response?.data?.message || "No rides found for the given criteria"
+        );
+        setData([]);
+        setFilteredData([]);
+        setEstimatedFare(null);
+        setRidesWithProfile(null);
+        setWaitingForCorrectMode(false);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [searchFrom, searchTo, searchDate, phoneNumber, selectedTravelMode]
+  );
+
+  useEffect(() => {
+    if (!searchDate || !/^\d{2}\/\d{2}\/\d{4}$/.test(searchDate)) {
+      if (route.params?.date) {
+        try {
+          const paramDate = new Date(route.params.date);
+          if (!isNaN(paramDate.getTime())) {
+            const formattedParamDate = `${paramDate
+              .getDate()
+              .toString()
+              .padStart(2, "0")}/${(paramDate.getMonth() + 1)
+              .toString()
+              .padStart(2, "0")}/${paramDate.getFullYear()}`;
+            setSearchDate(formattedParamDate);
+            return;
+          }
+        } catch (e) {
+          console.error("Error parsing route.params.date:", e);
+        }
+      }
+
+      const today = new Date();
+      const defaultDate = `${today.getDate().toString().padStart(2, "0")}/${(
+        today.getMonth() + 1
+      )
+        .toString()
+        .padStart(2, "0")}/${today.getFullYear()}`;
+      setSearchDate(defaultDate);
+      return;
+    }
+
+    const generateDates = (startDate) => {
+      const nextDays = [];
+      const start = new Date(formatDate(startDate));
+      if (isNaN(start.getTime())) return [];
+
+      for (let i = 0; i < 100; i++) {
+        const futureDate = new Date(start);
+        futureDate.setDate(start.getDate() + i);
+        const formattedDate = `${futureDate
+          .getDate()
+          .toString()
+          .padStart(2, "0")}/${(futureDate.getMonth() + 1)
+          .toString()
+          .padStart(2, "0")}/${futureDate.getFullYear()}`;
+        nextDays.push(formattedDate);
+      }
+      return nextDays;
+    };
+
+    const nextDates = generateDates(searchDate);
+    setDates(nextDates);
+    if (nextDates.length > 0) {
+      setSelectedDate(nextDates[0]);
+    }
+  }, [searchDate, route.params?.date]);
+
+  useEffect(() => {
+    if (selectedDate && searchFrom && searchTo && selectedTravelMode) {
+      fetchData(formatDate(selectedDate), selectedTravelMode);
+    }
+  }, [selectedDate, selectedTravelMode, fetchData, searchFrom, searchTo]);
+
+  const handleSearch = (searchParams) => {
+    const { from, to, mode, date } = searchParams;
+    setSearchFrom(from);
+    setSearchTo(to);
+    setSearchDate(date);
+    const travelMode = mode || "train";
+    setSelectedTravelMode(travelMode);
+    setModalVisible(false);
+    setWaitingForCorrectMode(false);
+    if (date && from && to) {
+      const formattedDate = formatDate(date);
+      fetchData(formattedDate, travelMode);
+    }
+  };
+
+  const getTravelIcon = (travelMode) => {
+    switch (travelMode) {
+      case "car":
+        return <Icon name="car" size={30} color="#D83F3F" />;
+      case "airplane":
+        return <Ionicons name="airplane" size={30} color="#D83F3F" />;
+      case "train":
+        return <Icon name="train" size={30} color="#D83F3F" />;
+      default:
+        return <Ionicons name="help-circle-outline" size={30} color="gray" />;
+    }
+  };
+
+  const getTravelModeText = (travelMode) => {
+    switch (travelMode) {
+      case "car":
+        return "Hatchback Car";
+      case "airplane":
+        return "Airplane";
+      case "train":
+        return "Train";
+      default:
+        return "Unknown";
+    }
+  };
+  console.log("Estimated fare : ", estimatedFare)
+
+
+  const renderItem = ({ item }) => {
+    const getTimeFromDate = (dateTimeString) => {
+      console.log("dateTimeString : ", dateTimeString)
+      if (!dateTimeString) return " ";
+      const date = new Date(dateTimeString);
+      return (`${date.getUTCHours()}:${String(date.getUTCMinutes()).padStart(2, '0')}`)
+      // return date.toLocaleTimeString([], {
+      //   hour: "2-digit",
+      //   minute: "2-digit",
+      // });
+    };
+
+    const calculateDuration = () => {
+      if (!item.expectedStartTime || !item.expectedEndTime) return "N/A";
+      const start = new Date(item.expectedStartTime);
+      const end = new Date(item.expectedEndTime);
+      const diffMs = end - start;
+      const diffMins = Math.floor(diffMs / 60000);
+      const hours = Math.floor(diffMins / 60);
+      const minutes = diffMins % 60;
+      return `${hours}hr ${minutes > 0 ? minutes + "min" : ""}`.trim();
+    };
+
+    console.log("item : ", item)
+    console.log("Rendering ride item:", {
+      id: item._id,
+      username: item.username,
+      profilePicture: item.profilePicture,
+      rating: item.rating,
+      aveargeRating: item.averageRating,
+    });
+
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() =>
+          navigation.navigate("TravelDetails", {
+            ride: item,
+            fareDetails: estimatedFare,
+          })
+        }
+      >
+        <View style={styles.timelineContainer}>
+          <View style={styles.timelineContent}>
+            <View style={styles.leftColumn}>
+              <Text style={styles.timeText}>
+                {getTimeFromDate(item.expectedStartTime)}
+              </Text>
+              <Text style={styles.durationText}>{calculateDuration()}</Text>
+              <Text style={styles.timeText}>
+                {getTimeFromDate(item.expectedEndTime)}
+              </Text>
+            </View>
+            <View style={styles.rightColumn}>
+              <View style={styles.rightColumn1}>
+                <Image
+                  source={require("../Images/locon.png")}
+                  style={styles.locationIcon}
+                />
+                <View style={styles.dottedSeparator} />
+                <Image
+                  source={require("../Images/locend.png")}
+                  style={styles.locationIcon}
+                />
+              </View>
+              <View style={styles.locationNames}>
+                <Text style={styles.locationText}>{item?.Leavinglocation}</Text>
+                <View style={styles.dottedLineBetweenLocations} />
+                <Text style={styles.locationText}>{item?.Goinglocation}</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+        <View style={styles.modeContainer}>
+          <Text style={styles.modeText}>Mode of Travel</Text>
+          <View style={styles.modeIconContainer}>
+            {getTravelIcon(item.travelMode)}
+            <Text style={styles.modeDetailText}>
+              {getTravelModeText(item.travelMode)}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.driverContainer}>
+          <View style={{ flexDirection: "row" }}>
+            <Image
+              source={{
+                uri:
+                  item.profilePicture ||
+                  "https://static.vecteezy.com/system/resources/previews/000/439/863/non_2x/vector-users-icon.jpg",
+              }}
+              style={styles.driverImage}
+            />
+            <View>
+              <Text style={styles.driverName}>
+                {item.username || "Unknown"}
+              </Text>
+              <Text style={styles.ratingText}>
+                ⭐ {item.averageRating ? item.averageRating.toFixed(1) : "0"}{" "}
+                ({item.rating || "0"} ratings)
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.price}>
+            ₹{item?.expectedearning || "N/A"}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <Modal visible={isModalVisible} transparent animationType="slide">
+        <ConsignmentSearchScreen
+          onSearch={handleSearch}
+          initialValues={{ from: searchFrom, to: searchTo, date: searchDate }}
+        />
+      </Modal>
+
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="chevron-back" size={24} color="white" />
+        </TouchableOpacity>
+
+        <Text style={styles.headerTitle}>Search a Traveller</Text>
+      </View>
+
+      <FlatList
+        data={waitingForCorrectMode ? [] : filteredData}
+        keyExtractor={(item) => item._id}
+        renderItem={renderItem}
+        contentContainerStyle={styles.listContent}
+        ListHeaderComponent={
+          <View>
+            <View style={styles.searchContainer}>
+              <Ionicons name="search" size={24} color="black" />
+              <TextInput
+                multiline={true}
+                style={styles.searchInput}
+                placeholder={`${searchFrom || "From"} → ${searchTo || "To"} ${
+                  selectedDate || "Select Date"
+                }`}
+                placeholderTextColor="black"
+                editable={false}
+              />
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {dates.map((date, index) => (
+                <TouchableOpacity
+                  key={`date-${index}`}
+                  style={[
+                    styles.dateButton,
+                    selectedDate === date && styles.selectedDateButton,
+                  ]}
+                  onPress={() => setSelectedDate(date)}
+                >
+                  <Text
+                    style={[
+                      styles.dateText,
+                      selectedDate === date && styles.selectedDateText,
+                    ]}
+                  >
+                    {date}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        }
+        ListEmptyComponent={
+          loading || waitingForCorrectMode ? (
+            <ActivityIndicator size="large" color="#007bff" />
+          ) : error ? (
+            <Text style={{ color: "red", textAlign: "center" }}>{error}</Text>
+          ) : (
+            <Text style={{ textAlign: "center", color: "#555" }}>
+              {selectedTravelMode
+                ? `No ${selectedTravelMode} rides available`
+                : "No rides available"}
+            </Text>
+          )
+        }
+      />
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "white",
+  },
+  header: {
+    backgroundColor: "#D83F3F",
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 4,
+    fontFamily: "Inter-Bold",
+  },
+  headerTitle: {
+    color: "white",
+    fontSize: 18,
+    fontFamily: "Inter-Regular",
+    flex: 1,
+    textAlign: "center",
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 5,
+    backgroundColor: "#e8e8e8",
+    borderRadius: 10,
+    margin: 10,
+  },
+  searchInput: { flex: 1, marginLeft: 10 },
+  dateButton: {
+    padding: 10,
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    marginHorizontal: 5,
+    borderWidth: 1,
+    borderColor: "#ccc",
+  },
+  selectedDateButton: { backgroundColor: "#53B175" },
+  dateText: { color: "#000" },
+  selectedDateText: { color: "#fff" },
+  listContent: { paddingHorizontal: 10 },
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    padding: 15,
+    fontFamily: "Inter-Bold",
+    marginVertical: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  timelineContainer: {
+    flexDirection: "column",
+    marginBottom: 10,
+  },
+  timelineContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-start",
+  },
+  leftColumn: {
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+  },
+  rightColumn: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "50%",
+  },
+  rightColumn1: {
+    flexDirection: "column",
+    alignItems: "center",
+    width: "30%",
+  },
+  timeText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 16,
+  },
+  durationText: {
+    fontSize: 12,
+    color: "#666",
+    marginBottom: 16,
+  },
+  locationIcon: {
+    width: 20,
+    height: 20,
+    marginBottom: 13,
+  },
+  dottedSeparator: {
+    width: "1",
+    height: 35,
+    borderStyle: "dashed",
+    borderWidth: 1,
+    borderColor: "#ccc",
+    marginBottom: 10,
+  },
+  locationNames: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    marginBottom: 18,
+  },
+  locationText: {
+    fontSize: 14,
+    color: "#555",
+  },
+  dottedLineBetweenLocations: {
+    width: "100%",
+    height: 1,
+    borderStyle: "dashed",
+    borderWidth: 1,
+    borderColor: "#ccc",
+    marginVertical: 18,
+  },
+  modeContainer: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    marginBottom: 15,
+    marginTop: 7,
+  },
+  modeText: {
+    fontSize: 14,
+    color: "#333",
+    fontWeight: "bold",
+    fontFamily: "Inter-Regular",
+    marginBottom: 5,
+  },
+  modeIconContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  modeDetailText: {
+    fontSize: 14,
+    color: "#555",
+    marginLeft: 10,
+  },
+  driverContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 5,
+  },
+  driverImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
+  },
+  driverName: {
+    fontSize: 16,
+    color: "#333",
+    marginLeft: 10,
+  },
+  ratingText: {
+    fontSize: 14,
+    color: "#555",
+    marginLeft: 10,
+  },
+  price: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#D83F3F",
+  },
+});
+
+export default SearchRide;
