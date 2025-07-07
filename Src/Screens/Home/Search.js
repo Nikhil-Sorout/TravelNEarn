@@ -15,11 +15,29 @@ import {
   View,
   TouchableWithoutFeedback,
   Keyboard,
+  StatusBar,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome"; // Import FontAwesome Icon for calendar
 import { fetchLocations } from "../../API/Location"; // Correct import path for API function
 
 const { width, height } = Dimensions.get("window");
+
+// Responsive scaling functions
+const scale = (size) => {
+  const baseWidth = 393; // iPhone 14 Pro width
+  const scaleFactor = width / baseWidth;
+  return Math.round(size * scaleFactor);
+};
+
+const verticalScale = (size) => {
+  const baseHeight = 852; // iPhone 14 Pro height
+  const scaleFactor = height / baseHeight;
+  return Math.round(size * scaleFactor);
+};
+
+const moderateScale = (size, factor = 0.5) => {
+  return size + (scale(size) - size) * factor;
+};
 
 const Search = () => {
   const navigation = useNavigation();
@@ -30,7 +48,6 @@ const Search = () => {
   const [fullFrom, setFullFrom] = useState("");
   const [fullTo, setFullTo] = useState("");
   const [date, setDate] = useState(new Date()); // Initialize with current date
-  const [formattedDate, setFormattedDate] = useState("");
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [goingSuggestions, setGoingSuggestions] = useState([]);
@@ -43,8 +60,9 @@ const Search = () => {
 
   // Format display text to truncate long addresses
   const formatDisplayText = (text) => {
-    if (text && text.length > 35) {
-      return text.substring(0, 32) + "...";
+    const maxLength = width < 375 ? 25 : width < 390 ? 30 : 35;
+    if (text && text.length > maxLength) {
+      return text.substring(0, maxLength - 3) + "...";
     }
     return text;
   };
@@ -76,8 +94,9 @@ const Search = () => {
       // Delay to ensure the keyboard is shown
       setTimeout(() => {
         if (scrollViewRef.current) {
+          const scrollY = height < 700 ? 200 : height < 800 ? 250 : 300;
           scrollViewRef.current.scrollTo({
-            y: 300, // Adjust this value based on your layout
+            y: scrollY,
             animated: true
           });
         }
@@ -85,22 +104,9 @@ const Search = () => {
     }
   }, [isFromFocused, isToFocused, goingSuggestions.length, leavingSuggestions.length]);
 
-  const clearInput = (field) => {
-    if (field === "from") {
-      setFrom("");
-      setFullFrom("");
-      setGoingSuggestions([]);
-      setFromSelected(false);
-    } else {
-      setTo("");
-      setFullTo("");
-      setLeavingSuggestions([]);
-      setToSelected(false);
-    }
-  };
+
 
   const onChange = (event, selectedDate) => {
-    console.log("onChange", event, selectedDate);
     const currentDate = selectedDate || date;
     setShowDatePicker(false);
     const localDate = new Date(
@@ -109,20 +115,15 @@ const Search = () => {
       currentDate.getDate()
     );
     setDate(localDate); // raw Date object
-    console.log("localDate", localDate);
     const formatDate = localDate.toLocaleDateString("en-US", {
       weekday: "short",
       month: "short",
       day: "numeric",
       year: "numeric",
     });
-  
-    console.log("Formatted Date:", formatDate);
-    setFormattedDate(formatDate); // for display
   };
 
   const handleSearchPress = () => {
-    console.log("date on search ", date);
     if (!from.trim()) {
       alert("Please enter your departure location.");
       return;
@@ -145,8 +146,6 @@ const Search = () => {
     const toAddress = fullTo || to;
 
     const formatDate = date.toLocaleDateString("en-CA");
-    console.log("formattedDate : ", formatDate);
-    console.log("formattedDate", formattedDate);
     AsyncStorage.setItem("startingLocation", fromAddress.toString());
     AsyncStorage.setItem("goingLocation", toAddress.toString());
     AsyncStorage.setItem("searchingDate", date.toString());
@@ -246,8 +245,9 @@ const Search = () => {
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? (height < 700 ? 80 : 100) : 0}
     >
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       <TouchableWithoutFeedback onPress={closeSuggestions}>
         <ScrollView
           ref={scrollViewRef}
@@ -276,7 +276,7 @@ const Search = () => {
                   style={styles.notificationIconContainer}
                   onPress={handleNotificationPress}
                 >
-                  <Icon name="bell-o" size={25} color="#fff" />
+                  <Icon name="bell-o" size={moderateScale(25)} color="#fff" />
                   {unreadNotificationsCount > 0 && (
                     <View style={styles.notificationBadge}>
                       <Text style={styles.notificationBadgeText}>
@@ -315,7 +315,13 @@ const Search = () => {
 
             {/* Form Section */}
             <View
-              style={styles.formContainer}
+              style={[
+                styles.formContainer,
+                { 
+                  marginHorizontal: width < 375 ? 10 : 20,
+                  paddingHorizontal: width < 375 ? 15 : 20,
+                }
+              ]}
               onStartShouldSetResponder={() => true}
             >
               {/* Leaving From Input */}
@@ -459,7 +465,7 @@ const Search = () => {
               <View style={styles.inputContainer}>
                 <Icon
                   name="calendar"
-                  size={20}
+                  size={moderateScale(20)}
                   color="#aaa"
                   style={styles.calendarIcon}
                 />
@@ -481,7 +487,11 @@ const Search = () => {
                 <DateTimePicker
                   value={date}
                   mode="date"
-                  style={{ width: 50, fontFamily: "Inter-Regular" }}
+                  style={{ 
+                    width: moderateScale(50), 
+                    fontFamily: "Inter-Regular",
+                    transform: [{ scale: width < 375 ? 0.9 : 1 }]
+                  }}
                   display={Platform.OS === "ios" ? "spinner" : "default"}
                   onChange={onChange}
                   minimumDate={new Date()} // Set minimum date to today
@@ -492,16 +502,12 @@ const Search = () => {
               )}
 
               {/* Search Button */}
-              <View
-                style={{ marginLeft: -20, marginRight: -20, marginBottom: -20 }}
+              <TouchableOpacity
+                style={styles.searchButton}
+                onPress={handleSearchPress}
               >
-                <TouchableOpacity
-                  style={styles.searchButton}
-                  onPress={handleSearchPress}
-                >
-                  <Text style={styles.searchButtonText}>Search</Text>
-                </TouchableOpacity>
-              </View>
+                <Text style={styles.searchButtonText}>Search</Text>
+              </TouchableOpacity>
             </View>
 
             {/* Date Picker Modal */}
@@ -515,19 +521,18 @@ const Search = () => {
 export default Search;
 
 const styles = StyleSheet.create({
-  // flex: { flex: 1 },
   container: {
     flex: 1,
-    // backgroundColor: '#E73D48',
+    backgroundColor: '#f5f5f5', // Light background for better contrast
   },
   headerContainer: {
-    height: 480,
-    // backgroundColor:'white'
+    height: verticalScale(480),
+    minHeight: height * 0.55, // Ensure minimum height for smaller screens
+    maxHeight: height * 0.65, // Prevent header from being too large on big screens
   },
   textureBackground: {
     width: "100%",
     height: "100%",
-    // position: 'absolute',
   },
   headerContent: {
     flex: 1,
@@ -536,45 +541,50 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: "#fff",
-    fontSize: 46,
+    fontSize: moderateScale(46),
     fontFamily: "Inter-Bold",
     fontWeight: "900",
-    marginBottom: 10,
-    marginTop: -200,
+    marginBottom: verticalScale(10),
+    marginTop: verticalScale(-200),
+    textAlign: "center",
+    paddingHorizontal: scale(20),
   },
   subHeader: {
     color: "white",
-    fontSize: 20,
+    fontSize: moderateScale(20),
     position: "absolute",
     bottom: "40%",
     fontFamily: "Inter-Bold",
-    // top:20
+    textAlign: "center",
   },
   notificationIconContainer: {
     position: "absolute",
-    top: 43,
-    right: 20,
+    top: verticalScale(43),
+    right: scale(20),
+    padding: scale(8),
   },
   tabContainer: {
     flexDirection: "row",
     borderWidth: 1,
     borderColor: "white",
-    borderRadius: 8,
+    borderRadius: scale(8),
     alignSelf: "center",
-    marginTop: -180,
+    marginTop: verticalScale(-180),
     width: "90%",
+    maxWidth: scale(350),
+    minHeight: verticalScale(44), // Ensure minimum touch target size
   },
   tabButton: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: verticalScale(10),
     alignItems: "center",
-    borderRadius: 6,
+    borderRadius: scale(6),
   },
   activeTab: {
     backgroundColor: "white",
   },
   tabText: {
-    fontSize: 14,
+    fontSize: moderateScale(14),
     fontFamily: "OpenSans-Bold",
     color: "white",
   },
@@ -583,130 +593,126 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     width: "90%",
+    maxWidth: scale(350),
     backgroundColor: "#fff",
-    marginVertical: 20,
-    padding: 20,
-    borderRadius: 15,
+    marginVertical: verticalScale(20),
+    padding: scale(20),
+    borderRadius: scale(15),
     alignSelf: "center",
     elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: verticalScale(20),
     borderBottomWidth: 1.5,
     borderBottomColor: "#ddd",
+    minHeight: verticalScale(50),
   },
   bulletPointRed: {
-    width: 10,
-    height: 10,
+    width: scale(10),
+    height: scale(10),
     backgroundColor: "#D83F3F",
-    borderRadius: 5,
-    marginRight: 10,
+    borderRadius: scale(5),
+    marginRight: scale(10),
   },
   bulletPointGreen: {
-    width: 10,
-    height: 10,
+    width: scale(10),
+    height: scale(10),
     backgroundColor: "green",
-    borderRadius: 5,
-    marginRight: 10,
+    borderRadius: scale(5),
+    marginRight: scale(10),
   },
   input: {
     flex: 1,
-    fontSize: 16,
+    fontSize: moderateScale(16),
     fontFamily: "Inter-Regular",
-    paddingVertical: 10,
+    paddingVertical: verticalScale(10),
     color: "#333",
+    minHeight: verticalScale(40),
   },
   searchButton: {
     backgroundColor: "#D83F3F",
-    paddingVertical: 20,
-    borderRadius: 15,
+    paddingVertical: verticalScale(20),
+    borderRadius: scale(15),
     alignItems: "center",
+    marginTop: verticalScale(10),
   },
   searchButtonText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: moderateScale(16),
     fontFamily: "Inter-Bold",
   },
   calendarIcon: {
-    marginRight: 10,
+    marginRight: scale(10),
   },
   // Suggestions Styling
-  inlineSuggestion: {
-    marginRight: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    backgroundColor: "#F8F8F8",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ddd",
-  },
-
   suggestionsContainer: {
     position: "absolute",
-    top: 45,
+    top: verticalScale(45),
     left: 0,
     right: 0,
     backgroundColor: "white",
-    borderRadius: 8,
+    borderRadius: scale(8),
     borderWidth: 1,
     borderColor: "#ddd",
-    maxHeight: 200, // This limits the height and enables scrolling
+    maxHeight: verticalScale(200),
     zIndex: 999,
-    elevation: 5, // For Android shadow
-    shadowColor: "#000", // iOS shadow
+    elevation: 5,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
-    overflow: "hidden", // Ensure content doesn't overflow rounded corners
+    overflow: "hidden",
   },
-
   suggestionItem: {
-    paddingVertical: 10,
-    paddingHorizontal: 15,
+    paddingVertical: verticalScale(10),
+    paddingHorizontal: scale(15),
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
     width: "100%",
+    minHeight: verticalScale(44),
+    justifyContent: "center",
   },
-
   suggestionText: {
-    fontSize: 15,
+    fontSize: moderateScale(15),
     fontFamily: "Inter-Regular",
     color: "#333",
   },
-
   suggestionsFooter: {
-    fontSize: 12,
+    fontSize: moderateScale(12),
     color: "#888",
     textAlign: "center",
-    paddingVertical: 5,
+    paddingVertical: verticalScale(5),
     borderTopWidth: 1,
     borderTopColor: "#f0f0f0",
     backgroundColor: "#f9f9f9",
   },
-
   suggestionScrollContent: {
     flexGrow: 1,
   },
   inputText: {
-    fontSize: 16,
+    fontSize: moderateScale(16),
   },
   notificationBadge: {
     position: "absolute",
-    right: -6,
-    top: -6,
+    right: scale(-6),
+    top: verticalScale(-6),
     backgroundColor: "#FFD700",
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
+    borderRadius: scale(10),
+    minWidth: scale(20),
+    height: scale(20),
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 4,
+    paddingHorizontal: scale(4),
   },
   notificationBadgeText: {
     color: "#000",
-    fontSize: 12,
+    fontSize: moderateScale(12),
     fontWeight: "bold",
   },
 });

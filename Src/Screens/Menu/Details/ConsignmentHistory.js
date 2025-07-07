@@ -14,7 +14,7 @@ import {
 import Header from "../../../header";
 import commonStyles from "../../../styles";
 
-const TravelHistory = () => {
+const ConsignmentHistory = () => {
   const [searchText, setSearchText] = useState("");
   const [travelData, setTravelData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -266,7 +266,7 @@ const TravelHistory = () => {
   );
 };
 
-export default TravelHistory;
+export default ConsignmentHistory;
 
 const styles = StyleSheet.create({
   container: {

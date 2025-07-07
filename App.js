@@ -25,7 +25,7 @@ import Navigation from "./Src/Screens/BottomNavigation/Navigation";
 import AddAddress from "./Src/Screens/Menu/AddAddress";
 import AddressBook from "./Src/Screens/Menu/AddressBook";
 import Contact from "./Src/Screens/Menu/Contact";
-import ConsignmentsHistory from "./Src/Screens/Menu/Details/ConsignmentHistory";
+import ConsignmentHistory from "./Src/Screens/Menu/Details/ConsignmentHistory";
 import TravelHistory from "./Src/Screens/Menu/Details/TravelHistory";
 import ConsignmentDetails from "./Src/Customer Traveller/ConsignmentDetails";
 import ConsignmentSearchPage from "./Src/Customer Traveller/ConsignmentSearchPage";
@@ -228,7 +228,7 @@ export default function App() {
           />
           <Stack.Screen
             name="ConsignmentsHistory"
-            component={ConsignmentsHistory}
+            component={ConsignmentHistory}
             options={{ headerShown: false }}
           />
           <Stack.Screen

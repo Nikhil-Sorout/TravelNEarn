@@ -8,6 +8,8 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Dimensions,
+  StatusBar,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useSocket } from "../../Context/socketprovider";
@@ -15,6 +17,25 @@ import * as FileSystem from "expo-file-system";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import moment from "moment";
+
+const { width, height } = Dimensions.get("window");
+
+// Responsive scaling functions
+const scale = (size) => {
+  const baseWidth = 393; // iPhone 14 Pro width
+  const scaleFactor = width / baseWidth;
+  return Math.round(size * scaleFactor);
+};
+
+const verticalScale = (size) => {
+  const baseHeight = 852; // iPhone 14 Pro height
+  const scaleFactor = height / baseHeight;
+  return Math.round(size * scaleFactor);
+};
+
+const moderateScale = (size, factor = 0.5) => {
+  return size + (scale(size) - size) * factor;
+};
 
 const NotificationsScreen = ({ navigation, route }) => {
   const [notifications, setNotifications] = useState([]);
@@ -34,7 +55,6 @@ const NotificationsScreen = ({ navigation, route }) => {
         if (!storedPhoneNumber && route.params?.phoneNumber) {
           storedPhoneNumber = route.params.phoneNumber;
           await AsyncStorage.setItem("phoneNumber", storedPhoneNumber);
-          console.log("Phone number saved from route params:", storedPhoneNumber);
         }
         if (!storedPhoneNumber) {
           setError("Phone number not found. Please log in again.");
@@ -43,7 +63,6 @@ const NotificationsScreen = ({ navigation, route }) => {
           setPhoneNumber(storedPhoneNumber);
         }
       } catch (err) {
-        console.error("Error loading phone number:", err);
         setError("Failed to load phone number.");
         setLoading(false);
       }
@@ -53,10 +72,7 @@ const NotificationsScreen = ({ navigation, route }) => {
 
   useEffect(() => {
     if (socket && phoneNumber) {
-      console.log("Socket connected:", socket.connected);
-
       socket.on("sendnotification", (data) => {
-        console.log("Received real-time notification:", data);
         if (data && data.message) {
           const newNotification = {
             title: data.message,
@@ -75,13 +91,10 @@ const NotificationsScreen = ({ navigation, route }) => {
             ...prevNotifications,
           ]);
           setUnreadCount((prev) => prev + 1);
-        } else {
-          console.warn("Invalid notification format:", data);
         }
       });
 
       socket.on("connect_error", (error) => {
-        console.error("Socket.IO connection error:", error.message);
         setError("Failed to connect to notification server.");
       });
 
@@ -100,7 +113,7 @@ const NotificationsScreen = ({ navigation, route }) => {
           setPaidNotifications(JSON.parse(storedPaid));
         }
       } catch (err) {
-        console.error("Error loading paid notifications:", err);
+        // Handle error silently
       }
     };
     loadPaidNotifications();
@@ -114,7 +127,7 @@ const NotificationsScreen = ({ navigation, route }) => {
           JSON.stringify(paidNotifications)
         );
       } catch (err) {
-        console.error("Error saving paid notifications:", err);
+        // Handle error silently
       }
     };
     savePaidNotifications();
@@ -137,12 +150,7 @@ const NotificationsScreen = ({ navigation, route }) => {
         }
 
         const data = await response.json();
-        console.log("Fetched notifications:", JSON.stringify(data, null, 2));
-
         if (data && Array.isArray(data.notifications)) {
-          data.notifications.forEach((notif, index) => {
-            console.log(`Notification ${index} rideDetails:`, notif.travelId || "N/A");
-          });
 
           const lastReadTime = await AsyncStorage.getItem("lastNotificationReadTime");
           const shouldMarkAsRead = route.params?.markAsRead === true;
@@ -174,7 +182,7 @@ const NotificationsScreen = ({ navigation, route }) => {
               storedPaymentNotifications = JSON.parse(stored);
             }
           } catch (err) {
-            console.error("Error loading payment success notifications:", err);
+            // Handle error silently
           }
 
           // Handle payment success from WebViewScreen for Consignment tab
@@ -518,12 +526,13 @@ const NotificationsScreen = ({ navigation, route }) => {
 
   return (
     <View style={styles.container}>
+      <StatusBar backgroundColor="#D83F3F" barStyle="light-content" />
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="chevron-back" size={24} color="white" />
+          <Ionicons name="chevron-back" size={moderateScale(24)} color="white" />
         </TouchableOpacity>
         <View style={styles.headerTextContainer}>
           <Text style={styles.headerText}>Notifications</Text>
@@ -572,30 +581,7 @@ const NotificationsScreen = ({ navigation, route }) => {
                 ? item.requestedby
                 : phoneNumber;
 
-            console.log(
-              "Notification details:",
-              JSON.stringify(
-                {
-                  title: item.title,
-                  consignmentId: item.consignmentId || "N/A",
-                  travelId: item.travelId || "N/A",
-                  notificationType: item.notificationType,
-                  travelmode: item.travelmode,
-                  pickup: item.pickup,
-                  dropoff: item.dropoff,
-                  pickuptime: item.pickuptime || "N/A",
-                  amount: item.amount,
-                  dropofftime: item.dropofftime,
-                  travellername: item.travellername,
-                  requestedby: item.requestedby,
-                  requestto: item.requestto,
-                  paymentstatus: item.paymentstatus || "N/A",
-                  verificationPhoneNumber: verificationPhoneNumber,
-                  createdAt: item.createdAt,
-                },
-                null, 2
-              )
-            );
+
 
             return (
               <TouchableOpacity
@@ -609,12 +595,7 @@ const NotificationsScreen = ({ navigation, route }) => {
                       );
                       return;
                     }
-                    console.log(
-                      "Navigating to ConsignmentPayRequest with Consignment ID:",
-                      item.consignmentId,
-                      "Travel ID:",
-                      item.travelId || "N/A"
-                    );
+
                     navigation.navigate("ConsignmentPayRequest", {
                       consignmentId: item.consignmentId,
                       travelId: item.travelId || "N/A",
@@ -629,12 +610,7 @@ const NotificationsScreen = ({ navigation, route }) => {
                       );
                       return;
                     }
-                    console.log(
-                      "Navigating to TravelPayRequest with Consignment ID:",
-                      item.consignmentId || "N/A",
-                      "Travel ID:",
-                      item.travelId
-                    );
+
                     navigation.navigate("TravelPayRequest", {
                       consignmentId: item.consignmentId || "N/A",
                       travelId: item.travelId,
@@ -694,19 +670,7 @@ const NotificationsScreen = ({ navigation, route }) => {
                               return;
                             }
 
-                            console.log("Navigating to PayNowScreen with:", {
-                              consignmentId: finalConsignmentId,
-                              travelId: item.travelId || "N/A",
-                              phoneNumber: item.requestedby,
-                              amount: item.amount,
-                              requestTo: item.requestto,
-                              requestedBy: item.requestedby,
-                              verificationPhoneNumber,
-                              notificationType: item.notificationType,
-                              profilePicture: item.profilePicture,
-                              pickuptime: item.pickuptime,
-                              dropofftime: item.dropofftime,
-                            });
+
 
                             navigation.navigate("PayNowScreen", {
                               consignmentId: finalConsignmentId,
@@ -768,7 +732,7 @@ const NotificationsScreen = ({ navigation, route }) => {
                                 {
                                   text: "Download PDF",
                                   onPress: async () => {
-                                    console.log("Initiating PDF download for receipt:", receiptDetails);
+
                                     await generateAndSavePDF(item);
                                   },
                                 },
@@ -835,21 +799,26 @@ const NotificationsScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F4F4F4",
+    backgroundColor: "#f5f5f5",
   },
   noDataText: {
     textAlign: "center",
-    marginTop: 20,
+    marginTop: verticalScale(20),
     color: "grey",
-    fontSize: 16,
+    fontSize: moderateScale(16),
     fontWeight: "bold",
   },
   header: {
     backgroundColor: "#D83F3F",
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 15,
-    paddingHorizontal: 10,
+    paddingVertical: verticalScale(15),
+    paddingHorizontal: scale(10),
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   headerTextContainer: {
     flex: 1,
@@ -859,47 +828,52 @@ const styles = StyleSheet.create({
   },
   headerText: {
     color: "white",
-    fontSize: 18,
+    fontSize: moderateScale(18),
     fontWeight: "bold",
   },
   badge: {
     backgroundColor: "#FFD700",
-    borderRadius: 12,
-    width: 24,
-    height: 24,
+    borderRadius: scale(12),
+    width: scale(24),
+    height: scale(24),
     justifyContent: "center",
     alignItems: "center",
-    marginLeft: 8,
+    marginLeft: scale(8),
   },
   badgeText: {
     color: "#000",
-    fontSize: 12,
+    fontSize: moderateScale(12),
     fontWeight: "bold",
   },
   backButton: {
-    marginRight: 10,
+    marginRight: scale(10),
+    padding: scale(8),
   },
   tabsContainer: {
     flexDirection: "row",
-    marginTop: 20,
-    margin: 10,
+    marginTop: verticalScale(20),
+    margin: scale(10),
     borderWidth: 2,
     borderColor: "#7C7C7C",
-    borderRadius: 5,
+    borderRadius: scale(5),
+    maxWidth: scale(350),
+    alignSelf: "center",
+    width: "90%",
   },
   tab: {
     flex: 1,
-    padding: 12,
+    padding: verticalScale(12),
     alignItems: "center",
     borderBottomWidth: 3,
     borderBottomColor: "transparent",
+    minHeight: verticalScale(44),
   },
   activeTab: {
     backgroundColor: "#A4CE39",
     color: "white",
   },
   tabText: {
-    fontSize: 14,
+    fontSize: moderateScale(14),
     color: "#7C7C7C",
   },
   activeTabText: {
@@ -907,23 +881,23 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   notificationsList: {
-    padding: 15,
+    padding: scale(15),
+    paddingHorizontal: width < 375 ? scale(10) : scale(15),
   },
   notificationItem: {
     flexDirection: "column",
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    paddingVertical: verticalScale(15),
     borderLeftWidth: 5,
     borderLeftColor: "#53B175",
-    borderRadius: 5,
+    borderRadius: scale(8),
     backgroundColor: "#fff",
-    padding: 15,
+    padding: scale(15),
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 3,
-    marginBottom: 10,
+    marginBottom: verticalScale(10),
+    marginHorizontal: width < 375 ? scale(5) : 0,
   },
   unreadNotification: {
     backgroundColor: "#E6F3FF",
@@ -933,18 +907,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   notificationTitle: {
-    fontSize: 16,
+    fontSize: moderateScale(16),
     fontWeight: "bold",
+    color: "#333",
   },
   notificationSubtitle: {
     color: "#333",
-    marginTop: 5,
+    marginTop: verticalScale(5),
+    fontSize: moderateScale(14),
   },
   notificationTime: {
     color: "#888",
-    fontSize: 14,
+    fontSize: moderateScale(14),
     alignSelf: "flex-end",
-    marginTop: 5,
+    marginTop: verticalScale(5),
   },
   loadingContainer: {
     flex: 1,
@@ -954,47 +930,53 @@ const styles = StyleSheet.create({
   errorText: {
     color: "red",
     textAlign: "center",
-    marginTop: 20,
+    marginTop: verticalScale(20),
+    fontSize: moderateScale(14),
   },
   buttonContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 15,
+    marginTop: verticalScale(15),
   },
   payButton: {
     backgroundColor: "#4CAF50",
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 5,
+    paddingVertical: verticalScale(10),
+    paddingHorizontal: scale(15),
+    borderRadius: scale(8),
     flex: 1,
-    marginRight: 10,
+    marginRight: scale(10),
     alignItems: "center",
+    minHeight: verticalScale(44),
   },
   successButton: {
     backgroundColor: "#4CAF50",
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 5,
+    paddingVertical: verticalScale(10),
+    paddingHorizontal: scale(15),
+    borderRadius: scale(8),
     flex: 1,
     alignItems: "center",
+    minHeight: verticalScale(44),
   },
   declineButton: {
     backgroundColor: "#fff",
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 5,
+    paddingVertical: verticalScale(10),
+    paddingHorizontal: scale(15),
+    borderRadius: scale(8),
     borderWidth: 1,
     borderColor: "#F44336",
     flex: 1,
     alignItems: "center",
+    minHeight: verticalScale(44),
   },
   buttonText: {
     color: "white",
     fontWeight: "bold",
+    fontSize: moderateScale(14),
   },
   declineButtonText: {
     color: "#F44336",
     fontWeight: "bold",
+    fontSize: moderateScale(14),
   },
 });
 

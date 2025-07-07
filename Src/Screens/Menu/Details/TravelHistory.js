@@ -9,12 +9,35 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
+  Dimensions,
+  StatusBar,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import Header from "../../../header";
 import commonStyles from "../../../styles";
+import {SafeAreaView} from "react-native-safe-area-context";
+
+const { width, height } = Dimensions.get("window");
+
+// Responsive scaling functions
+const scale = (size) => {
+  const baseWidth = 393; // iPhone 14 Pro width
+  const scaleFactor = width / baseWidth;
+  return Math.round(size * scaleFactor);
+};
+
+const verticalScale = (size) => {
+  const baseHeight = 852; // iPhone 14 Pro height
+  const scaleFactor = height / baseHeight;
+  return Math.round(size * scaleFactor);
+};
+
+const moderateScale = (size, factor = 0.5) => {
+  return size + (scale(size) - size) * factor;
+};
 
 const API_URL = "https://travel.timestringssystem.com/t/travelhistory";
 
@@ -40,7 +63,6 @@ const TravelHistory = () => {
       const phoneNumber = await AsyncStorage.getItem("phoneNumber");
 
       if (!phoneNumber) {
-        console.error("Phone number not found in AsyncStorage");
         return;
       }
 
@@ -52,7 +74,6 @@ const TravelHistory = () => {
       });
 
       const data = await response.json();
-      console.log("API Response:", JSON.stringify(data, null, 2));
 
       if (data.travels && Array.isArray(data.travels)) {
         const formattedData = data.travels.map((travel) => ({
@@ -68,14 +89,12 @@ const TravelHistory = () => {
           expectedStartTime: travel.expectedStartTime,
           consignmentDetails: travel.consignmentDetails || [],
         }));
-        console.log("Formatted Data:", JSON.stringify(formattedData, null, 2));
         setTravelData(formattedData);
       } else {
-        console.log("No travels found in response");
         setTravelData([]);
       }
     } catch (error) {
-      console.error("Error fetching travel history:", error);
+      // Handle error silently
     } finally {
       setLoading(false);
     }
@@ -119,18 +138,18 @@ const TravelHistory = () => {
   const getTravelIcon = (travelMode) => {
     switch (travelMode) {
       case "car":
-        return <Icon name="car" size={30} color="#284268" />;
+        return <Icon name="car" size={moderateScale(30)} color="#284268" />;
       case "airplane":
-        return <Ionicons name="airplane" size={30} color="#284268" />;
+        return <Ionicons name="airplane" size={moderateScale(30)} color="#284268" />;
       case "train":
-        return <Icon name="train" size={30} color="#284268" />;
+        return <Icon name="train" size={moderateScale(30)} color="#284268" />;
       default:
-        return <Ionicons name="help-circle-outline" size={30} color="gray" />;
+        return <Ionicons name="help-circle-outline" size={moderateScale(30)} color="gray" />;
     }
   };
 
   const renderItem = ({ item }) => (
-    <TouchableOpacity
+    <TouchableWithoutFeedback
       onPress={() => {
         const consignmentId =
           item.consignmentDetails.length > 0
@@ -141,10 +160,6 @@ const TravelHistory = () => {
           ride: item,
           consignmentId: consignmentId,
         });
-        console.log(item.travelId);
-        // navigation.navigate("Cancellation",{
-        //   travelId:item.travelId
-        // })
       }}
     >
       <View style={styles.card}>
@@ -229,11 +244,12 @@ const TravelHistory = () => {
           </TouchableOpacity>
         </View>
       </View>
-    </TouchableOpacity>
+    </TouchableWithoutFeedback>
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <StatusBar backgroundColor="#D83F3F" barStyle="light-content" />
       <Header title="Travel History" navigation={navigation} />
 
       <View style={styles.searchBarContainer}>
@@ -293,240 +309,257 @@ const TravelHistory = () => {
           renderItem={renderItem}
           keyExtractor={(item) => item._id}
           contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f9f9f9",
+    backgroundColor: "#fff",
   },
   searchBarContainer: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    marginTop: 10,
+    paddingHorizontal: scale(15),
+    paddingVertical: verticalScale(10),
+    marginTop: verticalScale(10),
+    // marginHorizontal: width < 375 ? scale(10) : scale(15),
+    borderRadius: scale(8),
+    // elevation: 2,
+    // shadowColor: "#000",
+    // shadowOffset: { width: 0, height: 1 },
+    // shadowOpacity: 0.05,
+    // shadowRadius: 2,
   },
   searchInput: {
     flex: 1,
     borderColor: "#ddd",
     borderWidth: 1,
-    borderRadius: 5,
-    paddingLeft: 40,
-    paddingRight: 30, // Add space for the clear button
-    paddingVertical: 8,
-    fontSize: 14,
-    backgroundColor: "#f1f1f1",
+    borderRadius: scale(5),
+    paddingLeft: scale(40),
+    paddingRight: scale(30),
+    paddingVertical: verticalScale(8),
+    fontSize: moderateScale(14),
+    // backgroundColor: "#f1f1f1",
+    backgroundColor: "#7676801A",
+    minHeight: verticalScale(40),
   },
   searchIcon: {
     position: "absolute",
-    left: 10,
-    marginLeft: 18,
+    left: scale(10),
+    marginLeft: scale(18),
   },
   clearButton: {
     position: "absolute",
-    right: 15,
-    padding: 5,
+    right: scale(15),
+    padding: scale(5),
   },
   clearButtonText: {
     color: "#888",
-    fontSize: 16,
+    fontSize: moderateScale(16),
     fontWeight: "bold",
   },
   resultsCount: {
-    paddingHorizontal: 15,
-    paddingTop: 5,
-    fontSize: 12,
+    paddingHorizontal: scale(15),
+    paddingTop: verticalScale(5),
+    fontSize: moderateScale(12),
     color: "#666",
     fontStyle: "italic",
   },
   listContainer: {
-    padding: 15,
+    padding: scale(15),
+    paddingHorizontal: width < 375 ? scale(10) : scale(15),
   },
   card: {
     backgroundColor: "#ffffff",
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 12,
+    borderRadius: scale(8),
+    padding: scale(15),
+    marginBottom: verticalScale(12),
     borderWidth: 1,
-    borderColor: "#e0e0e0",
+    borderColor: "#fff",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
   },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: verticalScale(10),
   },
   boldText: {
     fontWeight: "bold",
-    fontSize: 16,
+    fontSize: moderateScale(16),
     color: "#333",
   },
   badge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
+    paddingHorizontal: scale(12),
+    paddingVertical: verticalScale(6),
+    borderRadius: scale(6),
   },
   badgeText: {
     color: "#fff",
     fontWeight: "600",
-    fontSize: 12,
+    fontSize: moderateScale(12),
   },
   dateText: {
-    fontSize: 14,
+    fontSize: moderateScale(14),
     color: "#666",
-    marginBottom: 8,
+    marginBottom: verticalScale(8),
   },
   carRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 10,
+    marginVertical: verticalScale(10),
   },
   carText: {
-    marginLeft: 8,
-    fontSize: 14,
+    marginLeft: scale(8),
+    fontSize: moderateScale(14),
     color: "#444",
   },
   buttonRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    padding: 8,
+    padding: scale(8),
   },
   button: {
     flexDirection: "row",
     alignItems: "center",
+    minHeight: verticalScale(44),
   },
   buttonText: {
-    marginLeft: 8,
+    marginLeft: scale(8),
     color: "#007AFF",
     fontWeight: "500",
-    fontSize: 14,
+    fontSize: moderateScale(14),
   },
   icon: {
-    width: 20,
-    height: 20,
+    width: scale(20),
+    height: scale(20),
   },
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 10,
+    marginTop: verticalScale(10),
   },
   dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: scale(10),
+    height: scale(10),
+    borderRadius: scale(5),
     backgroundColor: "green",
-    marginRight: 10,
+    marginRight: scale(10),
   },
   circle: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: scale(10),
+    height: scale(10),
+    borderRadius: scale(5),
     backgroundColor: "red",
-    marginRight: 10,
+    marginRight: scale(10),
   },
   infoRow: {
     flexDirection: "row",
-    marginVertical: 10,
+    marginVertical: verticalScale(10),
   },
   infoText: {
-    fontSize: 14,
+    fontSize: moderateScale(14),
     color: "black",
     fontWeight: "bold",
-    marginLeft: 10,
-    marginTop: -2,
+    marginLeft: scale(10),
+    marginTop: verticalScale(-2),
   },
   infoText1: {
-    fontSize: 15,
+    fontSize: moderateScale(15),
     color: "#555",
-    marginLeft: 32,
-    marginTop: -10,
+    marginLeft: scale(32),
+    marginTop: verticalScale(-10),
   },
   infoText2: {
-    fontSize: 15,
+    fontSize: moderateScale(15),
     color: "#555",
-    marginLeft: -30,
-    marginTop: -10,
+    marginLeft: scale(-30),
+    marginTop: verticalScale(-10),
   },
   mapContainer: {
     marginVertical: 0,
-    margin: 20,
+    margin: scale(20),
   },
   map: {
     width: "100%",
-    height: 180,
-    borderRadius: 10,
+    height: verticalScale(180),
+    borderRadius: scale(10),
     objectFit: "cover",
   },
   otherInfo: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginVertical: 10,
+    marginVertical: verticalScale(10),
   },
   infoBlock: {
     alignItems: "center",
   },
   infoTitle: {
-    fontSize: 16,
+    fontSize: moderateScale(16),
     fontWeight: "bold",
   },
   infoSubtitle: {
-    fontSize: 14,
+    fontSize: moderateScale(14),
     color: "#555",
   },
   vehicleText: {
-    fontSize: 16,
+    fontSize: moderateScale(16),
     color: "#333",
     textAlign: "center",
-    marginVertical: 10,
+    marginVertical: verticalScale(10),
   },
   traveler: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 10,
+    marginVertical: verticalScale(10),
   },
   profileImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 10,
+    width: scale(50),
+    height: scale(50),
+    borderRadius: scale(25),
+    marginRight: scale(10),
   },
   driverPhoto: {
-    width: 50,
-    height: 50,
-    borderRadius: 20,
+    width: scale(50),
+    height: scale(50),
+    borderRadius: scale(20),
     objectFit: "contain",
   },
   travelerDetails: {
     flex: 1,
   },
   travelerName: {
-    fontSize: 16,
+    fontSize: moderateScale(16),
     fontWeight: "bold",
   },
   travelerRating: {
-    fontSize: 14,
+    fontSize: moderateScale(14),
     color: "#555",
   },
   noRidesContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 50,
+    marginTop: verticalScale(50),
   },
   noRidesImage: {
-    width: 150,
-    height: 150,
-    marginBottom: 10,
+    width: scale(150),
+    height: scale(150),
+    marginBottom: verticalScale(10),
     resizeMode: "contain",
   },
   noRidesText: {
-    fontSize: 16,
+    fontSize: moderateScale(16),
     fontWeight: "bold",
     color: "#666",
   },

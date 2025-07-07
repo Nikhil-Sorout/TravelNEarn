@@ -1,6 +1,22 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, SafeAreaView, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, SafeAreaView, StatusBar, Dimensions } from 'react-native';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
+
+// Responsive scaling functions
+const { width, height } = Dimensions.get("window");
+const scale = (size) => {
+  const baseWidth = 393; // iPhone 14 Pro width
+  const scaleFactor = width / baseWidth;
+  return Math.round(size * scaleFactor);
+};
+const verticalScale = (size) => {
+  const baseHeight = 852; // iPhone 14 Pro height
+  const scaleFactor = height / baseHeight;
+  return Math.round(size * scaleFactor);
+};
+const moderateScale = (size, factor = 0.5) => {
+  return size + (scale(size) - size) * factor;
+};
 
 const TravelDetailsScreen = () => {
   return (
@@ -10,11 +26,11 @@ const TravelDetailsScreen = () => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton}>
-          <Ionicons name="chevron-back" size={24} color="#fff" />
+          <Ionicons name="chevron-back" size={scale(24)} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Travel Details</Text>
+        <Text style={styles.headerTitle}>Travel Det</Text>
         <TouchableOpacity style={styles.notificationButton}>
-          <Ionicons name="notifications-outline" size={24} color="#fff" />
+          <Ionicons name="notifications-outline" size={scale(24)} color="#fff" />
           <View style={styles.notificationBadge}>
             <Text style={styles.notificationBadgeText}>1</Text>
           </View>
@@ -33,10 +49,10 @@ const TravelDetailsScreen = () => {
         {/* Consignments Section */}
         <TouchableOpacity style={styles.consignmentCard}>
           <View style={styles.consignmentRow}>
-            <MaterialCommunityIcons name="cube-outline" size={24} color="#333" />
+            <MaterialCommunityIcons name="cube-outline" size={scale(24)} color="#333" />
             <Text style={styles.consignmentText}>Consignments to carry</Text>
           </View>
-          <Ionicons name="chevron-forward" size={20} color="#888" />
+          <Ionicons name="chevron-forward" size={scale(20)} color="#888" />
         </TouchableOpacity>
         
         {/* Travel Route Card */}
@@ -62,7 +78,7 @@ const TravelDetailsScreen = () => {
           
           {/* Travel Time and Distance */}
           <View style={styles.travelInfo}>
-            <Ionicons name="time-outline" size={20} color="#333" />
+            <Ionicons name="time-outline" size={scale(20)} color="#333" />
             <View style={styles.travelTextContainer}>
               <Text style={styles.travelTimeText}>1hr 40 mins</Text>
               <Text style={styles.travelDistanceText}>50kms</Text>
@@ -88,7 +104,7 @@ const TravelDetailsScreen = () => {
           
           {/* Date and Time */}
           <View style={styles.infoItem}>
-            <Ionicons name="time-outline" size={20} color="#333" />
+            <Ionicons name="time-outline" size={scale(20)} color="#333" />
             <View style={styles.infoTextContainer}>
               <Text style={styles.infoText}>7th August 2024</Text>
               <Text style={styles.infoSubtext}>7:00 AM</Text>
@@ -97,7 +113,7 @@ const TravelDetailsScreen = () => {
           
           {/* Car Type */}
           <View style={styles.infoItem}>
-            <FontAwesome5 name="car" size={20} color="#333" />
+            <FontAwesome5 name="car" size={scale(20)} color="#333" />
             <Text style={styles.infoText}>Hatchback Car (4 Seater)</Text>
           </View>
         </View>
@@ -129,19 +145,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#e34d4d',
-    paddingVertical: 15,
-    paddingHorizontal: 15,
+    paddingVertical: verticalScale(15),
+    paddingHorizontal: scale(15),
   },
   backButton: {
-    padding: 5,
+    padding: scale(5),
   },
   headerTitle: {
     color: 'white',
-    fontSize: 18,
+    fontSize: moderateScale(18),
     fontWeight: '600',
   },
   notificationButton: {
-    padding: 5,
+    padding: scale(5),
     position: 'relative',
   },
   notificationBadge: {
@@ -149,15 +165,15 @@ const styles = StyleSheet.create({
     top: 0,
     right: 0,
     backgroundColor: '#ffd166',
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    width: scale(16),
+    height: scale(16),
+    borderRadius: scale(8),
     justifyContent: 'center',
     alignItems: 'center',
   },
   notificationBadgeText: {
     color: '#333',
-    fontSize: 10,
+    fontSize: moderateScale(10),
     fontWeight: 'bold',
   },
   content: {
@@ -165,45 +181,45 @@ const styles = StyleSheet.create({
   },
   idCard: {
     backgroundColor: 'white',
-    margin: 15,
+    margin: scale(15),
     marginBottom: 0,
-    padding: 15,
-    borderRadius: 8,
+    padding: scale(15),
+    borderRadius: scale(8),
     shadowColor: '#000',
     shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: scale(1) },
+    shadowRadius: scale(2),
     elevation: 2,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   travelId: {
-    fontSize: 16,
+    fontSize: moderateScale(16),
     fontWeight: 'bold',
     color: '#333',
   },
   statusBadge: {
     backgroundColor: '#fff7d6',
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 4,
+    paddingVertical: verticalScale(5),
+    paddingHorizontal: scale(10),
+    borderRadius: scale(4),
   },
   statusText: {
     color: '#dda900',
     fontWeight: '600',
-    fontSize: 12,
+    fontSize: moderateScale(12),
   },
   consignmentCard: {
     backgroundColor: 'white',
-    margin: 15,
-    marginVertical: 10,
-    padding: 15,
-    borderRadius: 8,
+    margin: scale(15),
+    marginVertical: verticalScale(10),
+    padding: scale(15),
+    borderRadius: scale(8),
     shadowColor: '#000',
     shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: scale(1) },
+    shadowRadius: scale(2),
     elevation: 2,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -212,93 +228,93 @@ const styles = StyleSheet.create({
   consignmentRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 15,
+    gap: scale(15),
   },
   consignmentText: {
-    fontSize: 15,
+    fontSize: moderateScale(15),
     fontWeight: '500',
     color: '#333',
   },
   routeCard: {
     backgroundColor: 'white',
-    margin: 15,
-    marginVertical: 10,
-    padding: 15,
-    borderRadius: 8,
+    margin: scale(15),
+    marginVertical: verticalScale(10),
+    padding: scale(15),
+    borderRadius: scale(8),
     shadowColor: '#000',
     shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: scale(1) },
+    shadowRadius: scale(2),
     elevation: 2,
   },
   routePoint: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 5,
+    marginVertical: verticalScale(5),
   },
   locationIconContainer: {
-    width: 24,
+    width: scale(24),
     alignItems: 'center',
-    marginRight: 15,
+    marginRight: scale(15),
   },
   greenDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: scale(12),
+    height: scale(12),
+    borderRadius: scale(6),
     backgroundColor: '#4CAF50',
   },
   redDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: scale(12),
+    height: scale(12),
+    borderRadius: scale(6),
     backgroundColor: '#e34d4d',
   },
   locationText: {
-    fontSize: 15,
+    fontSize: moderateScale(15),
     color: '#333',
     fontWeight: '500',
   },
   dottedLine: {
-    width: 1,
-    height: 20,
+    width: scale(1),
+    height: verticalScale(20),
     backgroundColor: '#ccc',
-    marginLeft: 12,
-    marginVertical: 2,
+    marginLeft: scale(12),
+    marginVertical: verticalScale(2),
   },
   travelInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 15,
-    paddingTop: 15,
-    borderTopWidth: 1,
+    marginTop: verticalScale(15),
+    paddingTop: verticalScale(15),
+    borderTopWidth: scale(1),
     borderTopColor: '#f0f0f0',
   },
   travelTextContainer: {
-    marginLeft: 15,
+    marginLeft: scale(15),
   },
   travelTimeText: {
-    fontSize: 15,
+    fontSize: moderateScale(15),
     fontWeight: '600',
     color: '#333',
   },
   travelDistanceText: {
-    fontSize: 14,
+    fontSize: moderateScale(14),
     color: '#666',
-    marginTop: 2,
+    marginTop: verticalScale(2),
   },
   mapSection: {
-    margin: 15,
-    marginVertical: 10,
+    margin: scale(15),
+    marginVertical: verticalScale(10),
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: moderateScale(16),
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 10,
+    marginBottom: verticalScale(10),
   },
   mapContainer: {
-    height: 160,
-    borderRadius: 8,
+    height: verticalScale(160),
+    borderRadius: scale(8),
     overflow: 'hidden',
     backgroundColor: '#e1e1e1',
   },
@@ -307,49 +323,49 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   otherInfoSection: {
-    margin: 15,
-    marginVertical: 10,
+    margin: scale(15),
+    marginVertical: verticalScale(10),
   },
   infoItem: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'white',
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 10,
+    padding: scale(15),
+    borderRadius: scale(8),
+    marginBottom: verticalScale(10),
     shadowColor: '#000',
     shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: scale(1) },
+    shadowRadius: scale(2),
     elevation: 1,
   },
   infoTextContainer: {
-    marginLeft: 15,
+    marginLeft: scale(15),
   },
   infoText: {
-    fontSize: 15,
+    fontSize: moderateScale(15),
     fontWeight: '500',
     color: '#333',
-    marginLeft: 15,
+    marginLeft: scale(15),
   },
   infoSubtext: {
-    fontSize: 14,
+    fontSize: moderateScale(14),
     color: '#666',
   },
   bottomButtons: {
     flexDirection: 'row',
-    padding: 15,
+    padding: scale(15),
     backgroundColor: 'white',
-    borderTopWidth: 1,
+    borderTopWidth: scale(1),
     borderTopColor: '#eaeaea',
   },
   cancelButton: {
     flex: 1,
-    paddingVertical: 15,
-    borderWidth: 1,
+    paddingVertical: verticalScale(15),
+    borderWidth: scale(1),
     borderColor: '#e34d4d',
-    borderRadius: 5,
-    marginRight: 10,
+    borderRadius: scale(5),
+    marginRight: scale(10),
     alignItems: 'center',
   },
   cancelButtonText: {
@@ -358,9 +374,9 @@ const styles = StyleSheet.create({
   },
   startButton: {
     flex: 1,
-    paddingVertical: 15,
+    paddingVertical: verticalScale(15),
     backgroundColor: '#4CAF50',
-    borderRadius: 5,
+    borderRadius: scale(5),
     alignItems: 'center',
   },
   startButtonText: {
@@ -368,12 +384,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   bottomIndicator: {
-    width: 50,
-    height: 5,
+    width: scale(50),
+    height: verticalScale(5),
     backgroundColor: '#888',
-    borderRadius: 2.5,
+    borderRadius: scale(2.5),
     alignSelf: 'center',
-    marginBottom: 10,
+    marginBottom: verticalScale(10),
   },
 });
 

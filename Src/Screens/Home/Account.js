@@ -11,13 +11,30 @@ import {
   Text,
   TouchableOpacity,
   View,
-  SafeAreaView,
   StatusBar,
+  ScrollView,
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const { width, height } = Dimensions.get("window");
-const statusBarHeight = Platform.OS === "ios" ? 20 : 0;
+
+// Responsive scaling functions
+const scale = (size) => {
+  const baseWidth = 393; // iPhone 14 Pro width
+  const scaleFactor = width / baseWidth;
+  return Math.round(size * scaleFactor);
+};
+
+const verticalScale = (size) => {
+  const baseHeight = 852; // iPhone 14 Pro height
+  const scaleFactor = height / baseHeight;
+  return Math.round(size * scaleFactor);
+};
+
+const moderateScale = (size, factor = 0.5) => {
+  return size + (scale(size) - size) * factor;
+};
 
 const Account = ({ navigation, route }) => {
   const { phoneNumber: phoneNumberFromParams } = route.params || {};
@@ -30,10 +47,6 @@ const Account = ({ navigation, route }) => {
       try {
         const storedProfilePic = await AsyncStorage.getItem("profilePicture");
         if (storedProfilePic) {
-          console.log(
-            "Profile picture loaded from AsyncStorage:",
-            storedProfilePic
-          );
           setProfilePic(storedProfilePic);
         }
 
@@ -42,10 +55,8 @@ const Account = ({ navigation, route }) => {
           phoneNum = await AsyncStorage.getItem("phoneNumber");
           setPhoneNumber(phoneNum || "");
         }
-        console.log(phoneNum);
 
         if (!phoneNum) {
-          console.warn("Phone number is missing");
           return;
         }
 
@@ -60,10 +71,9 @@ const Account = ({ navigation, route }) => {
         if (response.data && response.data.user) {
           const { firstName, lastName, profilePicture } = response.data.user;
           const fullName = `${firstName} ${lastName}`.trim();
-          // console.log(fullName)
           setUserName(fullName);
-          AsyncStorage.setItem("firstName");
-          AsyncStorage.setItem("lastName");
+          AsyncStorage.setItem("firstName", firstName);
+          AsyncStorage.setItem("lastName", lastName);
 
           if (profilePicture && profilePicture !== storedProfilePic) {
             let imageUrl = profilePicture;
@@ -74,7 +84,6 @@ const Account = ({ navigation, route }) => {
             }
             await AsyncStorage.setItem("profilePicture", imageUrl);
             setProfilePic(imageUrl);
-            console.log("Updated profile picture from API:", imageUrl);
           }
         }
       } catch (error) {
@@ -91,7 +100,7 @@ const Account = ({ navigation, route }) => {
         message: "Check out this amazing app: [Your App Link Here]",
       });
     } catch (error) {
-      console.error("Error sharing:", error.message);
+      // Handle share error silently
     }
   };
 
@@ -103,7 +112,7 @@ const Account = ({ navigation, route }) => {
       await AsyncStorage.removeItem("lastName");
       navigation.navigate("Start");
     } catch (error) {
-      console.error("Error logging out:", error.message);
+      // Handle logout error silently
     }
   };
 
@@ -171,22 +180,16 @@ const Account = ({ navigation, route }) => {
     },
   ];
 
-  const allItems = [
-    ...menuItems,
-    { name: "Separator", isSeparator: true },
-    ...otherItems,
-    { name: "Separator", isSeparator: true },
-    ...specialItems,
-  ];
-
-  const renderItem = ({ item }) => {
-    if (item.isSeparator) {
-      return <View style={styles.sectionSeparator} />;
+  const renderItem = ({ item, index }) => {
+    let extraStyle = {};
+    if (item.name === "Share this app") {
+      extraStyle = styles.specialSpacing;
+    } else if (item.name === "Logout") {
+      extraStyle = styles.logoutSpacing;
     }
-
     return (
       <TouchableOpacity
-        style={styles.menuItem}
+        style={[styles.menuItem, extraStyle]}
         onPress={() => {
           if (item.action) {
             item.action();
@@ -205,7 +208,7 @@ const Account = ({ navigation, route }) => {
           {item.name}
         </Text>
         {!["Share this app", "Logout"].includes(item.name) && (
-          <Icon name="chevron-forward" size={24} color="#323232" />
+          <Icon name="chevron-forward" size={moderateScale(24)} color="#323232" />
         )}
       </TouchableOpacity>
     );
@@ -214,7 +217,7 @@ const Account = ({ navigation, route }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar backgroundColor="#D83F3F" barStyle="light-content" />
-      <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.greetingContainer}>
@@ -224,7 +227,7 @@ const Account = ({ navigation, route }) => {
               style={styles.editProfileContainer}
             >
               <Text style={styles.editProfileText}>Edit Profile</Text>
-              <Icon name="chevron-forward" size={20} color="white" />
+              <Icon name="chevron-forward" size={moderateScale(20)} color="white" />
             </TouchableOpacity>
           </View>
           <Image
@@ -233,23 +236,26 @@ const Account = ({ navigation, route }) => {
             }
             style={styles.profilePic}
             onError={() => {
-              console.log(
-                "Error loading profile image, falling back to default"
-              );
               setProfilePic(null);
             }}
           />
         </View>
 
-        {/* Menu Items */}
-        <FlatList
-          data={allItems}
-          keyExtractor={(item, index) => index.toString()}
-          renderItem={renderItem}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-          style={styles.menuList}
-        />
-      </View>
+        {/* Menu Items Group 1 */}
+        <View style={styles.menuGroupCard}>
+          {menuItems.map((item, idx) => renderItem({ item, index: idx }))}
+        </View>
+        <View style={styles.sectionSeparator} />
+        {/* Menu Items Group 2 */}
+        <View style={styles.menuGroupCard}>
+          {otherItems.map((item, idx) => renderItem({ item, index: idx }))}
+        </View>
+        <View style={styles.sectionSeparator} />
+        {/* Menu Items Group 3 (special) */}
+        <View style={styles.menuGroupCard}>
+          {specialItems.map((item, idx) => renderItem({ item, index: idx }))}
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -257,54 +263,111 @@ const Account = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#D83F3F", // Match the header color for a seamless look
+    backgroundColor: "#D83F3F",
   },
   container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    // Remove the fixed marginTop: 40
+    flexGrow: 1,
+    backgroundColor: "#f5f5f5",
   },
   header: {
     flexDirection: "row",
-    paddingTop: Platform.OS === "ios" ? 10 : 10, // Reduced padding
-    padding: 20,
+    paddingTop: Platform.OS === "ios" ? verticalScale(10) : verticalScale(10),
+    padding: scale(20),
     backgroundColor: "#D83F3F",
     justifyContent: "space-between",
     alignItems: "center",
-    // Remove fixed height for more flexibility
+    minHeight: verticalScale(80),
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  greetingContainer: { flex: 1 },
-  greeting: { fontSize: 20, color: "#fff", fontFamily: "Inter-Bold" },
+  greetingContainer: { 
+    flex: 1,
+    paddingRight: scale(10),
+  },
+  greeting: { 
+    fontSize: moderateScale(20), 
+    color: "#fff", 
+    fontFamily: "Inter-Bold",
+    marginBottom: verticalScale(5),
+  },
   profilePic: {
-    width: 50,
-    height: 50,
-    borderRadius: 50,
+    width: scale(50),
+    height: scale(50),
+    borderRadius: scale(25),
     borderWidth: 2,
     borderColor: "#fff",
-    backgroundColor: "#f0f0f0", // Fallback background color
+    backgroundColor: "#f0f0f0",
   },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f1f1f1",
+    padding: scale(15),
+    minHeight: verticalScale(60),
+    backgroundColor: "#fff",
+    marginHorizontal: 0,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
   },
-  menuLogo: { width: 20, height: 20, marginRight: 15, resizeMode: "contain" },
-  menuText: { flex: 1, fontSize: 16, color: "#333", fontFamily: "Inter-Bold" },
-  sectionSeparator: { height: 10, backgroundColor: "#f1f1f1" },
-  separator: { height: 1, backgroundColor: "#f1f1f1" },
-  menuList: { marginTop: 20 },
+  menuLogo: { 
+    width: scale(20), 
+    height: scale(20), 
+    marginRight: scale(15), 
+    resizeMode: "contain" 
+  },
+  menuText: { 
+    flex: 1, 
+    fontSize: moderateScale(16), 
+    color: "#333", 
+    fontFamily: "Inter-Bold" 
+  },
+  // sectionSeparator: {
+  //   height: verticalScale(16),
+  //   backgroundColor: "#E5E5E5",
+  //   width: "100%",
+  //   marginVertical: verticalScale(8),
+  // },
+  separator: { 
+    height: 1, 
+    backgroundColor: "transparent" 
+  },
+  menuList: { 
+    marginTop: verticalScale(20),
+    paddingHorizontal: width < 375 ? scale(10) : scale(20),
+  },
   editProfileContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 10,
+    marginTop: verticalScale(10),
   },
   editProfileText: {
     color: "#fff",
-    fontSize: 16,
-    marginRight: 5,
+    fontSize: moderateScale(16),
+    marginRight: scale(5),
     fontFamily: "Inter-Regular",
+  },
+  specialSpacing: {
+    marginTop: verticalScale(18),
+  },
+  logoutSpacing: {
+    marginTop: verticalScale(10),
+  },
+  menuGroupCard: {
+    backgroundColor: "#fff",
+    borderRadius: scale(10),
+    marginHorizontal: scale(2),
+    marginBottom: verticalScale(8),
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    overflow: 'hidden',
   },
 });
 

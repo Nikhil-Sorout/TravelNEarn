@@ -52,6 +52,7 @@ const ReviewDetails = ({
       const payload = { phoneNumber, rideId: id };
       console.log("Sending payload:", payload);
       const baseurl = await AsyncStorage.getItem("apiBaseUrl");
+      // const baseurl = "http://192.168.1.5:5002/";
       const response = await fetch(
         `${baseurl}t/booking-request`,
         {

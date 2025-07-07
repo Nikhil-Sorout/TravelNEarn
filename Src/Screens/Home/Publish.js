@@ -12,17 +12,35 @@ import {
   Platform,
   ScrollView,
   FlatList,
-  TouchableWithoutFeedback, // Add this
-  Keyboard, // Add this
+  TouchableWithoutFeedback,
+  Keyboard,
+  StatusBar,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useNavigation } from "@react-navigation/native";
-import { fetchLocations } from "../../API/Location"; // Correct import path for API function
-import Icon from "react-native-vector-icons/FontAwesome"; // Import FontAwesome Icon for calendar
+import { fetchLocations } from "../../API/Location";
+import Icon from "react-native-vector-icons/FontAwesome";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import commonStyles from "../../styles";
 
 const { width, height } = Dimensions.get("window");
+
+// Responsive scaling functions
+const scale = (size) => {
+  const baseWidth = 393; // iPhone 14 Pro width
+  const scaleFactor = width / baseWidth;
+  return Math.round(size * scaleFactor);
+};
+
+const verticalScale = (size) => {
+  const baseHeight = 852; // iPhone 14 Pro height
+  const scaleFactor = height / baseHeight;
+  return Math.round(size * scaleFactor);
+};
+
+const moderateScale = (size, factor = 0.5) => {
+  return size + (scale(size) - size) * factor;
+};
 
 const Search = () => {
   const navigation = useNavigation();
@@ -30,14 +48,15 @@ const Search = () => {
   const [activeTab, setActiveTab] = useState("Travellers");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const [fullFrom, setFullFrom] = useState(""); // Store the full address
-  const [fullTo, setFullTo] = useState(""); // Store the full address
-  const [date, setDate] = useState(new Date()); // Set date to today
+  const [fullFrom, setFullFrom] = useState("");
+  const [fullTo, setFullTo] = useState("");
+  const [date, setDate] = useState(new Date());
 
   // Function to ensure text is displayed properly in TextInput
   const formatDisplayText = (text) => {
-    if (text && text.length > 35) {
-      return text.substring(0, 32) + "...";
+    const maxLength = width < 375 ? 25 : width < 390 ? 30 : 35;
+    if (text && text.length > maxLength) {
+      return text.substring(0, maxLength - 3) + "...";
     }
     return text;
   };
@@ -45,8 +64,8 @@ const Search = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [goingSuggestions, setGoingSuggestions] = useState([]);
   const [leavingSuggestions, setLeavingSuggestions] = useState([]);
-  const [fromSelected, setFromSelected] = useState(false); // Track if "Leaving from" is selected
-  const [toSelected, setToSelected] = useState(false); // Track if "Going to" is selected
+  const [fromSelected, setFromSelected] = useState(false);
+  const [toSelected, setToSelected] = useState(false);
   const [isFromFocused, setIsFromFocused] = useState(false);
   const [isToFocused, setIsToFocused] = useState(false);
 
@@ -71,47 +90,23 @@ const Search = () => {
     return () => clearTimeout(delayDebounceFn);
   }, [from, to]);
 
-  // Auto-scroll when suggestions appear
+  // Auto-scroll when suggestions appear or input is focused
   useEffect(() => {
-    if ((isFromFocused && goingSuggestions.length > 0) || (isToFocused && leavingSuggestions.length > 0)) {
-      // Delay to ensure suggestions are rendered
+    if (isFromFocused || isToFocused) {
+      // Delay to ensure the keyboard is shown
       setTimeout(() => {
         if (scrollViewRef.current) {
+          const scrollY = height < 700 ? 200 : height < 800 ? 250 : 300;
           scrollViewRef.current.scrollTo({
-            y: 300, // Adjust this value based on your layout
+            y: scrollY,
             animated: true
           });
         }
       }, 100);
     }
-  }, [goingSuggestions.length, leavingSuggestions.length, isFromFocused, isToFocused]);
+  }, [isFromFocused, isToFocused, goingSuggestions.length, leavingSuggestions.length]);
 
-  // Auto-scroll when input fields are focused
-  useEffect(() => {
-    if (isFromFocused || isToFocused) {
-      // Delay to ensure keyboard is shown
-      setTimeout(() => {
-        if (scrollViewRef.current) {
-          scrollViewRef.current.scrollTo({
-            y: 250, // Adjust this value based on your layout
-            animated: true
-          });
-        }
-      }, 200);
-    }
-  }, [isFromFocused, isToFocused]);
 
-  const clearInput = (field) => {
-    if (field === "from") {
-      setFrom("");
-      setGoingSuggestions([]);
-      setFromSelected(false);
-    } else {
-      setTo("");
-      setLeavingSuggestions([]);
-      setToSelected(false);
-    }
-  };
 
   const onChange = (event, selectedDate) => {
     if (event.type === "dismissed") {
@@ -125,9 +120,7 @@ const Search = () => {
     if (Platform.OS === "android") {
       setShowDatePicker(false);
     }
-    setDate(currentDate); // Update the date
-
-    console.log("Selected date:", currentDate.toDateString());
+    setDate(currentDate);
   };
 
   const handleSearchPress = () => {
@@ -185,8 +178,9 @@ const Search = () => {
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? (height < 700 ? 80 : 100) : 0}
     >
-      {/* Wrap ScrollView content with TouchableWithoutFeedback */}
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       <TouchableWithoutFeedback onPress={closeSuggestions}>
         <ScrollView 
           ref={scrollViewRef}
@@ -214,7 +208,7 @@ const Search = () => {
                   style={styles.notificationIconContainer}
                   onPress={() => navigation.navigate("Notification")}
                 >
-                  <Icon name="bell-o" size={25} color="#fff" />
+                  <Icon name="bell-o" size={moderateScale(25)} color="#fff" />
                 </TouchableOpacity>
               </ImageBackground>
             </View>
@@ -243,9 +237,14 @@ const Search = () => {
             </View>
 
             {/* Form Section */}
-            {/* Add onStartShouldSetResponder to prevent TouchableWithoutFeedback from stealing taps inside */}
             <View
-              style={styles.formContainer}
+              style={[
+                styles.formContainer,
+                { 
+                  marginHorizontal: width < 375 ? 10 : 20,
+                  paddingHorizontal: width < 375 ? 15 : 20,
+                }
+              ]}
               onStartShouldSetResponder={() => true}
             >
               {/* Leaving From Input */}
@@ -390,7 +389,7 @@ const Search = () => {
               <View style={styles.inputContainer}>
                 <Icon
                   name="calendar"
-                  size={20}
+                  size={moderateScale(20)}
                   color="#aaa"
                   style={styles.calendarIcon}
                 />
@@ -410,30 +409,29 @@ const Search = () => {
                 <DateTimePicker
                   value={date}
                   mode="date"
-                  display="default"
+                  style={{ 
+                    width: moderateScale(50), 
+                    fontFamily: "Inter-Regular",
+                    transform: [{ scale: width < 375 ? 0.9 : 1 }]
+                  }}
+                  display={Platform.OS === "ios" ? "spinner" : "default"}
                   onChange={onChange}
-                  minimumDate={new Date()} // Allow selection from today
+                  minimumDate={new Date()}
                   maximumDate={
                     new Date(
                       new Date().setFullYear(new Date().getFullYear() + 2)
                     )
-                  } // Allow dates up to 2 years in the future
+                  }
                 />
               )}
 
               {/* Search Button */}
-              <View
-                style={{ marginLeft: -20, marginRight: -20, marginBottom: -20 }}
-                // Prevent outer touch on button area
-                onStartShouldSetResponder={() => true}
+              <TouchableOpacity
+                style={styles.searchButton}
+                onPress={handleSearchPress}
               >
-                <TouchableOpacity
-                  style={styles.searchButton}
-                  onPress={handleSearchPress}
-                >
-                  <Text style={styles.searchButtonText}>Next</Text>
-                </TouchableOpacity>
-              </View>
+                <Text style={styles.searchButtonText}>Next</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </ScrollView>
@@ -445,19 +443,18 @@ const Search = () => {
 export default Search;
 
 const styles = StyleSheet.create({
-  // flex: { flex: 1 },
   container: {
     flex: 1,
-    // backgroundColor: '#E73D48',
+    backgroundColor: '#f5f5f5',
   },
   headerContainer: {
-    height: 480,
-    // backgroundColor:'white'
+    height: verticalScale(480),
+    minHeight: height * 0.55,
+    maxHeight: height * 0.65,
   },
   textureBackground: {
     width: "100%",
     height: "100%",
-    // position: 'absolute',
   },
   headerContent: {
     flex: 1,
@@ -466,46 +463,51 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: "#fff",
-    fontSize: 46,
+    fontSize: moderateScale(46),
     fontFamily: "Inter-Bold",
     fontWeight: "900",
-    marginBottom: 10,
-    marginTop: -200,
+    marginBottom: verticalScale(10),
+    marginTop: verticalScale(-200),
+    textAlign: "center",
+    paddingHorizontal: scale(20),
   },
   subHeader: {
     fontFamily: "OpenSans-SemiBold",
     color: "white",
-    fontSize: 20,
+    fontSize: moderateScale(20),
     position: "absolute",
     bottom: "40%",
-    // top:20
+    textAlign: "center",
   },
   notificationIconContainer: {
     position: "absolute",
-    top: 40,
-    right: 20,
+    top: verticalScale(40),
+    right: scale(20),
+    padding: scale(8),
   },
   tabContainer: {
     flexDirection: "row",
     borderWidth: 1,
     borderColor: "white",
-    borderRadius: 8,
+    borderRadius: scale(8),
     alignSelf: "center",
-    marginTop: -180,
+    marginTop: verticalScale(-180),
     width: "90%",
+    maxWidth: scale(350),
+    minHeight: verticalScale(44),
   },
   tabButton: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: verticalScale(10),
     alignItems: "center",
-    borderRadius: 6,
+    borderRadius: scale(6),
   },
   activeTab: {
     backgroundColor: "white",
   },
   tabText: {
     fontFamily: "Inter-Medium",
-    fontSize: 14,
+    fontSize: moderateScale(14),
     color: "white",
   },
   activeTabText: {
@@ -514,111 +516,109 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     width: "90%",
+    maxWidth: scale(350),
     backgroundColor: "#fff",
-    marginVertical: 20,
-    padding: 20,
-    borderRadius: 15,
+    marginVertical: verticalScale(20),
+    padding: scale(20),
+    borderRadius: scale(15),
     alignSelf: "center",
     elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: verticalScale(20),
     borderBottomWidth: 1.5,
     borderBottomColor: "#ddd",
+    minHeight: verticalScale(50),
   },
   bulletPointRed: {
-    width: 10,
-    height: 10,
+    width: scale(10),
+    height: scale(10),
     backgroundColor: "#D83F3F",
-    borderRadius: 5,
-    marginRight: 10,
+    borderRadius: scale(5),
+    marginRight: scale(10),
   },
   bulletPointGreen: {
-    width: 10,
-    height: 10,
+    width: scale(10),
+    height: scale(10),
     backgroundColor: "green",
-    borderRadius: 5,
-    marginRight: 10,
+    borderRadius: scale(5),
+    marginRight: scale(10),
   },
   input: {
     fontFamily: "Inter-Regular",
     flex: 1,
-    fontSize: 16,
-    paddingVertical: 10,
+    fontSize: moderateScale(16),
+    paddingVertical: verticalScale(10),
     color: "#333",
-    textAlign: "left", // Force left alignment
-    textAlignVertical: "center", // Center text vertically
-    includeFontPadding: false, // Helps with text alignment
+    textAlign: "left",
+    textAlignVertical: "center",
+    includeFontPadding: false,
+    minHeight: verticalScale(40),
   },
   inputText: {
     fontFamily: "Inter-Regular",
-    fontSize: 16,
+    fontSize: moderateScale(16),
     color: "#333",
   },
   searchButton: {
     backgroundColor: "#D83F3F",
-    paddingVertical: 20,
-    borderRadius: 15,
+    paddingVertical: verticalScale(20),
+    borderRadius: scale(15),
     alignItems: "center",
+    marginTop: verticalScale(10),
   },
   searchButtonText: {
     fontFamily: "Inter-Bold",
     color: "#fff",
-    fontSize: 16,
+    fontSize: moderateScale(16),
   },
   calendarIcon: {
-    marginRight: 10,
+    marginRight: scale(10),
   },
   // Suggestions Styling
-  inlineSuggestion: {
-    marginRight: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    backgroundColor: "#F8F8F8",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ddd",
-  },
-
   suggestionsContainer: {
     position: "absolute",
-    top: 45,
+    top: verticalScale(45),
     left: 0,
     right: 0,
     backgroundColor: "white",
-    borderRadius: 8,
+    borderRadius: scale(8),
     borderWidth: 1,
     borderColor: "#ddd",
-    maxHeight: 200, // This limits the height and enables scrolling
+    maxHeight: verticalScale(200),
     zIndex: 999,
-    elevation: 5, // For Android shadow
-    shadowColor: "#000", // iOS shadow
+    elevation: 5,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
-    overflow: "hidden", // Ensure content doesn't overflow rounded corners
+    overflow: "hidden",
   },
-
   suggestionItem: {
-    paddingVertical: 10,
-    paddingHorizontal: 15,
+    paddingVertical: verticalScale(10),
+    paddingHorizontal: scale(15),
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
     width: "100%",
+    minHeight: verticalScale(44),
+    justifyContent: "center",
   },
-
   suggestionText: {
-    fontSize: 15,
+    fontSize: moderateScale(15),
     fontFamily: "Inter-Regular",
     color: "#333",
   },
   suggestionsFooter: {
-    fontSize: 12,
+    fontSize: moderateScale(12),
     color: "#888",
     textAlign: "center",
-    paddingVertical: 5,
+    paddingVertical: verticalScale(5),
     borderTopWidth: 1,
     borderTopColor: "#f0f0f0",
     backgroundColor: "#f9f9f9",

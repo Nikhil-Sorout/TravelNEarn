@@ -10,6 +10,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Dimensions,
 } from "react-native";
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
 import RBSheet from "react-native-raw-bottom-sheet";
@@ -18,6 +19,23 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import EarningDetails from "../../../Customer Traveller/EarningDetails";
 import Header from "../../../header";
 import commonStyles from "../../../styles";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+// Responsive scaling functions
+const { width, height } = Dimensions.get("window");
+const scale = (size) => {
+  const baseWidth = 393; // iPhone 14 Pro width
+  const scaleFactor = width / baseWidth;
+  return Math.round(size * scaleFactor);
+};
+const verticalScale = (size) => {
+  const baseHeight = 852; // iPhone 14 Pro height
+  const scaleFactor = height / baseHeight;
+  return Math.round(size * scaleFactor);
+};
+const moderateScale = (size, factor = 0.5) => {
+  return size + (scale(size) - size) * factor;
+};
 
 const TravelDetails = ({ route }) => {
   const { ride, consignmentId } = route.params;
@@ -188,13 +206,13 @@ const TravelDetails = ({ route }) => {
   const getTravelIcon = (travelMode) => {
     switch (travelMode) {
       case "car":
-        return <Icon name="car" size={30} color="#D83F3F" />;
+        return <Icon name="car" size={scale(30)} color="#D83F3F" />;
       case "airplane":
-        return <Ionicons name="airplane" size={30} color="#D83F3F" />;
+        return <Ionicons name="airplane" size={scale(30)} color="#D83F3F" />;
       case "train":
-        return <Icon name="train" size={30} color="#D83F3F" />;
+        return <Icon name="train" size={scale(30)} color="#D83F3F" />;
       default:
-        return <Ionicons name="help-circle-outline" size={30} color="gray" />;
+        return <Ionicons name="help-circle-outline" size={scale(30)} color="gray" />;
     }
   };
 
@@ -266,7 +284,7 @@ const TravelDetails = ({ route }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Modal
         visible={isModalVisible}
         transparent={true}
@@ -286,7 +304,7 @@ const TravelDetails = ({ route }) => {
       <ScrollView>
         <View style={styles.card}>
           <View style={styles.infoRow1}>
-            <Text style={{ fontSize: 16, fontWeight: "bold" }}>
+            <Text style={{ fontSize: scale(16), fontWeight: "bold" }}>
               Travel ID:{ride.travelId}
             </Text>
             <View>{renderStatusBadge("UPCOMING")}</View>
@@ -314,18 +332,18 @@ const TravelDetails = ({ route }) => {
                 <Image source={require("../../../Images/package.png")} />
                 <Text
                   style={{
-                    fontSize: 14,
+                    fontSize: scale(14),
                     fontWeight: "bold",
-                    marginRight: 10,
-                    marginTop: 5,
-                    marginLeft: 10,
+                    marginRight: scale(10),
+                    marginTop: scale(5),
+                    marginLeft: scale(10),
                   }}
                 >
                   Consignment to Carry
                 </Text>
                 <Ionicons
                   name="arrow-forward"
-                  size={24}
+                  size={scale(24)}
                   color="black"
                   style={{ position: "absolute", right: 0 }}
                 />
@@ -359,7 +377,7 @@ const TravelDetails = ({ route }) => {
           <View style={styles.infoRow}>
             <Image
               source={require("../../../Images/clock.png")}
-              style={[styles.locationIcon, { marginLeft: 5 }]}
+              style={[styles.locationIcon, { marginLeft: scale(5) }]}
             />
             <Text style={styles.infoText}>{routeInfo.duration}</Text>
           </View>
@@ -367,7 +385,7 @@ const TravelDetails = ({ route }) => {
         </View>
 
         <View style={styles.mapContainer}>
-          <Text style={[styles.infoTitle, { marginBottom: 20 }]}>
+          <Text style={[styles.infoTitle, { marginBottom: scale(20) }]}>
             Track on map
           </Text>
           <MapView
@@ -390,19 +408,19 @@ const TravelDetails = ({ route }) => {
             <Polyline
               coordinates={coordinates}
               strokeColor="blue"
-              strokeWidth={5}
+              strokeWidth={scale(5)}
             />
             {originCoords && (
               <Marker coordinate={originCoords} title={startLocation}>
                 <View style={[styles.marker, styles.startMarker]}>
-                  <Icon name="user" size={25} color="#fff" />
+                  <Icon name="user" size={scale(25)} color="#fff" />
                 </View>
               </Marker>
             )}
             {destinationCoords && (
               <Marker coordinate={destinationCoords} title={endLocation}>
                 <View style={[styles.marker, styles.endMarker]}>
-                  <Icon name="map-marker" size={25} color="#fff" />
+                  <Icon name="map-marker" size={scale(25)} color="#fff" />
                 </View>
               </Marker>
             )}
@@ -413,10 +431,10 @@ const TravelDetails = ({ route }) => {
           <View style={styles.infoRow}>
             <View style={styles.infoBlock}>
               <Text style={styles.infoTitle}>Other Information</Text>
-              <View style={[styles.infoRow, { marginTop: 20 }]}>
+              <View style={[styles.infoRow, { marginTop: scale(20) }]}>
                 <Image
                   source={require("../../../Images/clock.png")}
-                  style={[styles.locationIcon, { marginLeft: 2 }]}
+                  style={[styles.locationIcon, { marginLeft: scale(2) }]}
                 />
                 <Text style={styles.infoText}>
                   {formatDate(ride.travelDate)}
@@ -439,10 +457,10 @@ const TravelDetails = ({ route }) => {
               {getTravelIcon(ride.travelMode)}
             </View>
             <View style={styles.travelerDetails}>
-              <Text style={[styles.travelerName, { marginLeft: 15 }]}>
+              <Text style={[styles.travelerName, { marginLeft: scale(15) }]}>
                 {ride.travelMode}
               </Text>
-              <Text style={[styles.travelerName, { marginLeft: 15 }]}>
+              <Text style={[styles.travelerName, { marginLeft: scale(15) }]}>
                 {ride.travelmode_number}
               </Text>
             </View>
@@ -473,18 +491,18 @@ const TravelDetails = ({ route }) => {
                 <Image source={require("../../../Images/package.png")} />
                 <Text
                   style={{
-                    fontSize: 14,
+                    fontSize: scale(14),
                     fontWeight: "bold",
-                    marginRight: 10,
-                    marginTop: 5,
-                    marginLeft: 10,
+                    marginRight: scale(10),
+                    marginTop: scale(5),
+                    marginLeft: scale(10),
                   }}
                 >
                   Consignment to Carry
                 </Text>
                 <Ionicons
                   name="arrow-forward"
-                  size={24}
+                  size={scale(24)}
                   color="black"
                   style={{ position: "absolute", right: 0 }}
                 />
@@ -498,18 +516,18 @@ const TravelDetails = ({ route }) => {
                 <Image source={require("../../../Images/Earnings.png")} />
                 <Text
                   style={{
-                    fontSize: 14,
+                    fontSize: scale(14),
                     fontWeight: "bold",
-                    marginRight: 10,
-                    marginTop: 5,
-                    marginLeft: 10,
+                    marginRight: scale(10),
+                    marginTop: scale(5),
+                    marginLeft: scale(10),
                   }}
                 >
                   Earning
                 </Text>
                 <Ionicons
                   name="arrow-forward"
-                  size={24}
+                  size={scale(24)}
                   color="black"
                   style={{ position: "absolute", right: 0 }}
                 />
@@ -519,7 +537,7 @@ const TravelDetails = ({ route }) => {
         )}
 
         {status !== "completed" && status !== "cancelled" && (
-          <View style={{ margin: 20, marginTop: -10 }}>
+          <View style={{ margin: scale(20), marginTop: scale(-10) }}>
             <TouchableOpacity
               style={styles.button}
               onPress={() => navigation.navigate("Cancellation")}
@@ -531,20 +549,20 @@ const TravelDetails = ({ route }) => {
 
         <RBSheet
           ref={bottomSheetRef}
-          height={300}
-          openDuration={250}
+          height={scale(300)}
+          openDuration={scale(250)}
           customStyles={{
             container: {
-              borderTopLeftRadius: 20,
-              borderTopRightRadius: 20,
-              padding: 20,
+              borderTopLeftRadius: scale(20),
+              borderTopRightRadius: scale(20),
+              padding: scale(20),
             },
           }}
         >
           <EarningDetails earning={ride.expectedearning} id={ride.rideId} />
         </RBSheet>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -554,172 +572,172 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#FFFFFF",
-    marginTop: 20,
+    marginTop: verticalScale(20),
   },
   card: {
     backgroundColor: "#fff",
-    margin: 20,
-    borderRadius: 4,
-    padding: 15,
+    margin: scale(20),
+    borderRadius: scale(4),
+    padding: scale(15),
     shadowColor: "#000",
     shadowOpacity: 0.1,
-    shadowRadius: 5,
+    shadowRadius: scale(5),
     elevation: 3,
   },
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 10,
+    marginTop: verticalScale(10),
   },
   dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: scale(10),
+    height: scale(10),
+    borderRadius: scale(5),
     backgroundColor: "green",
-    marginRight: 10,
+    marginRight: scale(10),
   },
   circle: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: scale(10),
+    height: scale(10),
+    borderRadius: scale(5),
     backgroundColor: "red",
-    marginRight: 10,
+    marginRight: scale(10),
   },
   locationText: {
-    fontSize: 16,
+    fontSize: moderateScale(16),
     color: "#333",
-    marginLeft: 10,
+    marginLeft: scale(10),
   },
   separator1: {
-    height: 1,
+    height: scale(1),
     backgroundColor: "#ddd",
-    marginVertical: 10,
-    marginLeft: 5,
+    marginVertical: verticalScale(10),
+    marginLeft: scale(5),
   },
   separator: {
     borderStyle: "dashed",
-    borderWidth: 1,
+    borderWidth: scale(1),
     borderColor: "#ddd",
-    marginVertical: 10,
-    marginLeft: 40,
-    marginTop: -20,
+    marginVertical: verticalScale(10),
+    marginLeft: scale(40),
+    marginTop: verticalScale(-20),
   },
   verticalseparator: {
-    width: 1,
+    width: scale(1),
     backgroundColor: "#ddd",
     borderStyle: "dashed",
-    borderLeftWidth: 1,
+    borderLeftWidth: scale(1),
     borderLeftColor: "#ddd",
-    height: "40",
-    marginHorizontal: 11,
+    height: verticalScale(40),
+    marginHorizontal: scale(11),
   },
   infoRow: {
     flexDirection: "row",
     justifyContent: "flex-start",
-    marginVertical: 10,
+    marginVertical: verticalScale(10),
   },
   infoRow1: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginVertical: 10,
+    marginVertical: verticalScale(10),
   },
   infoText: {
-    fontSize: 14,
+    fontSize: moderateScale(14),
     color: "black",
     fontWeight: "bold",
-    marginLeft: 10,
-    marginTop: -2,
+    marginLeft: scale(10),
+    marginTop: verticalScale(-2),
   },
   infoText1: {
-    fontSize: 15,
+    fontSize: moderateScale(15),
     color: "#555",
-    marginLeft: 32,
-    marginTop: -10,
+    marginLeft: scale(32),
+    marginTop: verticalScale(-10),
   },
   infoText2: {
-    fontSize: 15,
+    fontSize: moderateScale(15),
     color: "#555",
-    marginLeft: 0,
-    marginTop: -10,
+    marginLeft: scale(0),
+    marginTop: verticalScale(-10),
   },
   mapContainer: {
     marginVertical: 0,
-    margin: 20,
+    margin: scale(20),
   },
   map: {
     width: "100%",
-    height: 180,
-    borderRadius: 10,
+    height: verticalScale(180),
+    borderRadius: scale(10),
     objectFit: "cover",
   },
   otherInfo: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginVertical: 10,
+    marginVertical: verticalScale(10),
   },
   infoBlock: {
     alignItems: "center",
   },
   infoTitle: {
-    fontSize: 16,
+    fontSize: moderateScale(16),
     fontWeight: "bold",
   },
   infoSubtitle: {
-    fontSize: 14,
+    fontSize: moderateScale(14),
     color: "#555",
   },
   vehicleText: {
-    fontSize: 16,
+    fontSize: moderateScale(16),
     color: "#333",
     textAlign: "center",
-    marginVertical: 10,
+    marginVertical: verticalScale(10),
   },
   traveler: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 10,
+    marginVertical: verticalScale(10),
   },
   profileImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 10,
+    width: scale(50),
+    height: scale(50),
+    borderRadius: scale(25),
+    marginRight: scale(10),
   },
   driverPhoto: {
-    width: 50,
-    height: 50,
-    borderRadius: 20,
+    width: scale(50),
+    height: scale(50),
+    borderRadius: scale(20),
     objectFit: "contain",
   },
   travelerDetails: {
     flex: 1,
   },
   travelerName: {
-    fontSize: 16,
+    fontSize: moderateScale(16),
     fontWeight: "bold",
   },
   travelerRating: {
-    fontSize: 14,
+    fontSize: moderateScale(14),
     color: "#555",
   },
   button: {
     backgroundColor: "transparent",
-    borderWidth: 2,
+    borderWidth: scale(2),
     borderColor: "#D83F3F",
-    paddingVertical: 15,
-    borderRadius: 10,
+    paddingVertical: verticalScale(15),
+    borderRadius: scale(10),
     alignItems: "center",
-    marginTop: 15,
+    marginTop: verticalScale(15),
   },
   buttonText: {
     color: "#D83F3F",
-    fontSize: 16,
+    fontSize: moderateScale(16),
     fontWeight: "bold",
   },
   marker: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: scale(32),
+    height: scale(32),
+    borderRadius: scale(16),
     justifyContent: "center",
     alignItems: "center",
   },
@@ -730,13 +748,33 @@ const styles = StyleSheet.create({
     backgroundColor: "red",
   },
   badge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
+    paddingHorizontal: scale(12),
+    paddingVertical: verticalScale(6),
+    borderRadius: scale(6),
   },
   badgeText: {
     color: "#fff",
     fontWeight: "600",
-    fontSize: 12,
+    fontSize: moderateScale(12),
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  backButton: {
+    backgroundColor: "transparent",
+    borderWidth: 2,
+    borderColor: "#D83F3F",
+    paddingVertical: verticalScale(15),
+    borderRadius: scale(10),
+    alignItems: "center",
+    marginTop: verticalScale(15),
+  },
+  locationIcon: {
+    width: scale(24),
+    height: scale(24),
+    marginRight: scale(10),
   },
 });
