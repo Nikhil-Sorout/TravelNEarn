@@ -36,6 +36,7 @@ const SearchRide = ({ navigation, route }) => {
   const [searchTo, setSearchTo] = useState(route.params.to || "");
   const [searchDate, setSearchDate] = useState(route.params.date || "");
   const [waitingForCorrectMode, setWaitingForCorrectMode] = useState(false);
+  const [calculatedPrice, setCalculatedPrice] = useState(null);
 
   useEffect(() => {
     const getPhoneNumber = async () => {
@@ -124,6 +125,7 @@ const SearchRide = ({ navigation, route }) => {
           "Search rides response:",
           JSON.stringify(response.data, null, 2)
         );
+        setCalculatedPrice(response?.data?.calculatedPrice);
         const rides = await response.data.availableRides || [];
         const profiles = await response.data.ridesWithProfile || [];
 
@@ -307,6 +309,7 @@ const SearchRide = ({ navigation, route }) => {
           navigation.navigate("TravelDetails", {
             ride: item,
             fareDetails: estimatedFare,
+            calculatedPrice: calculatedPrice,
           })
         }
       >
@@ -371,7 +374,7 @@ const SearchRide = ({ navigation, route }) => {
             </View>
           </View>
           <Text style={styles.price}>
-            ₹{item?.expectedearning || "N/A"}
+            ₹{calculatedPrice || "N/A"}
           </Text>
         </View>
       </TouchableOpacity>

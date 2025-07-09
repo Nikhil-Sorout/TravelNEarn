@@ -208,7 +208,7 @@ const PublishStarting = ({ navigation }) => {
           disabled={loading}
         >
           <View style={styles.iconContainer}>
-            <Ionicons name="locate" size={24} color="black" />
+            <Ionicons name="locate" size={24} color="red" />
             <Text style={styles.navText}>Current Location</Text>
           </View>
         </TouchableOpacity>
@@ -218,8 +218,8 @@ const PublishStarting = ({ navigation }) => {
           onPress={() => navigation.navigate("PublishConsignmentSearchScreen")}
         >
           <View style={styles.iconContainer}>
-            <FontAwesome name="map-marker" size={24} color="black" />
-            <Text style={styles.navText}>Locate on Map</Text>
+            <FontAwesome name="map-marker" size={24} color="red" />
+            <Text style={styles.navText}>Next</Text>
           </View>
         </TouchableOpacity>
       </View>
@@ -324,11 +324,13 @@ const styles = StyleSheet.create({
     flexDirection: "column", // Places icon & text in a vertical column
     alignItems: "center", // Centers items horizontally
     justifyContent: "center",
+    paddingHorizontal: height * 0.02,
+    color: "red",
   },
 
   navText: {
     fontSize: 14,
-    color: "black",
+    color: "red",
     marginTop: 5, // Adds space between icon & text
     textAlign: "center",
     // Space between icon & text

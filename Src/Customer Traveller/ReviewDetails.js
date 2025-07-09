@@ -140,7 +140,7 @@ const ReviewDetails = ({
             <Text style={styles.label}>Base Fare</Text>
             <Text style={styles.value}>₹{baseFare || "0"}</Text>
           </View>
-          <Text style={{fontSize: 12, color: "#666", marginBottom: 10}}>Total expected fare is calculated based on the preferred weight of the consignment by the traveller + Platform fee</Text>
+          <Text style={{fontSize: 12, color: "#666", marginBottom: 10}}>Total expected fare is calculated based on the weight of consignment + Platform fee</Text>
           {/* <View style={styles.row}>
             <Text style={styles.label}>Delivery Fee</Text>
             <Text style={styles.value}>₹{deliveryFee || "0"}</Text>

@@ -19,7 +19,7 @@ import { useSocket } from "../Context/socketprovider";
 import ReviewDetails from "./ReviewDetails";
 
 const TravelDetails = ({ route }) => {
-  const { ride, fareDetails } = route.params;
+  const { ride, fareDetails, calculatedPrice } = route.params;
   console.log("ride", ride);
   console.log("fare", fareDetails);
   
@@ -467,7 +467,7 @@ const TravelDetails = ({ route }) => {
                 {getTimeFromDate(ride.expectedStartTime)}
               </Text>
             </View>
-            <View style={styles.infoBlock}>
+            {/* <View style={styles.infoBlock}>
               <View style={[styles.infoRow, { marginTop: 0 }]}>
                 <Image
                   source={require("../Images/weight.png")}
@@ -499,7 +499,7 @@ const TravelDetails = ({ route }) => {
               >
                 1 Kg
               </Text>
-            </View>
+            </View> */}
           </View>
 
           <View style={styles.separator1} />
@@ -563,7 +563,7 @@ const TravelDetails = ({ route }) => {
           }}
         >
           <ReviewDetails
-            earning={ride?.expectedearning}
+            earning={calculatedPrice}
             id={ride.rideId}
             fromLocation={ride.Leavinglocation}
             toLocation={ride.Goinglocation}

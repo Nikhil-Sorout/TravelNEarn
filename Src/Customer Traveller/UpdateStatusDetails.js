@@ -19,11 +19,15 @@ import RNPickerSelect from "react-native-picker-select";
 import * as Location from "expo-location";
 import { useSocket } from "../Context/socketprovider";
 
-const UpdateStatus = ({ travelId, consignmentId, onClose, onSearch }) => {
+const UpdateStatus = ({ travelId, consignmentId, onClose, onSearch, currentStatus }) => {
   const navigation = useNavigation();
   const { socket, sendLocationUpdate, startLocationTracking } = useSocket();
   const [loading, setLoading] = useState(false);
-  const [selectedMode, setSelectedMode] = useState("Collected");
+  const [selectedMode, setSelectedMode] = useState(
+    currentStatus === "Collected" || currentStatus === "Consignment Collected" 
+      ? "Completed" 
+      : "Collected"
+  );
   const [travelNumber, setTravelNumber] = useState("");
   const [locationError, setLocationError] = useState(null);
   const [isLocationServicesEnabled, setIsLocationServicesEnabled] =
@@ -65,6 +69,15 @@ const UpdateStatus = ({ travelId, consignmentId, onClose, onSearch }) => {
     const interval = setInterval(checkLocationServices, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  // Update selectedMode when currentStatus changes
+  useEffect(() => {
+    if (currentStatus === "Collected" || currentStatus === "Consignment Collected") {
+      setSelectedMode("Completed");
+    } else {
+      setSelectedMode("Collected");
+    }
+  }, [currentStatus]);
 
   // Fetch ride status
   useEffect(() => {
@@ -532,7 +545,11 @@ const UpdateStatus = ({ travelId, consignmentId, onClose, onSearch }) => {
             keyboardShouldPersistTaps="handled"
           >
             <View style={styles.modalIndicator} />
-            <Text style={styles.modalTitle}>Update Status</Text>
+            <Text style={styles.modalTitle}>
+              {currentStatus === "Collected" || currentStatus === "Consignment Collected" 
+                ? "Complete Delivery" 
+                : "Update Status"}
+            </Text>
 
             <View style={styles.detailsContainer}>
               {isLocationServicesEnabled === false && (
@@ -550,14 +567,22 @@ const UpdateStatus = ({ travelId, consignmentId, onClose, onSearch }) => {
                 </View>
               )}
 
-              <Text style={styles.label}>Status</Text>
+              <Text style={styles.label}>
+                {currentStatus === "Collected" || currentStatus === "Consignment Collected" 
+                  ? "Update to Completed" 
+                  : "Status"}
+              </Text>
               <View style={styles.inputContainer}>
                 <RNPickerSelect
                   onValueChange={handleValueChange}
-                  items={[
-                    { label: "Collected", value: "Collected" },
-                    { label: "Completed", value: "Completed" },
-                  ]}
+                  items={
+                    currentStatus === "Collected" || currentStatus === "Consignment Collected"
+                      ? [{ label: "Completed", value: "Completed" }]
+                      : [
+                          { label: "Collected", value: "Collected" },
+                          { label: "Completed", value: "Completed" },
+                        ]
+                  }
                   placeholder={{ label: "Select a status", value: null }}
                   style={{
                     inputIOS: styles.pickerStyle,

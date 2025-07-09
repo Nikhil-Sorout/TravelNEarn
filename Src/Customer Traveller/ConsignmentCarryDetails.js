@@ -518,6 +518,7 @@ const ConsignmentCarryDetails = ({ route }) => {
             earning={consignmentDetails.expectedEarning || 0}
             consignmentId={consignmentId || ""}
             travelId={travelId || ""}
+            currentStatus={status}
           />
         </View>
       </Modal>
@@ -712,7 +713,14 @@ const ConsignmentCarryDetails = ({ route }) => {
         </View>
       </View>
 
-      {ride.status !== "Delivered" && status !== "Delivered" && (
+      {ride.status !== "Delivered" && 
+       ride.status !== "Completed" && 
+       ride.status !== "Consignment Completed" &&
+       ride.status !== "Consignment Delivered" &&
+       status !== "Delivered" && 
+       status !== "Completed" && 
+       status !== "Consignment Completed" && 
+       status !== "Consignment Delivered" && (
         <View style={{ marginBottom: 20 }}>
           <TouchableOpacity
             style={styles.updateStatusButton}

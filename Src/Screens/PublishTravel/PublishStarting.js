@@ -260,18 +260,18 @@ const PublishStarting = ({ navigation }) => {
           disabled={loading}
         >
           <View style={styles.iconContainer}>
-            <Ionicons name="locate" size={24} color="black" />
+            <Ionicons name="locate" size={24} color="red" />
             <Text style={styles.navText}>Current Location</Text>
           </View>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.navButton}
-          onPress={() => navigation.navigate("PublicSearchScreen")}
+          onPress={() => navigation.navigate("PublishTravelDropLocation")}
         >
           <View style={styles.iconContainer}>
-            <FontAwesome name="map-marker" size={24} color="black" />
-            <Text style={styles.navText}>Locate on Map</Text>
+            <FontAwesome name="map-marker" size={24} color="red" />
+            <Text style={styles.navText}>Next</Text>
           </View>
         </TouchableOpacity>
       </View>
@@ -374,10 +374,12 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
+    width: "50vw",
+    paddingHorizontal: height * 0.02,
   },
   navText: {
     fontSize: 14,
-    color: "black",
+    color: "red",
     marginTop: 5,
     textAlign: "center",
   },

@@ -53,6 +53,7 @@ import ReceiverScreen from "./Src/Screens/PublishConsignment/ReceiverScreen";
 import PublicSearchScreen from "./Src/Screens/PublishTravel/PublicSearchScreen";
 import PublishLocation from "./Src/Screens/PublishTravel/PublishLocation";
 import PublishStarting from "./Src/Screens/PublishTravel/PublishStarting";
+import PublishTravelDropLocation from "./Src/Screens/PublishTravel/PublishTravelDropLocation";
 import PublishTravelDetails from "./Src/Screens/PublishTravel/PublishTravelDetails";
 import PublishTravelRequestSentScreen from "./Src/Screens/PublishTravel/RequestSentScreen";
 import TravelMode from "./Src/Screens/PublishTravel/TravelMode";
@@ -100,7 +101,7 @@ export default function App() {
       try {
         // Set required data for socket connection
         const apiBaseUrl = "https://travel.timestringssystem.com/";
-        // const apiBaseUrl = "http://192.168.1.53:5002/";
+        // const apiBaseUrl = "http://192.168.1.25:5002/";
         await AsyncStorage.setItem("apiBaseUrl", apiBaseUrl);
 
         // Get phone number from AsyncStorage or set a default for testing
@@ -289,6 +290,11 @@ export default function App() {
           <Stack.Screen
             name="PublishStarting"
             component={PublishStarting}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="PublishTravelDropLocation"
+            component={PublishTravelDropLocation}
             options={{ headerShown: false }}
           />
           <Stack.Screen
