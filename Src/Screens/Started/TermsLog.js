@@ -20,6 +20,13 @@ import RNSimData from "react-native-sim-data";
 import Ionicons from "react-native-vector-icons/Ionicons";
 
 import commonStyles from "../../styles";
+import { 
+  scale, 
+  verticalScale, 
+  responsiveFontSize, 
+  responsivePadding,
+  screenHeight 
+} from "../../Utils/responsive";
 
 const logoImage = require("../../Images/logow.png");
 
@@ -145,7 +152,7 @@ const WelcomeScreen = () => {
         style={styles.backButton}
         onPress={() => navigation.goBack()}
       >
-        <Ionicons name="chevron-back" size={24} color="black" />
+        <Ionicons name="chevron-back" size={scale(24)} color="black" />
       </TouchableOpacity>
 
       {/* Terms and Conditions Modal */}
@@ -221,7 +228,7 @@ const WelcomeScreen = () => {
           </Text>
           <Ionicons
             name={showCountryList ? "chevron-up" : "chevron-down"}
-            size={16}
+            size={scale(16)}
             color="#666"
           />
         </TouchableOpacity>
@@ -295,44 +302,60 @@ const WelcomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    padding: responsivePadding.horizontal,
     justifyContent: "center",
     backgroundColor: "#fff",
   },
   logoContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: verticalScale(20),
   },
-  logoImage: { width: 42, height: 42, marginRight: 10 },
-  welcomeText: { fontSize: 42, fontWeight: "bold", color: "#D83F3F" },
+  logoImage: { 
+    width: scale(42), 
+    height: scale(42), 
+    marginRight: scale(10) 
+  },
+  welcomeText: { 
+    fontSize: responsiveFontSize.xxxl, 
+    fontWeight: "bold", 
+    color: "#D83F3F" 
+  },
   label: {
-    fontSize: 16,
+    fontSize: responsiveFontSize.md,
     fontWeight: "500",
-    marginBottom: 10,
+    marginBottom: verticalScale(10),
     color: commonStyles.Colors.blackColor,
   },
   input: {
-    height: 50,
+    height: verticalScale(50),
     borderColor: "#ccc",
     borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    fontSize: 16,
+    borderRadius: scale(8),
+    paddingHorizontal: scale(10),
+    fontSize: responsiveFontSize.md,
   },
-  errorText: { color: "red", fontSize: 14, marginBottom: 10 },
+  errorText: { 
+    color: "red", 
+    fontSize: responsiveFontSize.sm, 
+    marginBottom: verticalScale(10) 
+  },
   nextButton: {
-    height: 50,
-    borderRadius: 8,
+    height: verticalScale(50),
+    borderRadius: scale(8),
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 10,
+    marginTop: verticalScale(10),
   },
-  nextButtonText: { color: "#fff", fontSize: 16, fontWeight: "500" },
+  nextButtonText: { 
+    color: "#fff", 
+    fontSize: responsiveFontSize.md, 
+    fontWeight: "500" 
+  },
   footerText: {
-    fontSize: 14,
+    fontSize: responsiveFontSize.sm,
     color: commonStyles.Colors.textColor,
-    marginTop: 20,
+    marginTop: verticalScale(20),
     textAlign: "left",
   },
   link: { color: commonStyles.Colors.linkColor },
@@ -343,28 +366,28 @@ const styles = StyleSheet.create({
   },
   bottomSheet: {
     backgroundColor: "#fff",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
+    borderTopLeftRadius: scale(20),
+    borderTopRightRadius: scale(20),
+    padding: responsivePadding.horizontal,
     maxHeight: "80%", // Limit the height of the modal
   },
   title: {
-    fontSize: 20,
-    marginBottom: 15,
+    fontSize: responsiveFontSize.xl,
+    marginBottom: verticalScale(15),
     textAlign: "center",
     fontFamily: "Inter-SemiBold",
     color: "#333",
   },
   content: {
-    maxHeight: 300, // Fixed height for the ScrollView
-    marginBottom: 15,
+    maxHeight: verticalScale(300), // Fixed height for the ScrollView
+    marginBottom: verticalScale(15),
   },
   contentContainer: {
-    paddingBottom: 20,
+    paddingBottom: verticalScale(20),
   },
   text: {
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: responsiveFontSize.md,
+    lineHeight: verticalScale(24),
     color: "#444",
     fontFamily: "Inter-Regular",
     textAlign: "left",
@@ -372,83 +395,88 @@ const styles = StyleSheet.create({
   checkboxContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 10,
+    marginTop: verticalScale(10),
   },
   checkboxText: {
-    fontSize: 14,
-    marginLeft: 8,
+    fontSize: responsiveFontSize.sm,
+    marginLeft: scale(8),
     fontFamily: "Inter-Regular",
     color: "#333",
   },
   submitButton: {
-    height: 50,
+    height: verticalScale(50),
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 20,
-    borderRadius: 8,
+    marginTop: verticalScale(20),
+    borderRadius: scale(8),
   },
-  backButton: { position: "absolute", top: 70, left: 20, zIndex: 1 },
+  backButton: { 
+    position: "absolute", 
+    top: verticalScale(70), 
+    left: scale(20), 
+    zIndex: 1 
+  },
   phoneInputContainer: {
     flexDirection: "row",
     alignItems: "center",
     width: "100%",
-    marginBottom: 10,
+    marginBottom: verticalScale(10),
   },
   countryCodeButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 12,
+    padding: scale(12),
     borderWidth: 1,
     borderColor: "#ccc",
-    borderRadius: 8,
-    marginRight: 8,
+    borderRadius: scale(8),
+    marginRight: scale(8),
     backgroundColor: "#f8f8f8",
-    width: 90,
+    width: scale(90),
   },
   countryCodeText: {
-    fontSize: 16,
+    fontSize: responsiveFontSize.md,
     fontFamily: "Inter-Regular",
     color: "#333",
-    marginRight: 4,
+    marginRight: scale(4),
   },
   phoneNumberInput: {
     flex: 1,
-    height: 50,
+    height: verticalScale(50),
     borderWidth: 1,
     borderColor: "#ccc",
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    fontSize: 16,
+    borderRadius: scale(8),
+    paddingHorizontal: scale(10),
+    fontSize: responsiveFontSize.md,
     fontFamily: "Inter-Regular",
   },
   countryListContainer: {
     position: "absolute",
-    top: height * 0.51,
-    left: 20,
-    right: 20,
+    top: screenHeight * 0.51,
+    left: scale(20),
+    right: scale(20),
     zIndex: 999,
     backgroundColor: "#fff",
-    borderRadius: 8,
+    borderRadius: scale(8),
     borderWidth: 1,
     borderColor: "#ddd",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: verticalScale(2) },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: scale(4),
     elevation: 3,
   },
   countryList: {
-    maxHeight: 200,
+    maxHeight: verticalScale(200),
   },
   countryItem: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: verticalScale(12),
+    paddingHorizontal: scale(16),
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
   },
   countryItemText: {
-    fontSize: 16,
+    fontSize: responsiveFontSize.md,
     fontFamily: "Inter-Regular",
     color: "#333",
   },
@@ -456,20 +484,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     width: "100%",
-    height: 50,
+    height: verticalScale(50),
     borderWidth: 1,
     borderColor: "#ccc",
-    borderRadius: 8,
-    marginBottom: 10,
+    borderRadius: scale(8),
+    marginBottom: verticalScale(10),
     backgroundColor: "#fff",
   },
   countryCodeSection: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 10,
+    paddingHorizontal: scale(10),
     height: "100%",
-    minWidth: 90,
+    minWidth: scale(90),
   },
   divider: {
     height: "60%",
@@ -479,8 +507,8 @@ const styles = StyleSheet.create({
   phoneNumberSection: {
     flex: 1,
     height: "100%",
-    paddingHorizontal: 10,
-    fontSize: 16,
+    paddingHorizontal: scale(10),
+    fontSize: responsiveFontSize.md,
     fontFamily: "Inter-Regular",
   },
 });

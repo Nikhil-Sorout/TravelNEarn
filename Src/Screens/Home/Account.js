@@ -16,25 +16,15 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { 
+  scale, 
+  verticalScale, 
+  moderateScale, 
+  responsiveFontSize,
+  responsiveDimensions 
+} from "../../Utils/responsive";
 
 const { width, height } = Dimensions.get("window");
-
-// Responsive scaling functions
-const scale = (size) => {
-  const baseWidth = 393; // iPhone 14 Pro width
-  const scaleFactor = width / baseWidth;
-  return Math.round(size * scaleFactor);
-};
-
-const verticalScale = (size) => {
-  const baseHeight = 852; // iPhone 14 Pro height
-  const scaleFactor = height / baseHeight;
-  return Math.round(size * scaleFactor);
-};
-
-const moderateScale = (size, factor = 0.5) => {
-  return size + (scale(size) - size) * factor;
-};
 
 const Account = ({ navigation, route }) => {
   const { phoneNumber: phoneNumberFromParams } = route.params || {};
@@ -180,7 +170,7 @@ const Account = ({ navigation, route }) => {
     },
   ];
 
-  const renderItem = ({ item, index }) => {
+  const renderItem = ({ item, idx }) => {
     let extraStyle = {};
     if (item.name === "Share this app") {
       extraStyle = styles.specialSpacing;
@@ -208,7 +198,7 @@ const Account = ({ navigation, route }) => {
           {item.name}
         </Text>
         {!["Share this app", "Logout"].includes(item.name) && (
-          <Icon name="chevron-forward" size={moderateScale(24)} color="#323232" />
+          <Icon name="chevron-forward" size={responsiveDimensions.icon.medium} color="#323232" />
         )}
       </TouchableOpacity>
     );
@@ -227,7 +217,7 @@ const Account = ({ navigation, route }) => {
               style={styles.editProfileContainer}
             >
               <Text style={styles.editProfileText}>Edit Profile</Text>
-              <Icon name="chevron-forward" size={moderateScale(20)} color="white" />
+              <Icon name="chevron-forward" size={responsiveDimensions.icon.small} color="white" />
             </TouchableOpacity>
           </View>
           <Image
@@ -288,7 +278,7 @@ const styles = StyleSheet.create({
     paddingRight: scale(10),
   },
   greeting: { 
-    fontSize: moderateScale(20), 
+    fontSize: responsiveFontSize.xl, 
     color: "#fff", 
     fontFamily: "Inter-Bold",
     marginBottom: verticalScale(5),
@@ -322,7 +312,7 @@ const styles = StyleSheet.create({
   },
   menuText: { 
     flex: 1, 
-    fontSize: moderateScale(16), 
+    fontSize: responsiveFontSize.md, 
     color: "#333", 
     fontFamily: "Inter-Bold" 
   },
@@ -347,7 +337,7 @@ const styles = StyleSheet.create({
   },
   editProfileText: {
     color: "#fff",
-    fontSize: moderateScale(16),
+    fontSize: responsiveFontSize.md,
     marginRight: scale(5),
     fontFamily: "Inter-Regular",
   },

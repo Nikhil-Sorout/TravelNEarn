@@ -19,25 +19,17 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome"; // Import FontAwesome Icon for calendar
 import { fetchLocations } from "../../API/Location"; // Correct import path for API function
+import { 
+  scale, 
+  verticalScale, 
+  moderateScale,
+  responsiveFontSize, 
+  responsivePadding,
+  screenWidth,
+  screenHeight 
+} from "../../Utils/responsive";
 
 const { width, height } = Dimensions.get("window");
-
-// Responsive scaling functions
-const scale = (size) => {
-  const baseWidth = 393; // iPhone 14 Pro width
-  const scaleFactor = width / baseWidth;
-  return Math.round(size * scaleFactor);
-};
-
-const verticalScale = (size) => {
-  const baseHeight = 852; // iPhone 14 Pro height
-  const scaleFactor = height / baseHeight;
-  return Math.round(size * scaleFactor);
-};
-
-const moderateScale = (size, factor = 0.5) => {
-  return size + (scale(size) - size) * factor;
-};
 
 const Search = () => {
   const navigation = useNavigation();
@@ -60,7 +52,7 @@ const Search = () => {
 
   // Format display text to truncate long addresses
   const formatDisplayText = (text) => {
-    const maxLength = width < 375 ? 25 : width < 390 ? 30 : 35;
+    const maxLength = screenWidth < 375 ? 25 : screenWidth < 390 ? 30 : 35;
     if (text && text.length > maxLength) {
       return text.substring(0, maxLength - 3) + "...";
     }
@@ -94,7 +86,7 @@ const Search = () => {
       // Delay to ensure the keyboard is shown
       setTimeout(() => {
         if (scrollViewRef.current) {
-          const scrollY = height < 700 ? 200 : height < 800 ? 250 : 300;
+          const scrollY = screenHeight < 700 ? 200 : screenHeight < 800 ? 250 : 300;
           scrollViewRef.current.scrollTo({
             y: scrollY,
             animated: true
@@ -245,7 +237,7 @@ const Search = () => {
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? (height < 700 ? 80 : 100) : 0}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? (screenHeight < 700 ? 80 : 100) : 0}
     >
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       <TouchableWithoutFeedback onPress={closeSuggestions}>
@@ -268,7 +260,7 @@ const Search = () => {
               >
                 <View style={styles.headerContent}>
                   <Text style={styles.headerTitle}>Travel n Earn</Text>
-                  <Text style={styles.subHeader}>Search For</Text>
+                  <Text style={styles.subHeader}>Search</Text>
                 </View>
 
                 {/* Notification Icon in top-right corner */}
@@ -318,8 +310,8 @@ const Search = () => {
               style={[
                 styles.formContainer,
                 { 
-                  marginHorizontal: width < 375 ? 10 : 20,
-                  paddingHorizontal: width < 375 ? 15 : 20,
+                  marginHorizontal: screenWidth < 375 ? scale(10) : scale(20),
+                  paddingHorizontal: screenWidth < 375 ? scale(15) : scale(20),
                 }
               ]}
               onStartShouldSetResponder={() => true}
@@ -490,7 +482,7 @@ const Search = () => {
                   style={{ 
                     width: moderateScale(50), 
                     fontFamily: "Inter-Regular",
-                    transform: [{ scale: width < 375 ? 0.9 : 1 }]
+                    transform: [{ scale: screenWidth < 375 ? 0.9 : 1 }]
                   }}
                   display={Platform.OS === "ios" ? "spinner" : "default"}
                   onChange={onChange}
@@ -527,8 +519,8 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     height: verticalScale(480),
-    minHeight: height * 0.55, // Ensure minimum height for smaller screens
-    maxHeight: height * 0.65, // Prevent header from being too large on big screens
+    minHeight: screenHeight * 0.55, // Ensure minimum height for smaller screens
+    maxHeight: screenHeight * 0.65, // Prevent header from being too large on big screens
   },
   textureBackground: {
     width: "100%",
@@ -601,9 +593,9 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     elevation: 5,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: verticalScale(2) },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: scale(4),
   },
   inputContainer: {
     flexDirection: "row",
@@ -664,9 +656,9 @@ const styles = StyleSheet.create({
     zIndex: 999,
     elevation: 5,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: verticalScale(2) },
     shadowOpacity: 0.2,
-    shadowRadius: 3,
+    shadowRadius: scale(3),
     overflow: "hidden",
   },
   suggestionItem: {

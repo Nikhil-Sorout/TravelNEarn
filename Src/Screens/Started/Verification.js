@@ -16,6 +16,12 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import commonStyles from "../../styles";
+import { 
+  scale, 
+  verticalScale, 
+  responsiveFontSize, 
+  responsivePadding 
+} from "../../Utils/responsive";
 
 const DEFAULT_PROFILE_PHOTO =
   "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
@@ -236,7 +242,7 @@ const Verification = ({ route }) => {
           <View style={styles.labelContainer}>
             <Text style={styles.label}>Phone Number </Text>
             <View style={styles.verifiedContainer}>
-              <Icon name="verified" size={24} color="#1B5E20" />
+              <Icon name="verified" size={scale(24)} color="#1B5E20" />
               <Text style={styles.verifiedText}>VERIFIED</Text>
             </View>
           </View>
@@ -293,36 +299,40 @@ const Verification = ({ route }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
-  innerContainer: { padding: 20 },
+  innerContainer: { padding: responsivePadding.horizontal },
   profilePhotoContainer: {
     alignItems: "center",
-    marginBottom: 30,
-    marginTop: 40,
+    marginBottom: verticalScale(30),
+    marginTop: verticalScale(40),
   },
-  profilePhoto: { width: 120, height: 120, borderRadius: 60 },
+  profilePhoto: { 
+    width: scale(120), 
+    height: scale(120), 
+    borderRadius: scale(60) 
+  },
   editIcon: {
     position: "absolute",
-    bottom: 50,
+    bottom: verticalScale(50),
     left: "60%",
     backgroundColor: "#006EFF",
-    borderRadius: 15,
-    padding: 5,
+    borderRadius: scale(15),
+    padding: scale(5),
     borderWidth: 1,
     borderColor: "#ddd",
   },
   profilePhotoText: {
-    marginTop: 10,
-    fontSize: 16,
+    marginTop: verticalScale(10),
+    fontSize: responsiveFontSize.md,
     color: commonStyles.Colors.blackColor,
     fontWeight: "500",
   },
   label: {
-    fontSize: 16,
+    fontSize: responsiveFontSize.md,
     color: commonStyles.Colors.secondColor,
-    marginBottom: 10,
+    marginBottom: verticalScale(10),
     fontWeight: "bold",
   },
-  inputContainer: { marginBottom: 15 },
+  inputContainer: { marginBottom: verticalScale(15) },
   labelContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -331,32 +341,36 @@ const styles = StyleSheet.create({
   verifiedText: {
     color: commonStyles.Colors.successTextColor, // Dark green text
     fontWeight: "bold",
-    marginLeft: 5,
+    marginLeft: scale(5),
   },
   input: {
     borderWidth: 1,
     borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
+    borderRadius: scale(8),
+    padding: scale(12),
+    fontSize: responsiveFontSize.md,
   },
   disabledInput: { backgroundColor: "#f0f0f0", color: "#888" },
   saveButton: {
     backgroundColor: commonStyles.Colors.primary,
-    paddingVertical: 15,
-    borderRadius: 8,
+    paddingVertical: verticalScale(15),
+    borderRadius: scale(8),
     alignItems: "center",
-    marginTop: 20,
+    marginTop: verticalScale(20),
   },
-  saveButtonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
+  saveButtonText: { 
+    color: "#fff", 
+    fontSize: responsiveFontSize.lg, 
+    fontWeight: "bold" 
+  },
   verifiedContainer: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: commonStyles.Colors.successBackgroundColor, // Light green background
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    marginBottom: 5,
+    paddingVertical: verticalScale(5),
+    paddingHorizontal: scale(10),
+    borderRadius: scale(8),
+    marginBottom: verticalScale(5),
   },
 });
 

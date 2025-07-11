@@ -3,13 +3,14 @@ import { useNavigation } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
-  SafeAreaView,
+  // SafeAreaView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { RadioButton } from "react-native-paper";
 import Ionicons from "react-native-vector-icons/Ionicons";
 

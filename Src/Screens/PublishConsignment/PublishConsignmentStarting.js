@@ -1,103 +1,222 @@
-import React, { useState, useEffect } from "react";
-
+import React, { useState, useEffect, useCallback } from "react";
 import {
   StyleSheet,
   Text,
   View,
   TouchableOpacity,
-  Dimensions,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  TextInput,
+  ActivityIndicator,
 } from "react-native";
-import { MaterialIcons, FontAwesome, Entypo } from "@expo/vector-icons";
-import Icon from "react-native-vector-icons/FontAwesome"; // Import FontAwesome Icon for calendar
-import Ionicons from "react-native-vector-icons/Ionicons"; // Import Ionicons
-import * as Location from "expo-location";
-
-// Get screen dimensions
-const { width, height } = Dimensions.get("window");
+import { MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Location from "expo-location";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { 
+  scale, 
+  verticalScale, 
+  responsivePadding, 
+  responsiveFontSize, 
+  responsiveDimensions 
+} from "../../Utils/responsive";
 
-const PublishStarting = ({ navigation }) => {
-  const [userName, setUserName] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [currentLocation, setCurrentLocation] = useState(null);
-  const [savedAddresses, setSavedAddresses] = useState({
-    home: null,
-    work: null,
-    other: null,
+// Simple Header component
+const Header = ({ title, navigation }) => {
+  return (
+    <SafeAreaView style={styles.header}>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => navigation.goBack()}
+      >
+        <MaterialIcons name="arrow-back" size={24} color="white" />
+      </TouchableOpacity>
+      <Text style={styles.headerText}>{title}</Text>
+    </SafeAreaView>
+  );
+};
+
+// Input Item Component
+const InputItem = ({ item, address, handleInputChange, disabled = false }) => {
+  return (
+    <View style={styles.inputContainer}>
+      <Text style={styles.label}>
+        {item.label}
+        {item.required && <Text style={styles.required}> *</Text>}
+      </Text>
+      <View style={styles.inputWrapper}>
+        <TextInput
+          style={[styles.input, disabled && styles.disabledInput]}
+          placeholder={item.placeholder}
+          value={address[item.value] || ""}
+          onChangeText={(text) => handleInputChange(item.value, text)}
+          editable={!disabled}
+          scrollEnabled={false}
+          multiline={false}
+          blurOnSubmit={true}
+          returnKeyType="next"
+          pointerEvents={disabled ? "none" : "auto"}
+        />
+        {address[item.value] && !disabled && (
+          <TouchableOpacity
+            style={styles.clearButton}
+            onPress={() => handleInputChange(item.value, "")}
+          >
+            <MaterialIcons name="clear" size={20} color="#666" />
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
+  );
+};
+
+const PublishStarting = ({ navigation, route }) => {
+  const [address, setAddress] = useState({
+    location: "",
+    pincode: "",
+    flat: "",
+    street: "",
+    landmark: "",
+    city: "",
+    state: "",
   });
+  const [loading, setLoading] = useState(false);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
 
+  // Address fields configuration
+  const addressFields = [
+    { label: "Your Location", placeholder: "Enter your location", value: "location", required: true },
+    { label: "Pincode", placeholder: "110008", value: "pincode", required: true },
+    {
+      label: "Flat, House no, Building, Company Apartment",
+      placeholder: "33/19, 1st Floor, West Patel Nagar",
+      value: "flat",
+      required: true,
+    },
+    {
+      label: "Area, Street, Sector Village",
+      placeholder: "West Patel Nagar",
+      value: "street",
+      required: true,
+    },
+    { label: "Landmark", placeholder: "Near Ramjas Ground", value: "landmark", required: true },
+    { label: "Town/City", placeholder: "New Delhi", value: "city", required: true },
+    { label: "State", placeholder: "Delhi", value: "state", required: true },
+  ];
+
+  // Initialize with route params if available
   useEffect(() => {
-    const fetchUserName = async () => {
-      try {
-        const storedName = await AsyncStorage.getItem("startingLocation");
-        if (storedName) {
-          setUserName(storedName);
+    console.log(route.params)
+    const { displayAddress, googleMapsAddress } = route.params || {};
+    
+    // Use googleMapsAddress if displayAddress is empty or not provided
+    const addressToUse = displayAddress || googleMapsAddress || "";
+    
+    if (addressToUse !== "") {
+      if (googleMapsAddress && (!displayAddress || displayAddress === "")) {
+        // Parse Google Maps address format: "V9WX+MF, Hodal, Haryana 121106, India"
+        const parts = addressToUse.split(', ');
+        
+        // Extract pincode from the last part (e.g., "Haryana 121106, India")
+        let pincode = "";
+        let state = "";
+        let city = "";
+        
+        if (parts.length >= 3) {
+          // Last part contains state, pincode, and country
+          const lastPart = parts[parts.length - 1]; // "India"
+          const secondLastPart = parts[parts.length - 2]; // "Haryana 121106"
+          
+          // Extract pincode from "Haryana 121106"
+          const pincodeMatch = secondLastPart.match(/\d{6}/);
+          if (pincodeMatch) {
+            pincode = pincodeMatch[0];
+            state = secondLastPart.replace(/\d{6}/, '').trim(); // "Haryana"
+          }
+          
+          // City is usually the second part
+          city = parts[1] || "";
         }
-      } catch (error) {
-        console.error("Error fetching user name:", error);
+        
+        setAddress({
+          location: addressToUse,
+          pincode: pincode,
+          flat: "", // Empty for Google Maps addresses
+          street: "", // Empty for Google Maps addresses
+          landmark: "", // Empty for Google Maps addresses
+          city: city,
+          state: state,
+        });
+      } else {
+        // Parse display address format: "35/8 India Gate West  Rajpath, J67M+36V, India Gate, New Delhi, Delhi 110001, India, New Delhi Delhi"
+        const addressParts = addressToUse.split(', ');
+        
+        let pincode = "";
+        let state = "";
+        let city = "";
+        let flat = "";
+        let street = "";
+        let landmark = "";
+        
+        if (addressParts.length >= 6) {
+          // Extract pincode from "Delhi 110001"
+          const pincodePart = addressParts[addressParts.length - 3]; // "Delhi 110001"
+          const pincodeMatch = pincodePart.match(/\d{6}/);
+          if (pincodeMatch) {
+            pincode = pincodeMatch[0];
+            state = pincodePart.replace(/\d{6}/, '').trim(); // "Delhi"
+          }
+          
+          // City is usually "New Delhi" (before the state+pincode)
+          city = addressParts[addressParts.length - 4] || ""; // "New Delhi"
+          
+          // Landmark is "India Gate" (3rd position)
+          landmark = addressParts[2] || ""; // "India Gate"
+          
+          // Street is "Rajpath" (part of first element after flat)
+          const firstPart = addressParts[0]; // "35/8 India Gate West  Rajpath"
+          const streetMatch = firstPart.match(/Rajpath/);
+          if (streetMatch) {
+            street = "Rajpath";
+          }
+          
+          // Flat is the first part before street
+          flat = addressParts[0] || ""; // "35/8 India Gate West  Rajpath"
+        }
+        
+        setAddress({
+          location: addressToUse,
+          pincode: pincode,
+          flat: flat,
+          street: street,
+          landmark: landmark,
+          city: city,
+          state: state,
+        });
       }
-    };
+    }
+  }, [route.params]);
 
-    fetchUserName();
+  const handleInputChange = useCallback((name, value) => {
+    setAddress(prev => ({ ...prev, [name]: value }));
   }, []);
-  const requestLocationPermission = async () => {
+
+  const getCurrentLocation = async () => {
+    setIsLoadingLocation(true);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        console.warn("Location permission denied by user.");
-        return false;
-      }
-      return true;
-    } catch (err) {
-      console.error("Error requesting location permission:", err);
-      return false;
-    }
-  };
-
-  const handleQuickAddressSelect = (addressType) => {
-    const address = savedAddresses[addressType];
-
-    if (!address) {
-      // If no address found, navigate to add address screen
-      navigation.navigate("AddressBook", {
-        isSelecting: true,
-        returnScreen: "PublishStarting", // Note the return screen is different
-      });
-      return;
-    }
-
-    // Format the full address from components
-    const formattedAddress = `${address.flat} ${address.landmark} ${address.street}, ${address.location}`;
-
-    // Update the state with the selected address
-    setCurrentLocation(formattedAddress);
-    setUserName(formatDisplayText(formattedAddress));
-
-    // Save to AsyncStorage
-    AsyncStorage.setItem("startingLocation", formattedAddress);
-  };
-
-  const getCurrentLocation = async () => {
-    setLoading(true);
-    try {
-      const hasPermission = await requestLocationPermission();
-      if (!hasPermission) {
         Alert.alert("Permission Denied", "Location permission is required");
         return;
       }
 
-      let location = null;
-
-      try {
-        location = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Highest,
-          maximumAge: 10000,
-          timeout: 15000,
-        });
-      } catch (error) {
-        console.warn("Current position fetch failed, trying fallback:", error);
-      }
+      let location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Highest,
+        maximumAge: 10000,
+        timeout: 15000,
+      });
 
       if (!location) {
         location = await Location.getLastKnownPositionAsync({});
@@ -106,234 +225,259 @@ const PublishStarting = ({ navigation }) => {
         }
       }
 
-      console.log("Final coordinates:", {
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      });
-
       const address = await Location.reverseGeocodeAsync({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
       });
 
-      let locationString = "";
       if (address.length > 0) {
         const addr = address[0];
-        locationString = `${addr.name}, ${addr.city}, ${addr.region}, ${addr.country}`;
-        console.log("Geocoded address:", addr);
+        const locationString = `${addr.name}, ${addr.city}, ${addr.region}, ${addr.country}`;
+        
+        setAddress(prev => ({
+          ...prev,
+          location: locationString,
+          city: addr.city || "",
+          state: addr.region || "",
+        }));
       }
-
-      setCurrentLocation(locationString);
-      setUserName(locationString);
-      await AsyncStorage.setItem("startingLocation", locationString);
     } catch (error) {
       console.error("Location error:", error);
       Alert.alert("Error", "Unable to fetch location: " + error.message);
     } finally {
-      setLoading(false);
+      setIsLoadingLocation(false);
     }
   };
 
+  const handleNext = useCallback(async () => {
+    // Validate all required fields
+    const requiredFields = ['location', 'pincode', 'flat', 'street', 'landmark', 'city', 'state'];
+    const missingFields = requiredFields.filter(field => !address[field] || address[field].trim() === '');
+    
+    if (missingFields.length > 0) {
+      Alert.alert("Error", "Please fill all required fields marked with *.");
+      return;
+    }
+
+    // Validate pincode
+    if (!/^\d{6}$/.test(address.pincode)) {
+      Alert.alert("Error", "Please enter a valid 6-digit pincode.");
+      return;
+    }
+
+    try {
+      // Create display address
+      const displayAddress = `${address.flat}, ${address.street}, ${address.landmark}, ${address.city}, ${address.state} - ${address.pincode}`;
+      
+      // Get the original Google Maps address from route params
+      const { googleMapsAddress } = route.params || {};
+      
+      // Store both addresses in AsyncStorage
+      await AsyncStorage.setItem("goingLocation", displayAddress);
+      if (googleMapsAddress) {
+        await AsyncStorage.setItem("goingGoogleMapsAddress", googleMapsAddress);
+      }
+      
+      // Navigate to next screen with Google Maps address for sending from
+      navigation.navigate("Search", {
+        startingLocation: displayAddress,
+        startingAddress: address,
+        sendingFrom: googleMapsAddress || address.location, // Use Google Maps address for sending from
+      });
+    } catch (error) {
+      console.error("Error saving location:", error);
+      Alert.alert("Error", "Failed to save location");
+    }
+  }, [address, navigation, route.params]);
+
   return (
-    <View style={styles.container}>
-      {/* Header Section */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
+    <KeyboardAvoidingView
+      style={styles.mainContainer}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
+    >
+      <Header title="Starting Location" navigation={navigation} />
+      
+      <View style={styles.container}>
+        <ScrollView 
+          style={styles.scrollContainer}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
         >
-          <MaterialIcons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-        <Text style={styles.headerText}>Starting Location</Text>
-      </View>
+          <View style={styles.formContainer}>
+            {/* Current Location Button */}
+            {/* <TouchableOpacity
+              style={[styles.currentLocationButton, isLoadingLocation && styles.disabledButton]}
+              onPress={getCurrentLocation}
+              disabled={isLoadingLocation}
+            >
+              <MaterialIcons name="my-location" size={24} color="#D83F3F" />
+              <Text style={styles.currentLocationText}>
+                {isLoadingLocation ? "Getting Location..." : "Use Current Location"}
+              </Text>
+              {isLoadingLocation && (
+                <ActivityIndicator size="small" color="#D83F3F" style={styles.loadingIndicator} />
+              )}
+            </TouchableOpacity> */}
 
-      {/* Location Input Section */}
-      <View style={styles.locationContainer}>
-        <View style={styles.locationInput}>
-          <FontAwesome
-            name="circle"
-            size={10}
-            color="green"
-            style={styles.dotIndicator}
-          />
-          <Text style={styles.locationText}>{userName}</Text>
-          <TouchableOpacity>
-            <Entypo name="cross" size={20} color="gray" />
-          </TouchableOpacity>
-        </View>
-      </View>
+            {/* Address Fields */}
+            {addressFields.map((item, index) => (
+              <InputItem
+                key={index}
+                item={item}
+                address={address}
+                handleInputChange={handleInputChange}
+              />
+            ))}
+          </View>
+        </ScrollView>
 
-      {/* Favorites Section */}
-      <Text style={styles.favoritesTitle}>Favourites</Text>
-      <View style={styles.favoritesContainer}>
+        {/* Fixed Next button at the bottom */}
         <TouchableOpacity
-          style={[
-            styles.favoriteItem,
-            !savedAddresses.home && styles.disabledButton,
-          ]}
-          onPress={() => handleQuickAddressSelect("home")}
-        >
-          <FontAwesome name="home" size={24} color="#53B175" />
-          <Text style={styles.favoriteText}>Home</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.favoriteItem,
-            !savedAddresses.work && styles.disabledButton,
-          ]}
-          onPress={() => handleQuickAddressSelect("work")}
-        >
-          <FontAwesome name="briefcase" size={24} color="#53B175" />
-          <Text style={styles.favoriteText}>Work</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.favoriteItem1,
-            !savedAddresses.other && styles.disabledButton,
-          ]}
-          onPress={() => handleQuickAddressSelect("other")}
-        >
-          <Entypo name="location-pin" size={24} color="#53B175" />
-          <Text style={styles.favoriteText}>Other</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Bottom Navigation */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity
-          style={[styles.navButton, loading && styles.disabledButton]}
-          onPress={getCurrentLocation}
+          style={[styles.nextButton, loading && styles.disabledButton]}
+          onPress={handleNext}
           disabled={loading}
         >
-          <View style={styles.iconContainer}>
-            <Ionicons name="locate" size={24} color="red" />
-            <Text style={styles.navText}>Current Location</Text>
-          </View>
+          <Text style={styles.nextButtonText}>Next</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.navButton}
-          onPress={() => navigation.navigate("PublishConsignmentSearchScreen")}
-        >
-          <View style={styles.iconContainer}>
-            <FontAwesome name="map-marker" size={24} color="red" />
-            <Text style={styles.navText}>Next</Text>
+        {loading && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color="#D83F3F" />
           </View>
-        </TouchableOpacity>
+        )}
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
+  mainContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
+    paddingBottom: Platform.OS === "ios" ? 20 : 0,
+  },
   container: {
     flex: 1,
-    backgroundColor: "#F5F5F5",
-
+    backgroundColor: "#fff",
   },
   header: {
     backgroundColor: "#D83F3F",
-    paddingVertical: height * 0.02,
-    paddingHorizontal: width * 0.05,
+    paddingVertical: verticalScale(15),
+    paddingHorizontal: responsivePadding.horizontal,
     flexDirection: "row",
     alignItems: "center",
   },
   backButton: {
-    marginRight: 10,
+    marginRight: responsivePadding.medium,
   },
   headerText: {
     color: "white",
-    fontSize: width * 0.05, // Adjusting for screen width
-    textAlign: "center",
-    flex: 1, // Centering header text
+    fontSize: responsiveFontSize.lg,
+    fontWeight: "bold",
+    flex: 1,
   },
-  locationContainer: {
-    backgroundColor: "",
-    paddingHorizontal: width * 0.05,
-    paddingVertical: height * 0.02,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
+  scrollContainer: {
+    flex: 1,
+    width: '100%',
   },
-  locationInput: {
-    backgroundColor: "#EAECF0",
-    borderRadius: 12,
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: verticalScale(30),
+    width: '100%',
+  },
+  formContainer: {
+    paddingHorizontal: responsivePadding.horizontal,
+    paddingTop: verticalScale(15),
+  },
+  currentLocationButton: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: width * 0.03,
-    paddingVertical: height * 0.03,
+    backgroundColor: "#F8F9FA",
+    paddingVertical: verticalScale(15),
+    paddingHorizontal: responsivePadding.medium,
+    borderRadius: 8,
+    marginBottom: verticalScale(20),
+    borderWidth: 1,
+    borderColor: "#E9ECEF",
   },
-  dotIndicator: {
-    marginRight: width * 0.03, // Dynamic margin based on screen width
+  currentLocationText: {
+    marginLeft: responsivePadding.medium,
+    fontSize: responsiveFontSize.md,
+    color: "#D83F3F",
+    fontWeight: "600",
   },
-  locationText: {
-    flex: 1,
-    fontSize: width * 0.04, // Adjust font size based on screen width
+  loadingIndicator: {
+    marginLeft: "auto",
+  },
+  inputContainer: {
+    marginBottom: verticalScale(15),
+  },
+  label: {
+    fontWeight: "bold",
+    marginBottom: verticalScale(5),
+    fontSize: responsiveFontSize.sm,
     color: "#333",
+  },
+  required: {
+    color: "#D83F3F",
+  },
+  inputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    position: "relative",
+  },
+  input: {
+    flex: 1,
+    height: verticalScale(48),
+    borderColor: "#ccc",
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: responsivePadding.medium,
+    paddingRight: 40,
+    fontSize: responsiveFontSize.sm,
+  },
+  disabledInput: {
+    backgroundColor: "#f5f5f5",
+    color: "#666",
+  },
+  clearButton: {
+    position: "absolute",
+    right: responsivePadding.medium,
+    height: 30,
+    width: 30,
+    padding: 5,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  nextButton: {
+    backgroundColor: "#D83F3F",
+    height: verticalScale(54),
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: verticalScale(15),
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    width: "100%",
+    zIndex: 100,
+  },
+  nextButtonText: {
+    color: "#fff",
+    fontSize: responsiveFontSize.md,
+    fontWeight: "bold",
+    textAlign: "center",
   },
   disabledButton: {
-    // opacity: 0.5,
+    opacity: 0.6,
   },
-  favoritesTitle: {
-    marginHorizontal: width * 0.05,
-    marginTop: height * 0.03,
-    marginBottom: height * 0.02,
-    fontSize: width * 0.045,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  favoritesContainer: {
-    marginHorizontal: width * 0.01,
-    backgroundColor: "white",
-    padding: 15,
-  },
-  favoriteItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: height * 0.02,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
-  },
-  favoriteItem1: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: height * 0.02,
-  },
-  favoriteText: {
-    fontSize: width * 0.04,
-    marginLeft: width * 0.04,
-    color: "black",
-    fontWeight: "bold",
-  },
-  bottomNav: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: width * 0.1, // Adjusting horizontal padding for responsiveness
-    paddingVertical: height * 0.03,
-    borderTopWidth: 1,
-    borderTopColor: "#e0e0e0",
-    marginTop: "auto", // Ensuring the bottom nav stays at the bottom
-    backgroundColor: "white",
-  },
-  navButton: {
-    alignItems: "center",
-  },
-
-  iconContainer: {
-    flexDirection: "column", // Places icon & text in a vertical column
-    alignItems: "center", // Centers items horizontally
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.3)",
     justifyContent: "center",
-    paddingHorizontal: height * 0.02,
-    color: "red",
-  },
-
-  navText: {
-    fontSize: 14,
-    color: "red",
-    marginTop: 5, // Adds space between icon & text
-    textAlign: "center",
-    // Space between icon & text
+    alignItems: "center",
+    zIndex: 999,
   },
 });
 

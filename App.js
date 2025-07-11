@@ -100,8 +100,8 @@ export default function App() {
     const initializeApp = async () => {
       try {
         // Set required data for socket connection
-        const apiBaseUrl = "https://travel.timestringssystem.com/";
-        // const apiBaseUrl = "http://192.168.1.25:5002/";
+        // const apiBaseUrl = "https://travel.timestringssystem.com/";
+        const apiBaseUrl = "http://192.168.1.25:5002/";
         await AsyncStorage.setItem("apiBaseUrl", apiBaseUrl);
 
         // Get phone number from AsyncStorage or set a default for testing

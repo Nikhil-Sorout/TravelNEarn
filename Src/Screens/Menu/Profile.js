@@ -13,8 +13,9 @@ import {
   View,
   StatusBar,
   Platform,
-  SafeAreaView,
+  // SafeAreaView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";    
 import Icon from "react-native-vector-icons/Ionicons";
 import verificationImage from "../../Images/kyc.png";
 import commonStyles from "../../styles";

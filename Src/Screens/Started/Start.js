@@ -11,6 +11,13 @@ import {
 import logo from "../../Images/logo.png"; // Import the local image
 import backgroundImage from "../../Images/Pattern.png"; // Replace with your background image path
 import commonStyles from "../../styles"; // Import common styles for fonts
+import { 
+  scale, 
+  verticalScale, 
+  responsiveFontSize, 
+  responsiveDimensions, 
+  responsivePadding 
+} from "../../Utils/responsive";
 
 const Start = () => {
   const navigation = useNavigation();
@@ -26,7 +33,7 @@ const Start = () => {
           source={logo} // Use the imported logo
           style={styles.logo}
         />
-        <Text style={styles.title}>Travel & Earn</Text>
+        <Text style={styles.title}>Travel N Earn</Text>
       </View>
       <View style={styles.bottomContainer}>
         <TouchableOpacity
@@ -54,7 +61,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#E73D48", // Red background as a fallback
     alignItems: "center",
     justifyContent: "center",
-    padding: 20,
+    padding: responsivePadding.horizontal,
   },
   backgroundImage: {
     resizeMode: "cover", // Ensures the image covers the full background
@@ -67,16 +74,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   logo: {
-    width: 129,
-    height: 129,
-    marginBottom: 20,
-    marginTop: -20,
+    width: responsiveDimensions.logo.width,
+    height: responsiveDimensions.logo.height,
+    marginBottom: verticalScale(20),
+    marginTop: verticalScale(-20),
   },
   title: {
-    fontSize: 39,
+    fontSize: responsiveFontSize.title,
     color: "#FFFFFF",
     fontWeight: "bold",
-    marginBottom: 10,
+    marginBottom: verticalScale(10),
   },
   bottomContainer: {
     position: "absolute",
@@ -86,26 +93,26 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: "#FFFFFF",
-    width: 361,
-    height: 45,
-    borderRadius: 8,
+    width: responsiveDimensions.button.width,
+    height: responsiveDimensions.button.height,
+    borderRadius: scale(8),
     alignItems: "center",
     justifyContent: "center",
-    marginVertical: 10,
+    marginVertical: verticalScale(10),
   },
   buttonText: {
     color: "#E73D48",
-    fontSize: 16,
+    fontSize: responsiveFontSize.md,
     fontWeight: "bold",
   },
   footerTextContainer: {
     backgroundColor: "#FFFFFF",
-    padding: 16,
+    padding: responsivePadding.medium,
     width: "113%",
   },
   footerText: {
     color: "#E73D48",
-    fontSize: 14,
+    fontSize: responsiveFontSize.sm,
     textAlign: "center",
   },
   linkText: {

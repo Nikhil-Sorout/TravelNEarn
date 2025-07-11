@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import {
   Dimensions,
-  SafeAreaView,
+  // SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,6 +10,7 @@ import {
   View,
   Alert,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import RNPickerSelect from "react-native-picker-select";
 import Header from "../../header";
 import axios from "axios"; // Import axios for API requests

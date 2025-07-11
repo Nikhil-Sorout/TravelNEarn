@@ -2,6 +2,13 @@ import { useRoute } from '@react-navigation/native';
 import React, { useState } from 'react';
 import { Dimensions, FlatList, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { 
+  scale, 
+  verticalScale, 
+  responsiveFontSize, 
+  responsivePadding,
+  screenWidth 
+} from '../../Utils/responsive';
 
 const cities = ['Delhi', 'Gurugram', 'Noida', 'Jaipur', 'Bangalore', 'Hyderabad', 'Kolkata'];
 
@@ -29,13 +36,13 @@ const RegionPicker = ({ navigation }) => {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Icon name="chevron-back" size={24} color="#fff" />
+          <Icon name="chevron-back" size={scale(24)} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerText}>Pick your region</Text>
       </View>
 
       <View style={styles.searchContainer}>
-        <Icon name="search" size={20} color="gray" style={styles.searchIcon} />
+        <Icon name="search" size={scale(20)} color="gray" style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
           placeholder="Search for your city"
@@ -66,25 +73,25 @@ const RegionPicker = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 20,
+    marginTop: verticalScale(20),
     flex: 1,
     backgroundColor: '#f5f5f5',
-    paddingTop: Platform.OS === 'ios' ? 30 : 0,  // Adjust for iOS status bar
+    paddingTop: Platform.OS === 'ios' ? verticalScale(30) : 0,  // Adjust for iOS status bar
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#D32F2F',
-    paddingVertical: 20,
-    paddingHorizontal: 15,
-    marginTop: Platform.OS === 'ios' ? 20 : 0,  // Adjust margin on iOS for better spacing
+    paddingVertical: verticalScale(20),
+    paddingHorizontal: scale(15),
+    marginTop: Platform.OS === 'ios' ? verticalScale(20) : 0,  // Adjust margin on iOS for better spacing
   },
   backButton: {
-    marginRight: 10,
+    marginRight: scale(10),
   },
   headerText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: responsiveFontSize.lg,
     fontWeight: 'bold',
     flex: 1,  // Make the header text flexible for centering
     textAlign: 'center',  // Center the text in the header
@@ -93,43 +100,43 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    margin: 15,
+    borderRadius: scale(8),
+    paddingHorizontal: scale(10),
+    margin: scale(15),
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: verticalScale(2) },
     shadowOpacity: 0.2,
-    shadowRadius: 2,
+    shadowRadius: scale(2),
     elevation: 3,
-    width: width - 30,  // Use width of the screen for responsiveness
+    width: screenWidth - scale(30),  // Use responsive width for responsiveness
   },
   searchIcon: {
-    marginRight: 10,
+    marginRight: scale(10),
   },
   searchInput: {
     flex: 1,
-    paddingVertical: 8,
-    fontSize: 16,
+    paddingVertical: verticalScale(8),
+    fontSize: responsiveFontSize.md,
   },
   cityContainer: {
-    paddingVertical: 15,
-    paddingHorizontal: 20,
+    paddingVertical: verticalScale(15),
+    paddingHorizontal: scale(20),
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
-    width: width - 30,  // Ensure cities are correctly sized based on screen width
+    width: screenWidth - scale(30),  // Ensure cities are correctly sized based on screen width
   },
   cityText: {
-    fontSize: 16,
+    fontSize: responsiveFontSize.md,
     color: '#333',
   },
   selectedCity: {
     backgroundColor: '#e0e0e0',
   },
   errorText: {
-    fontSize: 18,
+    fontSize: responsiveFontSize.lg,
     color: 'red',
     textAlign: 'center',
-    marginTop: 20,
+    marginTop: verticalScale(20),
   },
 });
 

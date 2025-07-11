@@ -6,7 +6,7 @@ import {
   FlatList,
   Image,
   Modal,
-  SafeAreaView,
+  // SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,6 +16,7 @@ import {
   Platform,
   StatusBar,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/FontAwesome";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import ConsignmentSearchScreen from "./ConsignmentSearchScreen";

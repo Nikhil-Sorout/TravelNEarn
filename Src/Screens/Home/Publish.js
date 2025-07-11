@@ -22,25 +22,17 @@ import { fetchLocations } from "../../API/Location";
 import Icon from "react-native-vector-icons/FontAwesome";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import commonStyles from "../../styles";
+import { 
+  scale, 
+  verticalScale, 
+  moderateScale,
+  responsiveFontSize, 
+  responsivePadding,
+  screenWidth,
+  screenHeight 
+} from "../../Utils/responsive";
 
 const { width, height } = Dimensions.get("window");
-
-// Responsive scaling functions
-const scale = (size) => {
-  const baseWidth = 393; // iPhone 14 Pro width
-  const scaleFactor = width / baseWidth;
-  return Math.round(size * scaleFactor);
-};
-
-const verticalScale = (size) => {
-  const baseHeight = 852; // iPhone 14 Pro height
-  const scaleFactor = height / baseHeight;
-  return Math.round(size * scaleFactor);
-};
-
-const moderateScale = (size, factor = 0.5) => {
-  return size + (scale(size) - size) * factor;
-};
 
 const Search = () => {
   const navigation = useNavigation();
@@ -54,7 +46,7 @@ const Search = () => {
 
   // Function to ensure text is displayed properly in TextInput
   const formatDisplayText = (text) => {
-    const maxLength = width < 375 ? 25 : width < 390 ? 30 : 35;
+    const maxLength = screenWidth < 375 ? 25 : screenWidth < 390 ? 30 : 35;
     if (text && text.length > maxLength) {
       return text.substring(0, maxLength - 3) + "...";
     }
@@ -96,7 +88,7 @@ const Search = () => {
       // Delay to ensure the keyboard is shown
       setTimeout(() => {
         if (scrollViewRef.current) {
-          const scrollY = height < 700 ? 200 : height < 800 ? 250 : 300;
+          const scrollY = screenHeight < 700 ? 200 : screenHeight < 800 ? 250 : 300;
           scrollViewRef.current.scrollTo({
             y: scrollY,
             animated: true
@@ -178,7 +170,7 @@ const Search = () => {
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? (height < 700 ? 80 : 100) : 0}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? (screenHeight < 700 ? 80 : 100) : 0}
     >
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       <TouchableWithoutFeedback onPress={closeSuggestions}>
@@ -241,18 +233,19 @@ const Search = () => {
               style={[
                 styles.formContainer,
                 { 
-                  marginHorizontal: width < 375 ? 10 : 20,
-                  paddingHorizontal: width < 375 ? 15 : 20,
+                  marginHorizontal: screenWidth < 375 ? scale(10) : scale(20),
+                  paddingHorizontal: screenWidth < 375 ? scale(15) : scale(20),
                 }
               ]}
               onStartShouldSetResponder={() => true}
             >
               {/* Leaving From Input */}
+              <Text style={styles.inputLabel}>Leaving From</Text>
               <View style={styles.inputContainer}>
                 <View style={styles.bulletPointRed} />
                 <TextInput
                   style={[styles.input, { textAlign: "left" }]}
-                  placeholder={activeTab === "Travellers" ? "Leaving from" : "Sending from"}
+                  placeholder={activeTab === "Travellers" ? "Starting City Address" : "Sending from"}
                   placeholderTextColor="#aaa"
                   value={from}
                   numberOfLines={1}
@@ -316,12 +309,13 @@ const Search = () => {
                     </TouchableWithoutFeedback>
                   )}
               </View>
-
+              
+              <Text style={styles.inputLabel}>Going To</Text>
               <View style={styles.inputContainer}>
                 <View style={styles.bulletPointGreen} />
                 <TextInput
                   style={[styles.input, { textAlign: "left" }]}
-                  placeholder={activeTab === "Travellers" ? "Going to" : "Sending to"}
+                  placeholder={activeTab === "Travellers" ? "Destination City Address" : "Sending to"}
                   placeholderTextColor="#aaa"
                   value={to}
                   numberOfLines={1}
@@ -412,7 +406,7 @@ const Search = () => {
                   style={{ 
                     width: moderateScale(50), 
                     fontFamily: "Inter-Regular",
-                    transform: [{ scale: width < 375 ? 0.9 : 1 }]
+                    transform: [{ scale: screenWidth < 375 ? 0.9 : 1 }]
                   }}
                   display={Platform.OS === "ios" ? "spinner" : "default"}
                   onChange={onChange}
@@ -445,12 +439,12 @@ export default Search;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f5f5f5', // Light background for better contrast
   },
   headerContainer: {
     height: verticalScale(480),
-    minHeight: height * 0.55,
-    maxHeight: height * 0.65,
+    minHeight: screenHeight * 0.55, // Ensure minimum height for smaller screens
+    maxHeight: screenHeight * 0.65, // Prevent header from being too large on big screens
   },
   textureBackground: {
     width: "100%",
@@ -472,16 +466,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: scale(20),
   },
   subHeader: {
-    fontFamily: "OpenSans-SemiBold",
     color: "white",
     fontSize: moderateScale(20),
     position: "absolute",
     bottom: "40%",
+    fontFamily: "Inter-Bold",
     textAlign: "center",
   },
   notificationIconContainer: {
     position: "absolute",
-    top: verticalScale(40),
+    top: verticalScale(43),
     right: scale(20),
     padding: scale(8),
   },
@@ -494,7 +488,7 @@ const styles = StyleSheet.create({
     marginTop: verticalScale(-180),
     width: "90%",
     maxWidth: scale(350),
-    minHeight: verticalScale(44),
+    minHeight: verticalScale(44), // Ensure minimum touch target size
   },
   tabButton: {
     flex: 1,
@@ -506,12 +500,11 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
   },
   tabText: {
-    fontFamily: "Inter-Medium",
     fontSize: moderateScale(14),
+    fontFamily: "OpenSans-Bold",
     color: "white",
   },
   activeTabText: {
-    fontFamily: "Inter-SemiBold",
     color: "#D83F3F",
   },
   formContainer: {
@@ -524,9 +517,9 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     elevation: 5,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: verticalScale(2) },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: scale(4),
   },
   inputContainer: {
     flexDirection: "row",
@@ -551,20 +544,12 @@ const styles = StyleSheet.create({
     marginRight: scale(10),
   },
   input: {
-    fontFamily: "Inter-Regular",
     flex: 1,
     fontSize: moderateScale(16),
+    fontFamily: "Inter-Regular",
     paddingVertical: verticalScale(10),
     color: "#333",
-    textAlign: "left",
-    textAlignVertical: "center",
-    includeFontPadding: false,
     minHeight: verticalScale(40),
-  },
-  inputText: {
-    fontFamily: "Inter-Regular",
-    fontSize: moderateScale(16),
-    color: "#333",
   },
   searchButton: {
     backgroundColor: "#D83F3F",
@@ -574,9 +559,9 @@ const styles = StyleSheet.create({
     marginTop: verticalScale(10),
   },
   searchButtonText: {
-    fontFamily: "Inter-Bold",
     color: "#fff",
     fontSize: moderateScale(16),
+    fontFamily: "Inter-Bold",
   },
   calendarIcon: {
     marginRight: scale(10),
@@ -595,9 +580,9 @@ const styles = StyleSheet.create({
     zIndex: 999,
     elevation: 5,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: verticalScale(2) },
     shadowOpacity: 0.2,
-    shadowRadius: 3,
+    shadowRadius: scale(3),
     overflow: "hidden",
   },
   suggestionItem: {
@@ -625,5 +610,25 @@ const styles = StyleSheet.create({
   },
   suggestionScrollContent: {
     flexGrow: 1,
+  },
+  inputText: {
+    fontSize: moderateScale(16),
+  },
+  notificationBadge: {
+    position: "absolute",
+    right: scale(-6),
+    top: verticalScale(-6),
+    backgroundColor: "#FFD700",
+    borderRadius: scale(10),
+    minWidth: scale(20),
+    height: scale(20),
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: scale(4),
+  },
+  notificationBadgeText: {
+    color: "#000",
+    fontSize: moderateScale(12),
+    fontWeight: "bold",
   },
 });

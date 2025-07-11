@@ -1,12 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { Dimensions, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from "react-native-safe-area-context";  
 import Header from '../../header';
 const { width, height } = Dimensions.get('window'); // Get screen dimensions
 
 const HelpSupp = ({ navigation }) => {
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <Header title="Help & Support" navigation={navigation} />
 
@@ -35,7 +36,7 @@ const HelpSupp = ({ navigation }) => {
           <Ionicons name="chevron-forward" size={24} color="black" />
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 

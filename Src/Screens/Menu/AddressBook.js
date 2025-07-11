@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import Header from "../../header";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const AddressBook = ({ navigation }) => {
   const [addresses, setAddresses] = useState([]);
@@ -23,7 +24,8 @@ const AddressBook = ({ navigation }) => {
         let baseurl = await AsyncStorage.getItem("apiBaseUrl");
 
         if (!baseurl) {
-          baseurl = "https://travel.timestringssystem.com/";
+          // baseurl = "https://travel.timestringssystem.com/";
+          baseurl = "http://192.168.1.25:5002/";
         }
 
         const phoneNumber = await AsyncStorage.getItem("phoneNumber");
@@ -38,10 +40,10 @@ const AddressBook = ({ navigation }) => {
           `${baseurl}address/getaddress/${phoneNumber}`
         );
         const data = await response.json();
-        console.log(data);
+        console.log(data?.addresses);
 
-        if (data && data.length > 0) {
-          setAddresses(data);
+        if (data && data?.addresses?.length > 0) {
+          setAddresses(data?.addresses);
         } else {
           setAddresses([]);
         }
@@ -78,7 +80,8 @@ const AddressBook = ({ navigation }) => {
       console.log("addressId", addressId)
       let baseurl = await AsyncStorage.getItem("apiBaseUrl");
       if (!baseurl) {
-        baseurl = "https://travel.timestringssystem.com/";
+        // baseurl = "https://travel.timestringssystem.com/";
+        baseurl = "http://192.168.1.25:5002/";
       
       }
       console.log("baseurl", baseurl)
@@ -98,6 +101,19 @@ const AddressBook = ({ navigation }) => {
     }
   };
 
+  // Handle address item press - navigate to publish consignment location
+  const handleAddressPress = (address) => {
+    // Construct googleMapsAddress from address components
+    const googleMapsAddress = `${address.location}, ${address.pincode}, ${address.city}, ${address.state}`;
+    
+    // Navigate to PublishConsignmentLocation with the address
+    navigation.navigate("PublishConsignmentLocation", {
+      googleMapsAddress: googleMapsAddress,
+      initialLocation: address.googleMapsAddress || googleMapsAddress,
+      address: address // Pass the full address object for constructing displayAddress
+    });
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -107,7 +123,7 @@ const AddressBook = ({ navigation }) => {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Header title="Address Book" navigation={navigation} />
 
       <ScrollView style={styles.addressList}>
@@ -117,12 +133,17 @@ const AddressBook = ({ navigation }) => {
           <Text style={styles.noDataText}>No addresses found.</Text>
         ) : (
           addresses.map((item, index) => (
-            <View key={index} style={styles.addressItem}>
+            <TouchableOpacity
+              key={index}
+              style={styles.addressItem}
+              onPress={() => handleAddressPress(item)}
+              activeOpacity={0.7}
+            >
               <View style={styles.addressIconContainer}>
                 <MaterialIcons name="location-pin" size={24} color="orange" />
               </View>
               <View style={styles.addressTextContainer}>
-                <Text style={styles.addressTitle}>{item.saveAs}</Text>
+                <Text style={styles.addressTitle}>{item.saveAs === "Others" ? item.customName : item.saveAs}</Text>
                 <Text style={styles.address}>
                   {item.flat} {item.landmark} {item.street} {item.location}
                 </Text>
@@ -132,7 +153,10 @@ const AddressBook = ({ navigation }) => {
               </View>
               <TouchableOpacity
                 style={styles.moreIcon}
-                onPress={() => toggleMenu(index)}
+                onPress={(e) => {
+                  e.stopPropagation(); // Prevent triggering the parent TouchableOpacity
+                  toggleMenu(index);
+                }}
               >
                 <MaterialIcons name="more-vert" size={24} color="black" />
               </TouchableOpacity>
@@ -152,7 +176,7 @@ const AddressBook = ({ navigation }) => {
                   </TouchableOpacity>
                 </View>
               )}
-            </View>
+            </TouchableOpacity>
           ))
         )}
       </ScrollView>
@@ -163,7 +187,7 @@ const AddressBook = ({ navigation }) => {
       >
         <Text style={styles.addButtonText}>+ Add New Address</Text>
       </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 };
 

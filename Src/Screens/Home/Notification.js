@@ -12,30 +12,22 @@ import {
   StatusBar,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useSocket } from "../../Context/socketprovider";
 import * as FileSystem from "expo-file-system";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import moment from "moment";
-
-const { width, height } = Dimensions.get("window");
-
-// Responsive scaling functions
-const scale = (size) => {
-  const baseWidth = 393; // iPhone 14 Pro width
-  const scaleFactor = width / baseWidth;
-  return Math.round(size * scaleFactor);
-};
-
-const verticalScale = (size) => {
-  const baseHeight = 852; // iPhone 14 Pro height
-  const scaleFactor = height / baseHeight;
-  return Math.round(size * scaleFactor);
-};
-
-const moderateScale = (size, factor = 0.5) => {
-  return size + (scale(size) - size) * factor;
-};
+import { 
+  scale, 
+  verticalScale, 
+  moderateScale, 
+  responsiveFontSize,
+  responsiveDimensions,
+  screenWidth,
+  screenHeight,
+  responsivePadding
+} from "../../Utils/responsive";
 
 const NotificationsScreen = ({ navigation, route }) => {
   const [notifications, setNotifications] = useState([]);
@@ -525,14 +517,14 @@ const NotificationsScreen = ({ navigation, route }) => {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#D83F3F" barStyle="light-content" />
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="chevron-back" size={moderateScale(24)} color="white" />
+          <Ionicons name="chevron-back" size={responsiveDimensions.icon.medium} color="white" />
         </TouchableOpacity>
         <View style={styles.headerTextContainer}>
           <Text style={styles.headerText}>Notifications</Text>
@@ -792,7 +784,7 @@ const NotificationsScreen = ({ navigation, route }) => {
           })
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -805,7 +797,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: verticalScale(20),
     color: "grey",
-    fontSize: moderateScale(16),
+    fontSize: responsiveFontSize.md,
     fontWeight: "bold",
   },
   header: {
@@ -813,12 +805,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: verticalScale(15),
-    paddingHorizontal: scale(10),
-    elevation: 5,
+    paddingHorizontal: responsivePadding.small,
+    elevation: scale(5),
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: scale(2) },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: scale(4),
   },
   headerTextContainer: {
     flex: 1,
@@ -828,7 +820,7 @@ const styles = StyleSheet.create({
   },
   headerText: {
     color: "white",
-    fontSize: moderateScale(18),
+    fontSize: responsiveFontSize.lg,
     fontWeight: "bold",
   },
   badge: {
@@ -842,29 +834,29 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     color: "#000",
-    fontSize: moderateScale(12),
+    fontSize: responsiveFontSize.xs,
     fontWeight: "bold",
   },
   backButton: {
-    marginRight: scale(10),
+    marginRight: responsivePadding.small,
     padding: scale(8),
   },
   tabsContainer: {
     flexDirection: "row",
     marginTop: verticalScale(20),
-    margin: scale(10),
-    borderWidth: 2,
+    margin: responsivePadding.small,
+    borderWidth: scale(2),
     borderColor: "#7C7C7C",
     borderRadius: scale(5),
     maxWidth: scale(350),
     alignSelf: "center",
-    width: "90%",
+    width: screenWidth < 375 ? "95%" : "90%",
   },
   tab: {
     flex: 1,
     padding: verticalScale(12),
     alignItems: "center",
-    borderBottomWidth: 3,
+    borderBottomWidth: scale(3),
     borderBottomColor: "transparent",
     minHeight: verticalScale(44),
   },
@@ -873,7 +865,7 @@ const styles = StyleSheet.create({
     color: "white",
   },
   tabText: {
-    fontSize: moderateScale(14),
+    fontSize: responsiveFontSize.sm,
     color: "#7C7C7C",
   },
   activeTabText: {
@@ -881,23 +873,23 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   notificationsList: {
-    padding: scale(15),
-    paddingHorizontal: width < 375 ? scale(10) : scale(15),
+    padding: responsivePadding.medium,
+    paddingHorizontal: screenWidth < 375 ? responsivePadding.small : responsivePadding.medium,
   },
   notificationItem: {
     flexDirection: "column",
     paddingVertical: verticalScale(15),
-    borderLeftWidth: 5,
+    borderLeftWidth: scale(5),
     borderLeftColor: "#53B175",
     borderRadius: scale(8),
     backgroundColor: "#fff",
-    padding: scale(15),
+    padding: responsivePadding.medium,
     shadowColor: "#000",
     shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
+    shadowRadius: scale(5),
+    elevation: scale(3),
     marginBottom: verticalScale(10),
-    marginHorizontal: width < 375 ? scale(5) : 0,
+    marginHorizontal: screenWidth < 375 ? scale(5) : 0,
   },
   unreadNotification: {
     backgroundColor: "#E6F3FF",
@@ -907,18 +899,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   notificationTitle: {
-    fontSize: moderateScale(16),
+    fontSize: responsiveFontSize.md,
     fontWeight: "bold",
     color: "#333",
+    lineHeight: moderateScale(20),
   },
   notificationSubtitle: {
     color: "#333",
     marginTop: verticalScale(5),
-    fontSize: moderateScale(14),
+    fontSize: responsiveFontSize.sm,
+    lineHeight: moderateScale(18),
   },
   notificationTime: {
     color: "#888",
-    fontSize: moderateScale(14),
+    fontSize: responsiveFontSize.sm,
     alignSelf: "flex-end",
     marginTop: verticalScale(5),
   },
@@ -931,12 +925,13 @@ const styles = StyleSheet.create({
     color: "red",
     textAlign: "center",
     marginTop: verticalScale(20),
-    fontSize: moderateScale(14),
+    fontSize: responsiveFontSize.sm,
   },
   buttonContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginTop: verticalScale(15),
+    gap: scale(10),
   },
   payButton: {
     backgroundColor: "#4CAF50",
@@ -944,9 +939,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: scale(15),
     borderRadius: scale(8),
     flex: 1,
-    marginRight: scale(10),
     alignItems: "center",
     minHeight: verticalScale(44),
+    elevation: scale(2),
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: scale(1) },
+    shadowOpacity: 0.2,
+    shadowRadius: scale(2),
   },
   successButton: {
     backgroundColor: "#4CAF50",
@@ -956,17 +955,27 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     minHeight: verticalScale(44),
+    elevation: scale(2),
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: scale(1) },
+    shadowOpacity: 0.2,
+    shadowRadius: scale(2),
   },
   declineButton: {
     backgroundColor: "#fff",
     paddingVertical: verticalScale(10),
     paddingHorizontal: scale(15),
     borderRadius: scale(8),
-    borderWidth: 1,
+    borderWidth: scale(1),
     borderColor: "#F44336",
     flex: 1,
     alignItems: "center",
     minHeight: verticalScale(44),
+    elevation: scale(1),
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: scale(1) },
+    shadowOpacity: 0.1,
+    shadowRadius: scale(1),
   },
   buttonText: {
     color: "white",

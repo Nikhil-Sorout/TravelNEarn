@@ -3,7 +3,7 @@ import { useNavigation } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
-  SafeAreaView,
+  // SafeAreaView,
   StyleSheet,
   Text,
   TextInput,
@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { RadioButton } from "react-native-paper";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const radioOptions = [
   { label: "Reason 1", value: "reason1" },

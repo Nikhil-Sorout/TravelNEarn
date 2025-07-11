@@ -9,9 +9,10 @@ import {
   TouchableOpacity,
   View,
   ScrollView,
-  SafeAreaView,
+  // SafeAreaView,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const ReviewDetails = ({
   onClose,

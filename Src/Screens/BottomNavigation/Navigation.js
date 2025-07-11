@@ -6,6 +6,15 @@ import Account from "../Home/Account"; // Adjust the path as per your folder str
 import PublishScreen from "../Home/Publish"; // Ensure PublishScreen is imported
 import SearchScreen from "../Home/Search"; // Make sure to import SearchScreen
 import commonStyles from "../../styles"; // Import common styles for fonts
+import { 
+  scale, 
+  verticalScale, 
+  moderateScale, 
+  responsiveFontSize,
+  responsiveDimensions,
+  screenWidth,
+  screenHeight
+} from "../../Utils/responsive";
 
 const Tab = createBottomTabNavigator();
 
@@ -25,18 +34,31 @@ export default function Navigation({ route }) {
           } else if (route.name === "Account") {
             iconName = focused ? "person" : "person-outline";
           }
-          return <Icon name={iconName} size={size} color={color} />;
+          return <Icon name={iconName} size={responsiveDimensions.icon.medium} color={color} />;
         },
         tabBarActiveTintColor: "#D83F3F",
         tabBarInactiveTintColor: "#919191",
         tabBarStyle: {
           backgroundColor: "#fff",
-          paddingVertical: 5,
-          height: 80,
+          paddingVertical: verticalScale(5),
+          height: verticalScale(80),
+          paddingBottom: verticalScale(10),
+          paddingTop: verticalScale(5),
+          borderTopWidth: scale(1),
+          borderTopColor: "#E0E0E0",
+          elevation: scale(8),
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: scale(4),
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: responsiveFontSize.xs,
           fontFamily: "Inter-Medium",
+          marginTop: verticalScale(2),
+        },
+        tabBarItemStyle: {
+          paddingVertical: verticalScale(5),
         },
       })}
     >

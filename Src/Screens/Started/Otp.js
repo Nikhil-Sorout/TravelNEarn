@@ -5,7 +5,7 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
+  // SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,9 +14,16 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import commonStyles from "../../styles";
+import { 
+  scale, 
+  verticalScale, 
+  responsiveFontSize, 
+  responsivePadding 
+} from "../../Utils/responsive";
 
 const logoImage = require("../../Images/logow.png");
 
@@ -119,7 +126,7 @@ const Otp = ({ navigation, route }) => {
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
+        keyboardVerticalOffset={Platform.OS === "ios" ? verticalScale(40) : 0}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <ScrollView
@@ -130,7 +137,7 @@ const Otp = ({ navigation, route }) => {
               style={styles.backButton}
               onPress={() => navigation.goBack()}
             >
-              <Ionicons name="chevron-back" size={24} color="black" />
+              <Ionicons name="chevron-back" size={scale(24)} color="black" />
             </TouchableOpacity>
 
             <View style={styles.logoContainer}>
@@ -199,59 +206,76 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: "center",
-    padding: 20,
+    padding: responsivePadding.horizontal,
     backgroundColor: "#fff",
   },
   logoContainer: {
     flexDirection: "row",
     alignItems: "flex-start",
     alignSelf: "flex-start",
-    marginBottom: 35,
+    marginBottom: verticalScale(35),
   },
-  logoImage: { width: 42, height: 42, marginRight: 10 },
-  welcomeText: { fontSize: 36, fontWeight: "bold", color: "#D83F3F" },
+  logoImage: { 
+    width: scale(42), 
+    height: scale(42), 
+    marginRight: scale(10) 
+  },
+  welcomeText: { 
+    fontSize: responsiveFontSize.xxxl, 
+    fontWeight: "bold", 
+    color: "#D83F3F" 
+  },
   infoText: {
-    fontSize: 18,
+    fontSize: responsiveFontSize.lg,
     color: "#333",
     textAlign: "center",
-    marginBottom: 25,
+    marginBottom: verticalScale(25),
     fontFamily: "Inter-Bold",
   },
   phoneNumber: { fontWeight: "700", color: "#444" },
   otpContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginHorizontal: 10,
-    marginBottom: 20,
+    marginHorizontal: scale(10),
+    marginBottom: verticalScale(20),
   },
   otpInput: {
-    width: 48,
-    height: 58,
+    width: scale(48),
+    height: verticalScale(58),
     borderWidth: 1,
     borderColor: "#DDD",
     backgroundColor: "#FFF",
     textAlign: "center",
-    fontSize: 22,
-    borderRadius: 10,
+    fontSize: responsiveFontSize.xl,
+    borderRadius: scale(10),
     elevation: 2,
   },
   resendText: {
-    fontSize: 14,
+    fontSize: responsiveFontSize.sm,
     textAlign: "center",
-    marginBottom: 20,
+    marginBottom: verticalScale(20),
     fontWeight: "600",
   },
   confirmButton: {
     backgroundColor: "#D32F2F",
-    paddingVertical: 15,
-    borderRadius: 10,
+    paddingVertical: verticalScale(15),
+    borderRadius: scale(10),
     alignItems: "center",
-    marginTop: 10,
+    marginTop: verticalScale(10),
     elevation: 3,
   },
-  confirmText: { fontSize: 18, fontWeight: "500", color: "#FFF" },
+  confirmText: { 
+    fontSize: responsiveFontSize.lg, 
+    fontWeight: "500", 
+    color: "#FFF" 
+  },
   disabledButton: { backgroundColor: "#BBB" },
-  backButton: { position: "absolute", top: 10, left: 10, zIndex: 1 },
+  backButton: { 
+    position: "absolute", 
+    top: verticalScale(10), 
+    left: scale(10), 
+    zIndex: 1 
+  },
 });
 
 export default Otp;

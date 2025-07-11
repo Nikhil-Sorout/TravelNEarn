@@ -58,21 +58,30 @@ const headerStyles = StyleSheet.create({
 });
 
 const InputItem = memo(
-  ({ item, address, handleInputChange, locationInputRef }) => {
+  ({ item, address, handleInputChange, locationInputRef, disabled = false }) => {
     return (
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>{item.label}</Text>
+        <Text style={styles.label}>
+          {item.label}
+          {item.required && <Text style={styles.required}> *</Text>}
+        </Text>
         <View style={styles.inputWrapper}>
           <TextInput
             ref={item.value === "location" ? locationInputRef : null}
-            style={styles.input}
+            style={[styles.input, disabled && styles.disabledInput]}
             placeholder={item.placeholder}
             value={address[item.value] || ""}
             onChangeText={(text) => handleInputChange(item.value, text)}
+            editable={!disabled}
             accessible
             accessibilityLabel={item.label}
+            scrollEnabled={false}
+            multiline={false}
+            blurOnSubmit={true}
+            returnKeyType="next"
+            pointerEvents={disabled ? "none" : "auto"}
           />
-          {address[item.value] && (
+          {address[item.value] && !disabled && (
             <TouchableOpacity
               style={styles.clearButton}
               onPress={() => handleInputChange(item.value, "")}
@@ -99,6 +108,7 @@ const AddAddress = ({ navigation }) => {
     city: "",
     state: "",
     saveAs: "Work",
+    customName: "", // For "Others" option
   });
   const [region, setRegion] = useState(null);
   const [markerCoords, setMarkerCoords] = useState(null);
@@ -110,21 +120,23 @@ const AddAddress = ({ navigation }) => {
   const GOOGLE_MAPS_API_KEY = "AIzaSyCJbXV5opQV7TQnfQ_d3UISYQhZegrqdec";
 
   const addressFields = [
-    { label: "Your Location", placeholder: "Lorem Ipsum", value: "location" },
-    { label: "Pincode", placeholder: "110008", value: "pincode" },
+    { label: "Your Location", placeholder: "Lorem Ipsum", value: "location", required: true },
+    { label: "Pincode", placeholder: "110008", value: "pincode", required: true },
     {
       label: "Flat, House no, Building, Company Apartment",
       placeholder: "33/19, 1st Floor, West Patel Nagar",
       value: "flat",
+      required: true,
     },
     {
       label: "Area, Street, Sector Village",
       placeholder: "West Patel Nagar",
       value: "street",
+      required: true,
     },
-    { label: "Landmark", placeholder: "Near Ramjas Ground", value: "landmark" },
-    { label: "Town/City", placeholder: "New Delhi", value: "city" },
-    { label: "State", placeholder: "Delhi", value: "state" },
+    { label: "Landmark", placeholder: "Near Ramjas Ground", value: "landmark", required: true },
+    { label: "Town/City", placeholder: "New Delhi", value: "city", required: true },
+    { label: "State", placeholder: "Delhi", value: "state", required: true },
   ];
 
   // Initialize map and focus location input
@@ -346,42 +358,71 @@ const AddAddress = ({ navigation }) => {
   }, []);
 
   const handleSaveAddress = useCallback(async () => {
-    if (
-      !address.location ||
-      !address.pincode ||
-      !address.flat ||
-      !address.street ||
-      !address.city ||
-      !address.state
-    ) {
-      Alert.alert("Error", "Please fill all required fields.");
+    // Validate all required fields
+    const requiredFields = ['location', 'pincode', 'flat', 'street', 'landmark', 'city', 'state'];
+    const missingFields = requiredFields.filter(field => !address[field] || address[field].trim() === '');
+    
+    if (missingFields.length > 0) {
+      Alert.alert("Error", "Please fill all required fields marked with *.");
       return;
     }
 
+    // Validate pincode
     if (!/^\d{6}$/.test(address.pincode)) {
       Alert.alert("Error", "Please enter a valid 6-digit pincode.");
+      return;
+    }
+
+    // Validate custom name for "Others" option
+    if (selectedSaveAs === "Others" && (!address.customName || address.customName.trim() === '')) {
+      Alert.alert("Error", "Please enter a name for this address.");
       return;
     }
 
     try {
       const baseurl = await AsyncStorage.getItem("apiBaseUrl");
       const phoneNumber = await AsyncStorage.getItem("phoneNumber");
+      const userId = await AsyncStorage.getItem("userId");
 
       if (!baseurl || !phoneNumber) {
         Alert.alert("Error", "Unable to fetch user information.");
         return;
       }
 
+      // Create display address (full address for display)
+      const displayAddress = `${address.flat}, ${address.street}, ${address.landmark}, ${address.city}, ${address.state} - ${address.pincode}`;
+      
+      // Create Google Maps address (location, pincode, city, state for maps)
+      const googleMapsAddress = `${address.location}, ${address.pincode}, ${address.city}, ${address.state}`;
+
+      // Determine the save name
+      const saveName = selectedSaveAs === "Others" ? address.customName : selectedSaveAs;
+
+      // Prepare data according to MongoDB schema
+      const addressData = {
+        userId: userId || phoneNumber, // Use userId if available, otherwise phoneNumber
+        phoneNumber: phoneNumber,
+        location: address.location,
+        pincode: address.pincode,
+        flat: address.flat,
+        street: address.street,
+        landmark: address.landmark,
+        city: address.city,
+        state: address.state,
+        saveAs: selectedSaveAs,
+        customName: saveName,
+        displayAddress: displayAddress,
+        googleMapsAddress: googleMapsAddress,
+        latitude: markerCoords ? markerCoords.latitude : undefined,
+        longitude: markerCoords ? markerCoords.longitude : undefined
+      };
+
       const response = await fetch(`${baseurl}address/address`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          ...address,
-          phoneNumber,
-          saveAs: address.saveAs // Ensure saveAs is sent as normalized
-        }),
+        body: JSON.stringify(addressData),
       });
 
       if (response.ok) {
@@ -400,7 +441,7 @@ const AddAddress = ({ navigation }) => {
     } catch (error) {
       Alert.alert("Error", "Network error. Please try again later.");
     }
-  }, [address, navigation]);
+  }, [address, selectedSaveAs, navigation]);
 
   const handleMapPress = useCallback(
     (event) => {
@@ -415,59 +456,66 @@ const AddAddress = ({ navigation }) => {
   const { width, height } = Dimensions.get("window");
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={styles.mainContainer}>
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
-        >
-          <View style={styles.container}>
-            <Header title="Add New Address" navigation={navigation} />
+    <View style={styles.mainContainer}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
+      >
+        <View style={styles.container}>
+          <Header title="Add New Address" navigation={navigation} />
 
-            {/* The map section with fixed height */}
-            <View style={styles.mapContainer}>
-              {region && (
-                <MapView
-                  provider={PROVIDER_GOOGLE}
-                  ref={mapRef}
-                  style={styles.map}
-                  region={region}
-                  onPress={handleMapPress}
-                >
-                  {markerCoords && (
-                    <Marker
-                      coordinate={markerCoords}
-                      draggable
-                      onDragEnd={(e) => {
-                        const { latitude, longitude } =
-                          e.nativeEvent.coordinate;
-                        setMarkerCoords({ latitude, longitude });
-                        fetchAddressFromCoords(latitude, longitude);
-                      }}
-                    >
-                      <MaterialIcons
-                        name="location-pin"
-                        size={40}
-                        color="red"
-                      />
-                    </Marker>
-                  )}
-                </MapView>
-              )}
-              <Text style={styles.mapText}>
-                Move the pin to adjust your location
-              </Text>
-            </View>
-
-            <View style={{ flex: 1 }}>
-              <ScrollView
-                style={styles.scrollContainer}
-                contentContainerStyle={styles.scrollContent}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={true}
-                nestedScrollEnabled={true}
+          {/* The map section with fixed height */}
+          <View style={[styles.mapContainer, { height: Math.min(height * 0.25, 200) }]}>
+            {region && (
+              <MapView
+                provider={PROVIDER_GOOGLE}
+                ref={mapRef}
+                style={styles.map}
+                region={region}
+                onPress={handleMapPress}
               >
+                {markerCoords && (
+                  <Marker
+                    coordinate={markerCoords}
+                    draggable
+                    onDragEnd={(e) => {
+                      const { latitude, longitude } =
+                        e.nativeEvent.coordinate;
+                      setMarkerCoords({ latitude, longitude });
+                      fetchAddressFromCoords(latitude, longitude);
+                    }}
+                  >
+                    <MaterialIcons
+                      name="location-pin"
+                      size={40}
+                      color="red"
+                    />
+                  </Marker>
+                )}
+              </MapView>
+            )}
+            <Text style={styles.mapText}>
+              Move the pin to adjust your location
+            </Text>
+          </View>
+
+          <View style={{ flex: 1 }}>
+            <ScrollView
+              style={styles.scrollContainer}
+              contentContainerStyle={[
+                styles.scrollContent,
+                { paddingBottom: selectedSaveAs === "Others" ? 120 : 80 }
+              ]}
+              keyboardShouldPersistTaps="always"
+              showsVerticalScrollIndicator={true}
+              nestedScrollEnabled={false}
+              bounces={true}
+              alwaysBounceVertical={false}
+              scrollEnabled={true}
+              directionalLockEnabled={true}
+              onScrollBeginDrag={() => Keyboard.dismiss()}
+            >
                 <View style={styles.formContainer}>
                   {addressFields.map((item, index) => (
                     <InputItem
@@ -476,6 +524,7 @@ const AddAddress = ({ navigation }) => {
                       address={address}
                       handleInputChange={handleInputChange}
                       locationInputRef={locationInputRef}
+                      disabled={item.value === "city" || item.value === "state"}
                     />
                   ))}
                 </View>
@@ -508,8 +557,44 @@ const AddAddress = ({ navigation }) => {
                   ))}
                 </View>
 
-                {/* Add extra padding at the bottom for the fixed button */}
-                <View style={{ height: 80 }} />
+                {/* Address Name field - always present but conditionally required */}
+                <View style={[styles.inputContainer, { 
+                  opacity: selectedSaveAs === "Others" ? 1 : 0.3,
+                  paddingHorizontal: width * 0.025 // 2.5% of screen width
+                }]}>
+                  <Text style={styles.label}>
+                    Address Name{selectedSaveAs === "Others" && <Text style={styles.required}> *</Text>}
+                  </Text>
+                  <View style={[styles.inputWrapper, {
+                    paddingHorizontal: width * 0.025 // 2.5% of screen width
+                  }]}>
+                    <TextInput
+                      style={[styles.input, selectedSaveAs !== "Others" && styles.disabledInput]}
+                      placeholder={selectedSaveAs === "Others" ? "Enter address name (e.g., Grandma's House, Office Branch)" : "Select 'Others' to enable"}
+                      value={address.customName || ""}
+                      onChangeText={(text) => handleInputChange("customName", text)}
+                      editable={selectedSaveAs === "Others"}
+                      accessible
+                      accessibilityLabel="Address Name"
+                      scrollEnabled={false}
+                      multiline={false}
+                      blurOnSubmit={true}
+                      returnKeyType="done"
+                      pointerEvents={selectedSaveAs === "Others" ? "auto" : "none"}
+                    />
+                    {address.customName && selectedSaveAs === "Others" && (
+                      <TouchableOpacity
+                        style={styles.clearButton}
+                        onPress={() => handleInputChange("customName", "")}
+                        accessible
+                        accessibilityLabel="Clear Address Name"
+                      >
+                        <MaterialIcons name="clear" size={20} color="#666" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+
               </ScrollView>
             </View>
 
@@ -531,26 +616,22 @@ const AddAddress = ({ navigation }) => {
           </View>
         </KeyboardAvoidingView>
       </View>
-    </TouchableWithoutFeedback>
   );
 };
 
-// Updated styles with key fixes for scrolling
+// Updated styles with key fixes for scrolling and responsiveness
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
     backgroundColor: "#fff",
     paddingBottom: Platform.OS === "ios" ? 20 : 0,
-   
   },
   container: {
     flex: 1,
     backgroundColor: "#fff",
     paddingTop: Platform.OS === "android" ? 0 : 0,
-   
   },
   mapContainer: {
-    height: Math.min(Dimensions.get("window").height * 0.25, 200),
     backgroundColor: "#eee",
     justifyContent: "center",
     alignItems: "center",
@@ -578,10 +659,12 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flex: 1, // This is critical for ScrollView to work properly
+    width: '100%',
   },
   scrollContent: {
     flexGrow: 1, // Allow content to grow
     paddingBottom: 30,
+    width: '100%',
   },
   formContainer: {
     paddingHorizontal: 20,
@@ -593,6 +676,10 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: "Inter-Bold",
     marginBottom: 5,
+    fontSize: 14,
+  },
+  required: {
+    color: "#D32F2F",
   },
   inputWrapper: {
     flexDirection: "row",
@@ -607,6 +694,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingRight: 40, // Space for the clear button
+    fontSize: 14,
+  },
+  disabledInput: {
+    backgroundColor: "#f5f5f5",
+    color: "#666",
   },
   clearButton: {
     position: "absolute",
@@ -640,10 +732,12 @@ const styles = StyleSheet.create({
   saveAsText: {
     color: "#000",
     fontFamily: "Inter-Regular",
+    fontSize: 14,
   },
   saveAsTextSelected: {
     color: "#66bb6a",
     fontFamily: "Inter-Bold",
+    fontSize: 14,
   },
   saveButton: {
     backgroundColor: "#D32F2F",

@@ -1,6 +1,7 @@
 import React from "react";
 import { WebView } from "react-native-webview";
-import { Alert, SafeAreaView, StyleSheet } from "react-native";
+import { Alert, StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 // import { apiBaseUrl } from "../../App";
 const WebViewScreen = ({ route, navigation }) => {
