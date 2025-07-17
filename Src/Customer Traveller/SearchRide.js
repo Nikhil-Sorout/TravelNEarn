@@ -375,7 +375,7 @@ const SearchRide = ({ navigation, route }) => {
             </View>
           </View>
           <Text style={styles.price}>
-            ₹{calculatedPrice || "N/A"}
+            ₹{calculatedPrice?.senderTotalPay || "N/A"}
           </Text>
         </View>
       </TouchableOpacity>

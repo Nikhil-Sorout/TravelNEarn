@@ -563,7 +563,7 @@ const TravelDetails = ({ route }) => {
           }}
         >
           <ReviewDetails
-            earning={calculatedPrice}
+            earning={calculatedPrice?.senderTotalPay}
             id={ride.rideId}
             fromLocation={ride.Leavinglocation}
             toLocation={ride.Goinglocation}
