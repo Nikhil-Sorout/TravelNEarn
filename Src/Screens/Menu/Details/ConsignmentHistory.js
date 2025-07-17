@@ -58,7 +58,9 @@ const ConsignmentHistory = () => {
             otp: consignment.sotp,
             rotp: consignment.rotp,
             consignmentId: consignment.consignmentId,
-            images: consignment.images || []
+            images: consignment.images || [],
+            fullFrom: consignment?.senderFullAddress,
+            fullTo: consignment?.receiverFullAddress,
           }));
           // console.log("formattedData", formattedData)
           setTravelData(formattedData);
@@ -141,7 +143,7 @@ const ConsignmentHistory = () => {
               <Text style={styles.locationText}>
                 {item.username} : {item.phoneNumber}
               </Text>
-              <Text style={styles.callNowText}>{item.startinglocation}</Text>
+              <Text style={styles.callNowText}>{item.fullFrom}</Text>
             </View>
           </View>
 
@@ -162,7 +164,7 @@ const ConsignmentHistory = () => {
               <Text style={styles.locationText}>
                 {item.recievername}: {item.recieverphone}
               </Text>
-              <Text style={styles.callNowText}>{item.goinglocation}</Text>
+              <Text style={styles.callNowText}>{item.fullTo}</Text>
             </View>
           </View>
 
@@ -426,9 +428,10 @@ const styles = StyleSheet.create({
   callNowText: {
     color: "black",
     fontSize: 16,
-    marginLeft: 20,
+    marginLeft: 10,
     marginTop: 5,
     fontWeight: "light",
+    width: '60%'
   },
   separator1: {
     height: 1,

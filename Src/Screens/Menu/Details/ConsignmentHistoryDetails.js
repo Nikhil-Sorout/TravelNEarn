@@ -594,7 +594,7 @@ const TravelDetails = ({ route }) => {
 
   const fetchRoute = async (origin, destination) => {
     try {
-      const GOOGLE_MAPS_API_KEY = "AIzaSyCJbXV5opQV7TQnfQ_d3UISYQhZegrqdec";
+      const GOOGLE_MAPS_API_KEY = "AIzaSyDW79z0Hne2ne3ap7ghZIe_X-UXSxUBEGc";
       const response = await fetch(
         `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(
           origin
@@ -652,8 +652,9 @@ const TravelDetails = ({ route }) => {
 
   const fetchCoordinates = async (origin, destination) => {
     try {
+      const baseurl = await AsyncStorage.getItem("apiBaseUrl")
       const response = await fetch(
-        `https://travel.timestringssystem.com/map/getdistanceandcoordinate?origin=${encodeURIComponent(
+        `${baseurl}map/getdistanceandcoordinate?origin=${encodeURIComponent(
           origin
         )}&destination=${encodeURIComponent(destination)}`
       );
@@ -1296,7 +1297,7 @@ const TravelDetails = ({ route }) => {
         destination: destinationCoords,
       });
 
-      const GOOGLE_MAPS_API_KEY = "AIzaSyCJbXV5opQV7TQnfQ_d3UISYQhZegrqdec";
+      const GOOGLE_MAPS_API_KEY = "AIzaSyDW79z0Hne2ne3ap7ghZIe_X-UXSxUBEGc";
       const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${driverCoords.latitude},${driverCoords.longitude}&destination=${destinationCoords.latitude},${destinationCoords.longitude}&mode=driving&key=${GOOGLE_MAPS_API_KEY}`;
 
       console.log("[ROUTE] API URL:", url);
@@ -1560,7 +1561,7 @@ const TravelDetails = ({ route }) => {
         </View>
       </Modal>
 
-      <Header title="Track Your Consignment" navigation={navigation} />
+      <Header title="Track Your Consignment +" navigation={navigation} />
 
       <ScrollView>
         <View style={styles.mapContainer}>
@@ -1690,7 +1691,8 @@ const TravelDetails = ({ route }) => {
               style={styles.locationIcon}
             />
             <Text style={styles.locationText}>
-              {ride.startinglocation} {"\n"}
+              {/* {ride.startinglocation} {"\n"} */}
+              {consignmentDetails?.fullstartinglocation}
               {/* <Text style={styles.innerlocationText}>
                 (Pickup: {formatTime(pickupTime)})
               </Text> */}
@@ -1706,7 +1708,8 @@ const TravelDetails = ({ route }) => {
               style={styles.locationIcon}
             />
             <Text style={styles.locationText}>
-              {ride.goinglocation} {"\n"}
+              {/* {ride.goinglocation} {"\n"} */}
+              {consignmentDetails?.fullgoinglocation}
               {/* <Text style={styles.innerlocationText}>
                 (Estimated Drop: {formatTime(dropTime)})
               </Text> */}

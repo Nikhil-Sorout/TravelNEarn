@@ -19,15 +19,15 @@ import RNPickerSelect from "react-native-picker-select";
 import * as ImagePicker from 'expo-image-picker';
 
 
-const ParcelDetails = ({ navigation }) => {
+const ParcelDetails = ({ navigation, route }) => {
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("Non-Document");
   const [subCategory, setSubCategory] = useState("Select Sub Category");
   const [weight, setWeight] = useState("");
   const [dimensions, setDimensions] = useState({
-    length: "",
-    breadth: "",
-    height: "",
+    length: 0,
+    breadth: 0,
+    height: 0,
   });
   const [handleWithCare, setHandleWithCare] = useState(false);
   const [specialRequest, setSpecialRequest] = useState("");
@@ -37,14 +37,18 @@ const ParcelDetails = ({ navigation }) => {
   const [unit, setUnit] = useState("cm");
   const [isInch, setIsInch] = useState(false);
   const [selectedImages, setSelectedImages] = useState([]);
-
+  const {fullTo, fullFrom, from, to, selectedDate} = route.params
   const validateForm = () => {
+    console.log(description, weight, dimensions)
     if (
       !description ||
       !weight ||
       !dimensions.length ||
       !dimensions.breadth ||
-      !dimensions.height
+      !dimensions.height ||
+      dimensions.length == 0 ||
+      dimensions.breadth == 0 ||
+      dimensions.height == 0
     ) {
       Alert.alert("Validation Error", "Please fill in all required fields.");
       return false;
@@ -143,7 +147,7 @@ const ParcelDetails = ({ navigation }) => {
         "parcelDetails",
         JSON.stringify(parcelDetails)
       );
-      navigation.navigate("ParcelDetails");
+      navigation.navigate("ParcelDetails", {fullFrom, fullTo, from, to, selectedDate});
     } catch (error) {
       console.error("Error saving data:", error);
     }
@@ -274,8 +278,11 @@ const ParcelDetails = ({ navigation }) => {
             style={styles.dimensionInput}
             placeholder="Length"
             keyboardType="numeric"
-            onChangeText={(val) =>
-              setDimensions({ ...dimensions, length: val })
+             onChangeText={(val) =>{
+              const sanitized = val.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1');
+              console.log(sanitized)
+              setDimensions({ ...dimensions, length: sanitized })
+            }
             }
           />
           <Text style={styles.dimensionCross}>X</Text>
@@ -283,8 +290,10 @@ const ParcelDetails = ({ navigation }) => {
             style={styles.dimensionInput}
             placeholder="Breadth"
             keyboardType="numeric"
-            onChangeText={(val) =>
-              setDimensions({ ...dimensions, breadth: val })
+             onChangeText={(val) =>{
+              const sanitized = val.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1');
+              setDimensions({ ...dimensions, breadth: sanitized })
+            }
             }
           />
           <Text style={styles.dimensionCross}>X</Text>
@@ -293,8 +302,10 @@ const ParcelDetails = ({ navigation }) => {
             style={styles.dimensionInput}
             placeholder="Height"
             keyboardType="numeric"
-            onChangeText={(val) =>
-              setDimensions({ ...dimensions, height: val })
+            onChangeText={(val) =>{
+              const sanitized = val.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1');
+              setDimensions({ ...dimensions, height: sanitized })
+            }
             }
           />
         </View>
@@ -352,7 +363,7 @@ const ParcelDetails = ({ navigation }) => {
         <View>
           <Text style={styles.label}>Date of sending</Text>
           <TouchableOpacity onPress={() => setShowDatePicker(true)}>
-            <Text style={styles.input}>{date.toDateString()}</Text>
+            <Text style={styles.input}>{selectedDate.toDateString()}</Text>
             {/* <Icon name="calendar" size={20} color="#aaa" style={styles.calendarIcon} /> */}
           </TouchableOpacity>
         </View>

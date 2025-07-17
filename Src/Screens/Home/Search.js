@@ -317,11 +317,12 @@ const Search = () => {
               onStartShouldSetResponder={() => true}
             >
               {/* Leaving From Input */}
+              <Text>{activeTab === "Travellers" ?"Leaving From":"Sending From"}</Text>
               <View style={styles.inputContainer}>
                 <View style={styles.bulletPointRed} />
                 <TextInput
                   style={[styles.input, { textAlign: "left" }]}
-                  placeholder={activeTab === "Travellers" ? "Leaving from" : "Sending from"}
+                  placeholder={"Starting City Address"}
                   placeholderTextColor="#aaa"
                   value={from}
                   numberOfLines={1}
@@ -386,11 +387,12 @@ const Search = () => {
               </View>
 
               {/* Going To Input */}
+              <Text>{activeTab === "Travellers" ?"Going To":"Sending To"}</Text>
               <View style={styles.inputContainer}>
                 <View style={styles.bulletPointGreen} />
                 <TextInput
                   style={[styles.input, { textAlign: "left" }]}
-                  placeholder={activeTab === "Travellers" ? "Going to" : "Sending to"}
+                  placeholder={"Destination City Address"}
                   placeholderTextColor="#aaa"
                   value={to}
                   numberOfLines={1}

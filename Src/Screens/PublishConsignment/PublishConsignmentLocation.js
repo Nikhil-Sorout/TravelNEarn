@@ -37,7 +37,7 @@ const PublishLocation = ({ navigation, route }) => {
     work: null,
     other: null,
   });
-  const { from, to, date } = route.params;
+  const { from, to, selectedDate, fullFrom, fullTo } = route.params;
   console.log(route.params);
 
   // Format display text to truncate long addresses

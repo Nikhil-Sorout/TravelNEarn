@@ -37,7 +37,7 @@ const ConsignmentRequestModel = ({
   // Function to fetch distance and duration from Google Maps Directions API
   const fetchDistanceAndDuration = async (origin, destination) => {
     try {
-      const GOOGLE_MAPS_API_KEY = "AIzaSyCJbXV5opQV7TQnfQ_d3UISYQhZegrqdec"; // Replace with your API key
+      const GOOGLE_MAPS_API_KEY = "AIzaSyDW79z0Hne2ne3ap7ghZIe_X-UXSxUBEGc"; // Replace with your API key
       const response = await fetch(
         `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(
           origin

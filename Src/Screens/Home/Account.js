@@ -170,7 +170,7 @@ const Account = ({ navigation, route }) => {
     },
   ];
 
-  const renderItem = ({ item, idx }) => {
+  const renderItem = ({ item, index }) => {
     let extraStyle = {};
     if (item.name === "Share this app") {
       extraStyle = styles.specialSpacing;
@@ -179,6 +179,7 @@ const Account = ({ navigation, route }) => {
     }
     return (
       <TouchableOpacity
+        key={index}
         style={[styles.menuItem, extraStyle]}
         onPress={() => {
           if (item.action) {

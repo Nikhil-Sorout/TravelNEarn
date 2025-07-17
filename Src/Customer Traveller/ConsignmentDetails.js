@@ -306,7 +306,7 @@ const ConsignmentDetails = () => {
         <View style={styles.rowBetween}>
           <Text style={styles.boldText}>Total expected Earning</Text>
           <Text style={styles.earningText}>
-            ₹{loading ? "Fetching..." : item?.calculatedPrice || "N/A"}
+            ₹{loading ? "Fetching..." : item?.calculatedPrice?.totalFare || "N/A"}
           </Text>
         </View>
       </View>

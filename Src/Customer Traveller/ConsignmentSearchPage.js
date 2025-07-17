@@ -68,7 +68,7 @@ const SearchRide = ({ navigation, route }) => {
         
 
         const consignments = Array.isArray(response?.data?.consignments)
-          ? response?.data?.consignments
+          ? response?.data?.consignments  
           : [];
         setData(consignments);
         console.log("consignments", consignments)

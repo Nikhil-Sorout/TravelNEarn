@@ -14,21 +14,23 @@
 //   }
 // };
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { PermissionsAndroid, Platform } from "react-native";
 
-const BASE_URL = "https://travel.timestringssystem.com/api"; // Replace with your backend base URL
 
 /**
  * Fetch autocomplete suggestions for 'going' and 'leaving'.
  * @param {string} going - The 'going' query parameter.
  * @param {string} leaving - The 'leaving' query parameter.
  * @returns {Promise<Object>} - An object containing goingSuggestions and leavingSuggestions.
- */
+*/
+// const BASE_URL = await AsyncStorage.getItem("apiBaseUrl") // Replace with your backend base URL
 export const fetchLocations = async (going, leaving) => {
   try {
     // Only send non-empty parameters
-    const response = await axios.get(`${BASE_URL}/location`, {
+    const baseurl = await AsyncStorage.getItem("apiBaseUrl")
+    const response = await axios.get(`${baseurl}api/location`, {
       params: {
         going: going || undefined, // Send `undefined` if `going` is empty
         leaving: leaving || undefined, // Send `undefined` if `leaving` is empty

@@ -40,9 +40,9 @@ const AddressBook = ({ navigation }) => {
           `${baseurl}address/getaddress/${phoneNumber}`
         );
         const data = await response.json();
-        console.log(data?.addresses);
+        // console.log("Addresses Data: ", data);
 
-        if (data && data?.addresses?.length > 0) {
+        if (data?.addresses && data?.addresses?.length > 0) {
           setAddresses(data?.addresses);
         } else {
           setAddresses([]);
@@ -60,7 +60,7 @@ const AddressBook = ({ navigation }) => {
     });
 
     return unsubscribe;
-  }, [navigation]);
+  }, []);
 
   // Toggle menu visibility for a specific address
   const toggleMenu = (index) => {
@@ -76,6 +76,7 @@ const AddressBook = ({ navigation }) => {
   // Handle Delete action
   const handleDelete = async (addressId) => {
     try {
+      console.log(addressId)
       if(addressId === undefined) return;
       console.log("addressId", addressId)
       let baseurl = await AsyncStorage.getItem("apiBaseUrl");
@@ -88,9 +89,9 @@ const AddressBook = ({ navigation }) => {
       const response = await fetch(`${baseurl}address/delete/${addressId}`, {
         method: "DELETE",
       });
-
+      console.log(response)
       if (response.ok) {
-        setAddresses(addresses.filter((item) => item._id !== addressId));
+        setAddresses(addresses.filter((item) => item.id !== addressId));
       } else {
         setError("Failed to delete address.");
       }
@@ -170,7 +171,7 @@ const AddressBook = ({ navigation }) => {
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.menuItem}
-                    onPress={() => handleDelete(item._id)}
+                    onPress={() => handleDelete(item.id)}
                   >
                     <Text style={styles.menuText}>Delete</Text>
                   </TouchableOpacity>

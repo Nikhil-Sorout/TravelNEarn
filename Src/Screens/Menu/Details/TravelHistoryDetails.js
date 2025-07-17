@@ -85,7 +85,7 @@ const TravelDetails = ({ route }) => {
 
   const fetchRoute = async (origin, destination) => {
     try {
-      const GOOGLE_MAPS_API_KEY = "AIzaSyCJbXV5opQV7TQnfQ_d3UISYQhZegrqdec";
+      const GOOGLE_MAPS_API_KEY = "AIzaSyDW79z0Hne2ne3ap7ghZIe_X-UXSxUBEGc";
       const response = await fetch(
         `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${destination}&mode=driving&key=${GOOGLE_MAPS_API_KEY}`
       );
@@ -151,8 +151,9 @@ const TravelDetails = ({ route }) => {
 
   const fetchCoordinates = async (origin, destination) => {
     try {
+      const baseurl = await AsyncStorage.getItem("apiBaseUrl")
       const response = await fetch(
-        `https://travel.timestringssystem.com/map/getdistanceandcoordinate?origin=${origin}&destination=${destination}`
+        `${baseurl}map/getdistanceandcoordinate?origin=${origin}&destination=${destination}`
       );
       const data = await response.json();
       console.log(data);

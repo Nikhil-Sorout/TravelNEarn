@@ -14,8 +14,9 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
 import Icon from "react-native-vector-icons/FontAwesome";
 import Ionicons from "react-native-vector-icons/Ionicons"; // Import Ionicons
+import { Alert } from "react-native";
 
-const TravelMode = ({ navigation }) => {
+const TravelMode = ({ navigation, route }) => {
   // Add this ref for the map
   const mapRef = useRef(null);
 
@@ -33,7 +34,7 @@ const TravelMode = ({ navigation }) => {
   const [destinationCoords, setDestinationCoords] = useState(null);
   const [isNameFocused, setIsNameFocused] = useState(false);
   const [isNumberFocused, setIsNumberFocused] = useState(false);
-
+  const {from, to, fullFrom, fullTo, selectedDate} = route.params
   useEffect(() => {
     const fetchLocations = async () => {
       try {
@@ -60,7 +61,7 @@ const TravelMode = ({ navigation }) => {
 
   const fetchRoute = async (origin, destination) => {
     try {
-      const GOOGLE_MAPS_API_KEY = "AIzaSyCJbXV5opQV7TQnfQ_d3UISYQhZegrqdec"; // Replace with your API key
+      const GOOGLE_MAPS_API_KEY = "AIzaSyDW79z0Hne2ne3ap7ghZIe_X-UXSxUBEGc"; // Replace with your API key
       const response = await fetch(
         `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${destination}&mode=driving&key=${GOOGLE_MAPS_API_KEY}`
       );
@@ -118,8 +119,9 @@ const TravelMode = ({ navigation }) => {
 
   const fetchCoordinates = async (origin, destination) => {
     try {
+      const baseurl = await AsyncStorage.getItem("apiBaseUrl")
       const response = await fetch(
-        `https://travel.timestringssystem.com/map/getdistanceandcoordinate?origin=${origin}&destination=${destination}`
+        `${baseurl}map/getdistanceandcoordinate?origin=${origin}&destination=${destination}`
       );
       const data = await response.json();
 
@@ -239,7 +241,7 @@ const TravelMode = ({ navigation }) => {
     try {
       await AsyncStorage.setItem("receiverName", receivername.toString());
       await AsyncStorage.setItem("receiverNumber", receivernumber.toString());
-      navigation.navigate("ParcelForm"); // Navigate after saving data
+      navigation.navigate("ParcelForm", {from, to, fullFrom, fullTo, selectedDate}); // Navigate after saving data
     } catch (error) {
       console.log("Error saving data:", error);
     }
@@ -258,7 +260,7 @@ const TravelMode = ({ navigation }) => {
       setTimeout(() => {
         try {
           mapRef.current.fitToCoordinates([originCoords, destinationCoords], {
-            edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+            edgePadding: { top: 100, right: 5, bottom: 400, left: 5 },
             animated: true,
           });
         } catch (error) {

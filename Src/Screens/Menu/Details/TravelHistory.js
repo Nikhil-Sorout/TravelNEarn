@@ -74,12 +74,14 @@ const TravelHistory = () => {
       });
 
       const data = await response.json();
-
+      console.log(data?.travels[0])
       if (data.travels && Array.isArray(data.travels)) {
         const formattedData = data.travels.map((travel) => ({
           _id: travel._id,
           travelDate: travel.expectedStartTime || travel.createdAt,
           Leavinglocation: travel.pickup,
+          fullLeavingLocation: travel.fullFrom,
+          fullGoingLocation: travel.fullTo,
           Goinglocation: travel.drop,
           consignments: travel.consignments || 0,
           travelMode: travel.travelMode || "car",
@@ -193,7 +195,7 @@ const TravelHistory = () => {
             />
             <View style={commonStyles.iconContainer}></View>
             <Text style={commonStyles.locationText}>
-              {item.Leavinglocation || "N/A"}
+              {item.fullLeavingLocation || "N/A"}
             </Text>
           </View>
 
@@ -207,7 +209,7 @@ const TravelHistory = () => {
             />
             <View style={commonStyles.iconContainer}></View>
             <Text style={commonStyles.locationText}>
-              {item.Goinglocation || "N/A"}
+              {item.fullGoingLocation || "N/A"}
             </Text>
           </View>
 

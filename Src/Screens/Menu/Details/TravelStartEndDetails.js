@@ -87,7 +87,7 @@ const TravelStartEndDetails = ({ route }) => {
 
   const fetchRoute = async (origin, destination) => {
     try {
-      const GOOGLE_MAPS_API_KEY = "AIzaSyCJbXV5opQV7TQnfQ_d3UISYQhZegrqdec";
+      const GOOGLE_MAPS_API_KEY = "AIzaSyDW79z0Hne2ne3ap7ghZIe_X-UXSxUBEGc";
       const response = await fetch(
         `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${destination}&mode=driving&key=${GOOGLE_MAPS_API_KEY}`
       );
@@ -153,8 +153,9 @@ const TravelStartEndDetails = ({ route }) => {
 
   const fetchCoordinates = async (origin, destination) => {
     try {
+      const baseurl = await AsyncStorage.getItem("apiBaseUrl")
       const response = await fetch(
-        `https://travel.timestringssystem.com/map/getdistanceandcoordinate?origin=${origin}&destination=${destination}`
+        `${baseurl}map/getdistanceandcoordinate?origin=${origin}&destination=${destination}`
       );
       const data = await response.json();
 
@@ -708,7 +709,7 @@ const TravelStartEndDetails = ({ route }) => {
               source={require("../../../Images/locon.png")}
               style={styles.locationIcon}
             />
-            <Text style={styles.locationText}>{ride.Leavinglocation}</Text>
+            <Text style={styles.locationText}>{ride.fullLeavingLocation}</Text>
           </View>
 
           <View style={commonStyles.verticalseparator}></View>
@@ -719,7 +720,7 @@ const TravelStartEndDetails = ({ route }) => {
               source={require("../../../Images/locend.png")}
               style={styles.locationIcon}
             />
-            <Text style={styles.locationText}>{ride.Goinglocation}</Text>
+            <Text style={styles.locationText}>{ride.fullGoingLocation}</Text>
           </View>
 
           <View style={commonStyles.staraightSeparator} />
@@ -879,6 +880,7 @@ const styles = StyleSheet.create({
     fontSize: moderateScale(16),
     color: "#333",
     marginLeft: scale(10),
+    width: '90%'
   },
   separator1: {
     height: scale(1),

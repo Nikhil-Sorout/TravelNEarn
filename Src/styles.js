@@ -73,6 +73,7 @@ const commonStyles = StyleSheet.create({
     fontSize: 16,
     color: "#000000",
     marginLeft: 10,
+    width: '90%'
   },
   locationRow: {
     flexDirection: "row",

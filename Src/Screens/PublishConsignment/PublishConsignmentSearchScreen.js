@@ -1,11 +1,22 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { useEffect, useState } from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useState, useRef } from "react";
+import { 
+  Image, 
+  StyleSheet, 
+  Text, 
+  TouchableOpacity, 
+  View, 
+  Alert, 
+  ActivityIndicator,
+  Dimensions 
+} from "react-native";
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
-import Icon from "react-native-vector-icons/FontAwesome"; // Import FontAwesome Icon for calendar
-import Ionicons from "react-native-vector-icons/Ionicons"; // Import Ionicons
+import Icon from "react-native-vector-icons/FontAwesome";
+import Ionicons from "react-native-vector-icons/Ionicons";
 
-const PublicSearchScreen = ({ navigation }) => {
+const { width, height } = Dimensions.get('window');
+
+const PublicSearchScreen = ({ navigation, route }) => {
   const [startLocation, setStartLocation] = useState("");
   const [endLocation, setEndLocation] = useState("");
   const [coordinates, setCoordinates] = useState([]);
@@ -13,12 +24,25 @@ const PublicSearchScreen = ({ navigation }) => {
   const [duration, setDuration] = useState("");
   const [originCoords, setOriginCoords] = useState(null);
   const [destinationCoords, setDestinationCoords] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [mapRegion, setMapRegion] = useState(null);
+  const [routeError, setRouteError] = useState(null);
+  const [hasFittedMap, setHasFittedMap] = useState(false)
+
+  const {from, to, fullFrom, fullTo, selectedDate} = route.params;
+  console.log(route.params)
+  const mapRef = useRef(null);
 
   useEffect(() => {
     const fetchLocations = async () => {
       try {
-        const startingLocation = await AsyncStorage.getItem("startingLocation");
-        const goingLocation = await AsyncStorage.getItem("goingLocation");
+        setIsLoading(true);
+        setRouteError(null);
+        
+        // const startingLocation = await AsyncStorage.getItem("startingLocation");
+        // const goingLocation = await AsyncStorage.getItem("goingLocation");
+        const startingLocation = from;
+        const goingLocation = to;
 
         if (startingLocation && goingLocation) {
           setStartLocation(startingLocation);
@@ -29,9 +53,14 @@ const PublicSearchScreen = ({ navigation }) => {
             fetchCoordinates(startingLocation, goingLocation),
             fetchRoute(startingLocation, goingLocation),
           ]);
+        } else {
+          setRouteError("Location data not found. Please set your start and end locations.");
         }
       } catch (error) {
         console.error("Error fetching locations:", error);
+        setRouteError("Failed to load route data. Please try again.");
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -40,15 +69,14 @@ const PublicSearchScreen = ({ navigation }) => {
 
   const fetchRoute = async (origin, destination) => {
     try {
-      console.log("origin", origin)
-      console.log("destination", destination)
-      const GOOGLE_MAPS_API_KEY = "AIzaSyCJbXV5opQV7TQnfQ_d3UISYQhZegrqdec"; // Replace with your API key
+      console.log("Fetching route for:", origin, "to", destination);
+      const GOOGLE_MAPS_API_KEY = "AIzaSyDW79z0Hne2ne3ap7ghZIe_X-UXSxUBEGc";
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${destination}&mode=driving&key=${GOOGLE_MAPS_API_KEY}`
+        `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&mode=driving&key=${GOOGLE_MAPS_API_KEY}`
       );
       const data = await response.json();
 
-      if (data.routes.length > 0) {
+      if (data.status === "OK" && data.routes && data.routes.length > 0) {
         const points = data.routes[0].overview_polyline.points;
         const decodedCoordinates = decodePolyline(points);
         await AsyncStorage.setItem(
@@ -56,12 +84,52 @@ const PublicSearchScreen = ({ navigation }) => {
           JSON.stringify(decodedCoordinates)
         );
         setCoordinates(decodedCoordinates);
+        
+        // Fit map to show entire route
+        // if (decodedCoordinates.length > 0 && originCoords && destinationCoords) {
+        //   fitMapToRoute(decodedCoordinates, originCoords, destinationCoords);
+        // }
       } else {
-        throw new Error("No routes found");
+        throw new Error(data.error_message || "No routes found");
       }
     } catch (error) {
       console.error("Error fetching route:", error);
+      setRouteError("Failed to fetch route. Please check your locations.");
     }
+  };
+
+  const fitMapToRoute = (routeCoordinates, origin, destination) => {
+    if (!mapRef.current || routeCoordinates.length === 0) return;
+
+    // Calculate bounds to include all points
+    let minLat = Math.min(origin.latitude, destination.latitude);
+    let maxLat = Math.max(origin.latitude, destination.latitude);
+    let minLng = Math.min(origin.longitude, destination.longitude);
+    let maxLng = Math.max(origin.longitude, destination.longitude);
+
+    // Include route coordinates in bounds calculation
+    routeCoordinates.forEach(coord => {
+      minLat = Math.min(minLat, coord.latitude);
+      maxLat = Math.max(maxLat, coord.latitude);
+      minLng = Math.min(minLng, coord.longitude);
+      maxLng = Math.max(maxLng, coord.longitude);
+    });
+
+    // Add padding to the bounds
+    const latPadding = (maxLat - minLat) * 0.1;
+    const lngPadding = (maxLng - minLng) * 0.1;
+
+    const region = {
+      latitude: (minLat + maxLat) / 2,
+      longitude: (minLng + maxLng) / 2,
+      latitudeDelta: (maxLat - minLat) + latPadding,
+      longitudeDelta: (maxLng - minLng) + lngPadding,
+    };
+
+    setMapRegion(region);
+    
+    // Animate to the region
+    mapRef.current.animateToRegion(region, 1000);
   };
 
   const decodePolyline = (encoded) => {
@@ -99,6 +167,8 @@ const PublicSearchScreen = ({ navigation }) => {
   };
 
   const fetchCoordinates = async (origin, destination) => {
+    console.log("Origin : ", origin)
+    console.log("Destination : ", destination)
     const apiUrl = await AsyncStorage.getItem("apiBaseUrl");
     if (!apiUrl) {
       Alert.alert("Error", "API configuration not found");
@@ -106,27 +176,25 @@ const PublicSearchScreen = ({ navigation }) => {
     }
     try {
       const response = await fetch(
-        `${apiUrl}map/getdistanceandcoordinate?origin=${origin}&destination=${destination}`
+        `${apiUrl}map/getdistanceandcoordinate?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`
       );
       const data = await response.json();
 
       if (data.originCoordinates && data.destinationCoordinates) {
-        setOriginCoords({
+        const originCoords = {
           latitude: data.originCoordinates.ltd,
           longitude: data.originCoordinates.lng,
-        });
-        setDestinationCoords({
+        };
+        const destCoords = {
           latitude: data.destinationCoordinates.ltd,
           longitude: data.destinationCoordinates.lng,
-        });
-        await AsyncStorage.setItem(
-          "setOriginCoords",
-          JSON.stringify(originCoords)
-        );
-        await AsyncStorage.setItem(
-          "setDestinationCoords",
-          JSON.stringify(destinationCoords)
-        );
+        };
+        
+        setOriginCoords(originCoords);
+        setDestinationCoords(destCoords);
+        
+        await AsyncStorage.setItem("setOriginCoords", JSON.stringify(originCoords));
+        await AsyncStorage.setItem("setDestinationCoords", JSON.stringify(destCoords));
 
         setDistance(data.distance);
         setDuration(data.duration);
@@ -135,72 +203,106 @@ const PublicSearchScreen = ({ navigation }) => {
       }
     } catch (error) {
       console.error("Error fetching map data:", error);
-      Alert.alert("Error", "Failed to fetch route data. Please try again.");
+      // setRouteError("Failed to fetch route data. Please try again.");
     }
   };
 
-  useEffect(() => {
-    if (originCoords) {
-      // console.log("Origin Coordinates:", originCoords);
+  const handleFitToRoute = () => {
+    if (coordinates.length > 0 && originCoords && destinationCoords) {
+      fitMapToRoute(coordinates, originCoords, destinationCoords);
     }
-  }, [originCoords]);
+  };
 
-  useEffect(() => {
-    if (destinationCoords) {
-      // console.log("Destination Coordinates:", destinationCoords);
+  const handleRetry = () => {
+    if (startLocation && endLocation) {
+      setIsLoading(true);
+      setRouteError(null);
+      Promise.all([
+        fetchCoordinates(startLocation, endLocation),
+        fetchRoute(startLocation, endLocation),
+      ]).finally(() => setIsLoading(false));
     }
-  }, [destinationCoords]);
+  };
 
+  // Update map region when coordinates change
   useEffect(() => {
-    if (coordinates.length > 1) {
-      // console.log("Updating polyline with coordinates:", coordinates);
+    if (!hasFittedMap && coordinates.length > 0 && originCoords && destinationCoords && !mapRegion) {
+      fitMapToRoute(coordinates, originCoords, destinationCoords);
+      setHasFittedMap(true);
     }
-  }, [coordinates]);
+  }, [coordinates, originCoords, destinationCoords, mapRegion, hasFittedMap]);
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#D83F3F" />
+        <Text style={styles.loadingText}>Loading route...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       {/* Map Section */}
       <MapView
+        ref={mapRef}
         provider={PROVIDER_GOOGLE}
-        key={coordinates.length}
         style={styles.map}
-        initialRegion={{
-          latitude:
-            originCoords && coordinates.length > 1 ? originCoords.latitude : 28,
-          longitude:
-            originCoords && coordinates.length > 1
-              ? originCoords.longitude
-              : 77,
+        initialRegion={mapRegion || {
+          latitude: originCoords?.latitude || 28,
+          longitude: originCoords?.longitude || 77,
           latitudeDelta: 5,
           longitudeDelta: 5,
         }}
+        showsUserLocation={true}
+        showsMyLocationButton={true}
+        showsCompass={true}
+        showsScale={true}
+        showsTraffic={false}
+        showsBuildings={true}
+        mapType="standard"
       >
+        {/* Route Polyline */}
         {coordinates.length > 1 && (
           <Polyline
             coordinates={coordinates}
-            strokeColor="blue"
-            strokeWidth={5}
+            strokeColor="#D83F3F"
+            strokeWidth={4}
+            lineDashPattern={[1]}
+            zIndex={1}
           />
         )}
 
+        {/* Start Marker */}
         {originCoords && (
-          <Marker coordinate={originCoords} title={startLocation}>
+          <Marker 
+            coordinate={originCoords} 
+            title="Start Location"
+            description={startLocation}
+            anchor={{ x: 0.5, y: 0.5 }}
+          >
             <View style={[styles.marker, styles.startMarker]}>
-              {/* <Text style={styles.markerText}>{startLocation}</Text> */}
-              <Icon name="user" size={25} color="#fff" />
+              <Icon name="user" size={20} color="#fff" />
             </View>
           </Marker>
         )}
 
+        {/* End Marker */}
         {destinationCoords && (
-          <Marker coordinate={destinationCoords} title={endLocation}>
+          <Marker 
+            coordinate={destinationCoords} 
+            title="Destination"
+            description={endLocation}
+            anchor={{ x: 0.5, y: 0.5 }}
+          >
             <View style={[styles.marker, styles.endMarker]}>
-              {/* <Text style={styles.markerText}>{endLocation}</Text> */}
-              <Icon name="map-marker" size={25} color="#fff" />
+              <Icon name="map-marker" size={20} color="#fff" />
             </View>
           </Marker>
         )}
       </MapView>
+
+      {/* Back Button */}
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => navigation.goBack()}
@@ -214,19 +316,39 @@ const PublicSearchScreen = ({ navigation }) => {
           />
         </View>
       </TouchableOpacity>
+
+      {/* Map Controls */}
+      <View style={styles.mapControls}>
+        <TouchableOpacity
+          style={styles.controlButton}
+          onPress={handleFitToRoute}
+        >
+          <Ionicons name="locate" size={20} color="#D83F3F" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Error Display */}
+      {routeError && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{routeError}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Info Section */}
       <View style={styles.infoContainer}>
         <View style={styles.routeInfo}>
-          {/* Start Point */}
-
           <View style={styles.card}>
             <View style={styles.locationRow}>
               <Image
                 source={require("../../Images/locon.png")}
                 style={styles.locationIcon}
               />
-
-              <Text style={styles.locationText}>{startLocation}</Text>
+              <Text style={styles.locationText} numberOfLines={2}>
+                {fullFrom || "Start location not set"}
+              </Text>
             </View>
 
             <View style={styles.verticalseparator}></View>
@@ -237,7 +359,9 @@ const PublicSearchScreen = ({ navigation }) => {
                 source={require("../../Images/locend.png")}
                 style={styles.locationIcon}
               />
-              <Text style={styles.locationText}>{endLocation}</Text>
+              <Text style={styles.locationText} numberOfLines={2}>
+                {fullTo || "Destination not set"}
+              </Text>
             </View>
 
             <View style={styles.separator1} />
@@ -248,22 +372,17 @@ const PublicSearchScreen = ({ navigation }) => {
                 source={require("../../Images/clock.png")}
                 style={[styles.locationIcon, { marginLeft: 5 }]}
               />
-              <Text style={styles.infoText}>{duration}</Text>
+              <Text style={styles.infoText}>{duration || "Calculating..."}</Text>
             </View>
-            <Text style={styles.infoText1}>{distance}</Text>
+            <Text style={styles.infoText1}>{distance || "Calculating..."}</Text>
           </View>
-
-          {/* Dashed Line */}
-
-          {/* End Point */}
         </View>
-
-        {/* Details Section */}
 
         {/* Next Button */}
         <TouchableOpacity
-          style={styles.nextButton}
-          onPress={() => navigation.navigate("ReceiverScreen")}
+          style={[styles.nextButton, (!startLocation || !endLocation) && styles.disabledButton]}
+          onPress={() => navigation.navigate("ReceiverScreen", {fullFrom, fullTo, from, to, selectedDate})}
+          disabled={!startLocation || !endLocation}
         >
           <Text style={styles.nextButtonText}>Next</Text>
         </TouchableOpacity>
@@ -374,24 +493,80 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
-
-  // start here
+  disabledButton: {
+    backgroundColor: "#ccc",
+    opacity: 0.7,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "white",
+  },
+  loadingText: {
+    marginTop: 10,
+    color: "#555",
+  },
+  errorContainer: {
+    backgroundColor: "#FFE5E5",
+    padding: 15,
+    borderRadius: 8,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    alignItems: "center",
+  },
+  errorText: {
+    color: "#D83F3F",
+    fontSize: 14,
+    textAlign: "center",
+    marginBottom: 10,
+  },
+  retryButton: {
+    backgroundColor: "#D83F3F",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  mapControls: {
+    position: "absolute",
+    bottom: 10,
+    left: 10,
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  controlButton: {
+    padding: 8,
+  },
 
   card: {
     backgroundColor: "white",
     margin: 1,
-    borderRadius: 4,
+    borderRadius: 8,
     padding: 15,
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 3,
+    borderWidth: 1,
+    borderColor: "#f0f0f0",
   },
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
     // marginBottom: 10,
     marginTop: 10,
+    maxWidth: '90%'
   },
   locationText: {
     fontSize: 16,

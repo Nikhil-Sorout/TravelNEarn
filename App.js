@@ -79,6 +79,7 @@ import TravelPayRequest from "./Src/Screens/CustomerFlow/TravelPayRequest";
 import ReviewDetails from "./Src/Customer Traveller/ReviewDetails";
 import PayNowScreen from "./Src/Screens/CustomerFlow/PayNowScreen";
 import TravelStartEndDetails from "./Src/Screens/Menu/Details/TravelStartEndDetails";
+import AddStartingCityAddress from "./Src/Screens/Menu/AddStartingCityAddress";
 
 const Stack = createStackNavigator();
 
@@ -100,9 +101,12 @@ export default function App() {
     const initializeApp = async () => {
       try {
         // Set required data for socket connection
-        // const apiBaseUrl = "https://travel.timestringssystem.com/";
-        const apiBaseUrl = "http://192.168.1.25:5002/";
+        const apiBaseUrl = "https://travel.timestringssystem.com/";
+        // const apiBaseUrl = "http://192.168.1.25:5002/";
         await AsyncStorage.setItem("apiBaseUrl", apiBaseUrl);
+        await AsyncStorage.removeItem('addressFieldType')
+        await AsyncStorage.removeItem('addressFrom')
+        await AsyncStorage.removeItem('addressTo')
 
         // Get phone number from AsyncStorage or set a default for testing
         let phoneNumber = await AsyncStorage.getItem("phoneNumber");
@@ -298,7 +302,7 @@ export default function App() {
             options={{ headerShown: false }}
           />
           <Stack.Screen
-            name="PublicSearchScreen"
+            name="PublishSearchScreen"
             component={PublicSearchScreen}
             options={{ headerShown: false }}
           />
@@ -440,6 +444,11 @@ export default function App() {
           <Stack.Screen
             name="TravelStartEndDetails"
             component={TravelStartEndDetails}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="AddStartingCityAddress"
+            component={AddStartingCityAddress}
             options={{ headerShown: false }}
           />
           <Stack.Screen

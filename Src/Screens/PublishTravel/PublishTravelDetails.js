@@ -16,7 +16,7 @@ import { default as FontAwesome } from 'react-native-vector-icons/FontAwesome';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import ReviewDetails from '../../Customer Traveller/ReviewDetails';
 
-const TravelDetails = () => {
+const TravelDetails = ({route}) => {
   const navigation = useNavigation();
   const bottomSheetRef = useRef();
   const [isModalVisible, setModalVisible] = useState(false);
@@ -42,12 +42,14 @@ const TravelDetails = () => {
   const [ratingLoading, setRatingLoading] = useState(false);
   const [ratingError, setRatingError] = useState(null);
 
+  const {fullFrom, fullTo, from, to, selectedDate} = route.params;
+
   useEffect(() => {
     const fetchTravelData = async () => {
       try {
         const [
-          startingLocation,
-          goingLocation,
+          // startingLocation,
+          // goingLocation,
           travelMode,
           travelNumber,
           startTime,
@@ -57,8 +59,8 @@ const TravelDetails = () => {
           firstName,
           lastName,
         ] = await Promise.all([
-          AsyncStorage.getItem('startingLocation'),
-          AsyncStorage.getItem('goingLocation'),
+          // AsyncStorage.getItem('startingLocation'),
+          // AsyncStorage.getItem('goingLocation'),
           AsyncStorage.getItem('travelMode'),
           AsyncStorage.getItem('travelNumber'),
           AsyncStorage.getItem('startTime'),
@@ -72,21 +74,21 @@ const TravelDetails = () => {
         console.log("endTime : ", endTime)
         console.log("Travel Mode : ", travelMode)
         console.log("Search date from async storage : ", searchingDate)
-        setStartLocation(startingLocation);
-        setEndLocation(goingLocation);
+        setStartLocation(fullFrom);
+        setEndLocation(fullTo);
         setTravelMode(travelMode);
         setTravelNumber(travelNumber);
         setStartTime(startTime);
         setEndTime(endTime);
-        setSearchingDate(searchingDate);
+        setSearchingDate(selectedDate);
         setPhoneNumber(phoneNumber);
         setFirstName(firstName);
         setLastName(lastName);
 
-        if (startingLocation && goingLocation) {
+        if (from && to) {
           await Promise.all([
-            fetchCoordinates(startingLocation, goingLocation),
-            fetchRoute(startingLocation, goingLocation),
+            fetchCoordinates(from, to),
+            fetchRoute(from, to),
           ]);
         }
       } catch (error) {
@@ -182,7 +184,7 @@ const TravelDetails = () => {
   console.log("rating data : ", ratingData)
   const fetchRoute = async (origin, destination) => {
     try {
-      const GOOGLE_MAPS_API_KEY = 'AIzaSyCJbXV5opQV7TQnfQ_d3UISYQhZegrqdec';
+      const GOOGLE_MAPS_API_KEY = 'AIzaSyDW79z0Hne2ne3ap7ghZIe_X-UXSxUBEGc';
       const response = await fetch(
         `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${destination}&mode=driving&key=${GOOGLE_MAPS_API_KEY}`
       );
@@ -237,8 +239,9 @@ const TravelDetails = () => {
 
   const fetchCoordinates = async (origin, destination) => {
     try {
+      const baseurl = await AsyncStorage.getItem("apiBaseUrl")
       const response = await fetch(
-        `https://travel.timestringssystem.com/map/getdistanceandcoordinate?origin=${origin}&destination=${destination}`
+        `${baseurl}map/getdistanceandcoordinate?origin=${origin}&destination=${destination}`
       );
       const data = await response.json();
 
@@ -303,13 +306,15 @@ const TravelDetails = () => {
       expectedEndTime: endTime,
       travelDate: searchingDate,
       phoneNumber,
+      fullFrom,
+      fullTo
     };
     console.log("requestData :", requestData)
     try {
       const baseurl = await AsyncStorage.getItem("apiBaseUrl");
       
       const response = await fetch(
-        `${baseurl}t/creates?Leavinglocation=${startLocation}&Goinglocation=${endLocation}`,
+        `${baseurl}t/creates?Leavinglocation=${from}&Goinglocation=${to}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

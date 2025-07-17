@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Dimensions,
   Image,
@@ -15,6 +15,7 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   StatusBar,
+  ActivityIndicator,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useNavigation } from "@react-navigation/native";
@@ -22,6 +23,8 @@ import { fetchLocations } from "../../API/Location";
 import Icon from "react-native-vector-icons/FontAwesome";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import commonStyles from "../../styles";
+import Modal from "react-native-modal";
+import { useFocusEffect } from "@react-navigation/native";
 import { 
   scale, 
   verticalScale, 
@@ -34,7 +37,24 @@ import {
 
 const { width, height } = Dimensions.get("window");
 
-const Search = () => {
+// Responsive scaling functions
+// const scale = (size) => {
+//   const baseWidth = 393; // iPhone 14 Pro width
+//   const scaleFactor = width / baseWidth;
+//   return Math.round(size * scaleFactor);
+// };
+
+// const verticalScale = (size) => {
+//   const baseHeight = 852; // iPhone 14 Pro height
+//   const scaleFactor = height / baseHeight;
+//   return Math.round(size * scaleFactor);
+// };
+
+// const moderateScale = (size, factor = 0.5) => {
+//   return size + (scale(size) - size) * factor;
+// };
+
+const Search = ({ route }) => {
   const navigation = useNavigation();
   const scrollViewRef = useRef(null);
   const [activeTab, setActiveTab] = useState("Travellers");
@@ -43,6 +63,34 @@ const Search = () => {
   const [fullFrom, setFullFrom] = useState("");
   const [fullTo, setFullTo] = useState("");
   const [date, setDate] = useState(new Date());
+  // const addressType = route?.params?.addressFieldType
+  // const addressItem = route?.params?.body
+  // console.log(addressType, addressItem);
+  useFocusEffect(
+    useCallback(() => {
+      (async () => {
+        try {
+          const fromString = await AsyncStorage.getItem("addressFrom");
+          const toString = await AsyncStorage.getItem("addressTo");
+
+          const fromItem = fromString ? JSON.parse(fromString) : null;
+          const toItem = toString ? JSON.parse(toString) : null;
+
+          if (fromItem) {
+            setFullFrom(fromItem.displayAddress);
+            setFrom(fromItem.googleMapsAddress);
+          }
+
+          if (toItem) {
+            setFullTo(toItem.displayAddress);
+            setTo(toItem.googleMapsAddress);
+          }
+        } catch (error) {
+          console.error("Error loading address from AsyncStorage:", error);
+        }
+      })();
+    }, [])
+  );
 
   // Function to ensure text is displayed properly in TextInput
   const formatDisplayText = (text) => {
@@ -60,6 +108,12 @@ const Search = () => {
   const [toSelected, setToSelected] = useState(false);
   const [isFromFocused, setIsFromFocused] = useState(false);
   const [isToFocused, setIsToFocused] = useState(false);
+  const [addressModalVisible, setAddressModalVisible] = useState(false);
+  const [addressFieldType, setAddressFieldType] = useState(null); // 'from' or 'to'
+  const [addresses, setAddresses] = useState([]);
+  const [addressLoading, setAddressLoading] = useState(false);
+  const [addressError, setAddressError] = useState(null);
+
 
   const fetchSuggestions = async () => {
     try {
@@ -135,17 +189,23 @@ const Search = () => {
 
     const formattedDate = date.toISOString();
     // Use full addresses if available, otherwise use the display values
-    const fromAddress = fullFrom || from;
-    const toAddress = fullTo || to;
+    const fromAddress = from;
+    const toAddress = to;
 
-    AsyncStorage.setItem("startingLocation", fromAddress.toString());
-    AsyncStorage.setItem("goingLocation", toAddress.toString());
-    AsyncStorage.setItem("searchingDate", date.toString());
+    // AsyncStorage.setItem("startingLocation", fromAddress.toString());
+    // AsyncStorage.setItem("goingLocation", toAddress.toString());
+    // AsyncStorage.setItem("searchingDate", date.toString());
     navigation.navigate(
       activeTab === "Travellers"
-        ? "PublishStarting"
-        : "PublishConsignmentLocation",
-      { from: fromAddress, to: toAddress, date: formattedDate }
+        ? "PublishSearchScreen"
+        : "PublishConsignmentSearchScreen",
+      {
+        from: fromAddress,
+        to: toAddress,
+        fullFrom: fullFrom,
+        fullTo: fullTo,
+        selectedDate: date
+      }
     );
   };
 
@@ -166,6 +226,61 @@ const Search = () => {
     Keyboard.dismiss(); // Also dismiss the keyboard
   };
 
+  const fetchAddresses = async () => {
+    setAddressLoading(true);
+    setAddressError(null);
+    try {
+      let baseurl = await AsyncStorage.getItem("apiBaseUrl");
+      if (!baseurl) {
+        baseurl = "https://travel.timestringssystem.com/";
+      }
+      // console.log("Baseurl: ", baseurl);
+      const phoneNumber = await AsyncStorage.getItem("phoneNumber");
+      if (!phoneNumber) {
+        setAddressError("Phone number not found.");
+        setAddressLoading(false);
+        return;
+      }
+      const response = await fetch(`${baseurl}address/getaddress/${phoneNumber}`);
+      const data = await response.json();
+      console.log("Data: ", data.addresses);
+      if (data && data?.addresses?.length > 0) {
+        setAddresses(data?.addresses);
+      } else {
+        setAddresses([]);
+      }
+    } catch (err) {
+      setAddressError("Error fetching addresses.");
+    } finally {
+      setAddressLoading(false);
+    }
+  };
+
+  const openAddressModal = (type) => {
+    setAddressFieldType(type);
+    setAddressModalVisible(true);
+    fetchAddresses();
+  };
+
+  const handleSelectAddress = (item) => {
+    console.log("Item: ", item)
+    // const formatted = `${item.flat} ${item.landmark} ${item.street} ${item.location}\n${item.city} ${item.state}`;
+    if (addressFieldType === 'from') {
+      setFullFrom(item.displayAddress);
+      setFrom(item.googleMapsAddress);
+    } else {
+      setFullTo(item.displayAddress);
+      setTo(item.googleMapsAddress);
+    }
+    setAddressModalVisible(false);
+  };
+
+  const handleAddNewAddress = () => {
+    setAddressModalVisible(false);
+    navigation.navigate("Address", { addressFieldType });
+    // navigation.navigate("PublishConsignmentLocation")
+  };
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -174,7 +289,7 @@ const Search = () => {
     >
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       <TouchableWithoutFeedback onPress={closeSuggestions}>
-        <ScrollView 
+        <ScrollView
           ref={scrollViewRef}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -232,44 +347,32 @@ const Search = () => {
             <View
               style={[
                 styles.formContainer,
-                { 
-                  marginHorizontal: screenWidth < 375 ? scale(10) : scale(20),
-                  paddingHorizontal: screenWidth < 375 ? scale(15) : scale(20),
+                {
+                  marginHorizontal: width < 375 ? 10 : 20,
+                  paddingHorizontal: width < 375 ? 15 : 20,
                 }
               ]}
               onStartShouldSetResponder={() => true}
             >
+              <Text style={styles.inputLabel}>{activeTab === "Travellers" ? "Leaving From" : "Sending From"}</Text>
               {/* Leaving From Input */}
-              <Text style={styles.inputLabel}>Leaving From</Text>
+              {/* <Text style={styles.inputLabel}>Leaving From</Text> */}
               <View style={styles.inputContainer}>
                 <View style={styles.bulletPointRed} />
-                <TextInput
-                  style={[styles.input, { textAlign: "left" }]}
-                  placeholder={activeTab === "Travellers" ? "Starting City Address" : "Sending from"}
-                  placeholderTextColor="#aaa"
-                  value={from}
-                  numberOfLines={1}
-                  ellipsizeMode="head"
-                  multiline={false}
-                  onChangeText={(text) => {
-                    setFrom(text);
-                    setFromSelected(false); // Allow re-entering locations
-                  }}
-                  onFocus={() => {
-                    setIsFromFocused(true);
-                    setIsToFocused(false); // Ensure only one is considered focused for suggestions
-                    setLeavingSuggestions([]); // Close other suggestions on focus
-                  }}
-                  onBlur={() => {
-                    // Delay blur slightly to allow suggestion press
-                    setTimeout(() => setIsFromFocused(false), 150);
-                  }}
-                />
+                <TouchableOpacity
+                  style={[styles.input, { flexDirection: 'row', alignItems: 'center' }]}
+                  onPress={() => openAddressModal('from')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={{ color: from ? '#333' : '#aaa', flex: 1 }} numberOfLines={1} ellipsizeMode="tail">
+                    {fullFrom || (activeTab === "Travellers" ? "Starting City Address" : "Starting City Address")}
+                  </Text>
+                </TouchableOpacity>
                 {/* Show suggestions only if focused, not selected, and suggestions exist */}
                 {isFromFocused &&
                   goingSuggestions.length > 0 &&
                   !fromSelected && (
-                    <TouchableWithoutFeedback onPress={() => {}}>
+                    <TouchableWithoutFeedback onPress={() => { }}>
                       <View style={styles.suggestionsContainer}>
                         <ScrollView
                           nestedScrollEnabled={true}
@@ -309,36 +412,23 @@ const Search = () => {
                     </TouchableWithoutFeedback>
                   )}
               </View>
-              
-              <Text style={styles.inputLabel}>Going To</Text>
+              <Text style={styles.inputLabel}>{activeTab === "Travellers" ? "Going To" : "Sending To"}</Text>
               <View style={styles.inputContainer}>
                 <View style={styles.bulletPointGreen} />
-                <TextInput
-                  style={[styles.input, { textAlign: "left" }]}
-                  placeholder={activeTab === "Travellers" ? "Destination City Address" : "Sending to"}
-                  placeholderTextColor="#aaa"
-                  value={to}
-                  numberOfLines={1}
-                  ellipsizeMode="head"
-                  multiline={false}
-                  onChangeText={(text) => {
-                    setTo(text);
-                    setToSelected(false);
-                  }}
-                  onFocus={() => {
-                    setIsToFocused(true);
-                    setIsFromFocused(false);
-                    setGoingSuggestions([]);
-                  }}
-                  onBlur={() => {
-                    setTimeout(() => setIsToFocused(false), 150);
-                  }}
-                />
+                <TouchableOpacity
+                  style={[styles.input, { flexDirection: 'row', alignItems: 'center' }]}
+                  onPress={() => openAddressModal('to')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={{ color: to ? '#333' : '#aaa', flex: 1 }} numberOfLines={1} ellipsizeMode="tail">
+                    {fullTo || (activeTab === "Travellers" ? "Destination City Address" : "Destination City Address")}
+                  </Text>
+                </TouchableOpacity>
 
                 {isToFocused &&
                   leavingSuggestions.length > 0 &&
                   !toSelected && (
-                    <TouchableWithoutFeedback onPress={() => {}}>
+                    <TouchableWithoutFeedback onPress={() => { }}>
                       <View style={styles.suggestionsContainer}>
                         <ScrollView
                           nestedScrollEnabled={true}
@@ -403,8 +493,8 @@ const Search = () => {
                 <DateTimePicker
                   value={date}
                   mode="date"
-                  style={{ 
-                    width: moderateScale(50), 
+                  style={{
+                    width: moderateScale(50),
                     fontFamily: "Inter-Regular",
                     transform: [{ scale: screenWidth < 375 ? 0.9 : 1 }]
                   }}
@@ -430,6 +520,49 @@ const Search = () => {
           </View>
         </ScrollView>
       </TouchableWithoutFeedback>
+
+      {/* Address Modal */}
+      <Modal
+        isVisible={addressModalVisible}
+        onBackdropPress={() => setAddressModalVisible(false)}
+        style={{ justifyContent: 'flex-end', margin: 0 }}
+        backdropOpacity={0.4}
+      >
+        <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, height: height * 0.3 }}>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>
+            {addressFieldType === 'from' ? 'Select Starting City Address' : 'Select Destination City Address'}
+          </Text>
+          <TouchableOpacity onPress={handleAddNewAddress} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>
+            <Icon name="location-arrow" size={20} color="#D83F3F" style={{ marginRight: 8 }} />
+            <Text style={{ color: '#D83F3F', fontWeight: 'bold', fontSize: 16 }}>Add New Address</Text>
+          </TouchableOpacity>
+          {addressLoading ? (
+            <ActivityIndicator size="large" color="#D32F2F" style={{ marginTop: 20 }} />
+          ) : addressError ? (
+            <Text style={{ color: 'red', marginTop: 20 }}>{addressError}</Text>
+          ) : addresses.length === 0 ? (
+            <Text style={{ color: 'grey', marginTop: 20 }}>No addresses found.</Text>
+          ) : (
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {addresses.map((item, idx) => (
+                <TouchableOpacity
+                  key={item._id || idx}
+                  style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' }}
+                  onPress={() => handleSelectAddress(item)}
+                >
+                  <Text style={{ fontWeight: 'bold', fontSize: 15 }}>{item.saveAs === "Others" ? item.customName : item.saveAs}</Text>
+                  <Text style={{ color: '#333' }} numberOfLines={1} ellipsizeMode="tail">
+                    {item.flat} {item.landmark} {item.street} {item.location}
+                  </Text>
+                  <Text style={{ color: 'grey', fontSize: 13 }} numberOfLines={1} ellipsizeMode="tail">
+                    {item.city} {item.state}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 };

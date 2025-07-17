@@ -18,11 +18,13 @@ import Icon from "react-native-vector-icons/FontAwesome"; // Import FontAwesome 
 import Ionicons from "react-native-vector-icons/Ionicons"; // Import Ionicons
 import ReviewDetails from "../../Customer Traveller/ReviewDetails";
 
-const TravelDetails = () => {
+const TravelDetails = ({route}) => {
   const navigation = useNavigation();
 
   // Create a reference for the bottom sheet
   const bottomSheetRef = useRef();
+  console.log(route?.params)
+  const {fullFrom, fullTo, from, to, selectedDate} = route?.params;
 
   // Initially, set the modal visibility to false to avoid it showing on the first enter
   const [isModalVisible, setModalVisible] = useState(false);
@@ -53,8 +55,8 @@ const TravelDetails = () => {
   useEffect(() => {
     const fetchLocations = async () => {
       try {
-        const startingLocation = await AsyncStorage.getItem("startingLocation");
-        const goingLocation = await AsyncStorage.getItem("goingLocation");
+        const startingLocation = from;
+        const goingLocation = to;
 
         if (startingLocation && goingLocation) {
           setStartLocation(startingLocation);
@@ -76,7 +78,7 @@ const TravelDetails = () => {
 
   const fetchRoute = async (origin, destination) => {
     try {
-      const GOOGLE_MAPS_API_KEY = "AIzaSyCJbXV5opQV7TQnfQ_d3UISYQhZegrqdec"; // Replace with your API key
+      const GOOGLE_MAPS_API_KEY = "AIzaSyDW79z0Hne2ne3ap7ghZIe_X-UXSxUBEGc"; // Replace with your API key
       const response = await fetch(
         `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${destination}&mode=driving&key=${GOOGLE_MAPS_API_KEY}`
       );
@@ -136,8 +138,9 @@ const TravelDetails = () => {
   console.log("endLocation", endLocation);
   const fetchCoordinates = async (origin, destination) => {
     try {
+      const baseurl = await AsyncStorage.getItem("apiBaseUrl")
       const response = await fetch(
-        `https://travel.timestringssystem.com/map/getdistanceandcoordinate?origin=${origin}&destination=${destination}`
+        `${baseurl}map/getdistanceandcoordinate?origin=${origin}&destination=${destination}`
       );
       const data = await response.json();
 
@@ -216,6 +219,8 @@ const TravelDetails = () => {
       // Add text fields
       formData.append('startinglocation', startLocation);
       formData.append('goinglocation', endLocation);
+      formData.append('fullgoinglocation', fullTo);
+      formData.append('fullstartinglocation', fullFrom);
       formData.append('travelMode', "car");
       formData.append('recievername', receiverName);
       formData.append('recieverphone', receiverNumber);
@@ -239,6 +244,8 @@ const TravelDetails = () => {
       console.log("Data being sent:");
       console.log("startinglocation:", startLocation);
       console.log("goinglocation:", endLocation);
+      console.log("fullstartinglocation:", fullFrom);
+      console.log("fullgoinglocation:", fullTo);
       console.log("travelMode:", "car");
       console.log("recievername:", receiverName);
       console.log("recieverphone:", receiverNumber);
@@ -373,8 +380,8 @@ const TravelDetails = () => {
       return false;
     };
 
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', handleBackButton);
-    return () => backHandler.remove();
+    // const backHandler = BackHandler.addEventListener('hardwareBackPress', handleBackButton);
+    // return () => backHandler.remove();
   }, [showImageModal]);
 
   return (
@@ -399,7 +406,7 @@ const TravelDetails = () => {
             <Text style={styles.locationText}>
               {name}: {number}
               {"\n"}
-              <Text style={styles.callNowText}>{startLocation}</Text>
+              <Text style={styles.callNowText}>{fullFrom}</Text>
             </Text>
           </View>
 
@@ -415,7 +422,7 @@ const TravelDetails = () => {
             <Text style={styles.locationText}>
               {receiverName}: {receiverNumber}
               {"\n"}
-              <Text style={styles.callNowText}>{endLocation}</Text>
+              <Text style={styles.callNowText}>{fullTo}</Text>
             </Text>
           </View>
 

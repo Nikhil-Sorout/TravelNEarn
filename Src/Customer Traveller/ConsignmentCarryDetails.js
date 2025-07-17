@@ -20,8 +20,10 @@ import commonStyles from "../styles";
 const ConsignmentCarryDetails = ({ route }) => {
   const navigation = useNavigation();
   const { ride } = route?.params;
+  console.log("ride", ride)
   const travelId = route?.params?.travelId;
   const consignmentId = route?.params?.consignmentId;
+
 
   const [loading, setLoading] = useState(true);
   const [consignmentDetails, setConsignmentDetails] = useState({});
@@ -31,8 +33,23 @@ const ConsignmentCarryDetails = ({ route }) => {
   const [travelDuration, setTravelDuration] = useState(null);
   const [statusHistory, setStatusHistory] = useState([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(null);
+  const [showImageModal, setShowImageModal] = useState(false);
 
   const GOOGLE_API_KEY = "AIzaSyCJbXV5opQV7TQnfQ_d3UISYQhZegrqdec";
+
+  const handleImagePress = (index) => {
+    console.log(index)
+    setSelectedImageIndex(index);
+    setShowImageModal(true);
+    console.log("Image URI:", consignmentDetails.consignment);
+
+  };
+
+  const closeImageModal = () => {
+    setShowImageModal(false);
+    setSelectedImageIndex(null);
+  };
 
   // Memoize consignmentDetails to stabilize its reference
   const memoizedConsignmentDetails = useMemo(() => consignmentDetails, [
@@ -142,8 +159,7 @@ const ConsignmentCarryDetails = ({ route }) => {
 
       if (result.status !== "OK" || !result.rows[0]?.elements[0]?.distance) {
         throw new Error(
-          `API error: ${result.status}, ${
-            result.error_message || "No distance data"
+          `API error: ${result.status}, ${result.error_message || "No distance data"
           }`
         );
       }
@@ -234,7 +250,7 @@ const ConsignmentCarryDetails = ({ route }) => {
 
       if (data && data.consignment) {
         const consignment = data.consignment;
-        console.log("Setting consignment details from API response");
+        console.log("Setting consignment details from API response", consignment.images);
 
         setConsignmentDetails((prev) => ({
           ...prev,
@@ -591,19 +607,19 @@ const ConsignmentCarryDetails = ({ route }) => {
         <Text style={styles.parcelDescription}>
           {consignmentDetails.description || "No description provided"}
         </Text>
-        
+
         {/* Render Images */}
         {consignmentDetails.images && consignmentDetails.images.length > 0 && (
           <>
             <View style={styles.dottedLine} />
             <Text style={styles.boldText}>Parcel Images</Text>
-            <ScrollView 
-              horizontal 
+            <ScrollView
+              horizontal
               showsHorizontalScrollIndicator={false}
               style={styles.imageContainer}
             >
               {consignmentDetails.images.map((imageUrl, index) => (
-                <View key={index} style={styles.imageWrapper}>
+                <TouchableOpacity key={index} style={styles.imageWrapper} onPress={() => handleImagePress(index)}>
                   <Image
                     source={{ uri: imageUrl }}
                     style={styles.parcelImage}
@@ -611,12 +627,27 @@ const ConsignmentCarryDetails = ({ route }) => {
                     onError={(error) => console.log(`Image ${index} failed to load:`, error)}
                     defaultSource={require("../Images/package.png")}
                   />
-                </View>
+                </TouchableOpacity>
               ))}
             </ScrollView>
+            {showImageModal && selectedImageIndex !== null && consignmentDetails?.images && consignmentDetails.images[selectedImageIndex] && (
+              <View style={{
+                position: 'absolute', left: 0, top: 0, right: 0, bottom: 0,
+                backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center', alignItems: 'center', zIndex: 1000,
+                // width: 50,
+              }}>
+                <TouchableOpacity style={{ position: 'absolute', top: 40, right: 20, zIndex: 1001 }} onPress={closeImageModal}>
+                  <Text style={{ color: 'white', fontSize: 30 }}>×</Text>
+                </TouchableOpacity>
+                <Image
+                  source={{ uri: consignmentDetails.images[selectedImageIndex] }}
+                  style={{ width: 300, height: 400, borderRadius: 10, resizeMode: 'contain' }}
+                />
+              </View>
+            )}
           </>
         )}
-        
+
         <View style={styles.dottedLine} />
         <View style={styles.otherInfo}>
           <View style={styles.infoBlock}>
@@ -643,15 +674,14 @@ const ConsignmentCarryDetails = ({ route }) => {
             </View>
             <Text style={styles.infoValue}>
               {consignmentDetails.dimensions?.length &&
-              consignmentDetails.dimensions?.breadth &&
-              consignmentDetails.dimensions?.height
+                consignmentDetails.dimensions?.breadth &&
+                consignmentDetails.dimensions?.height
                 ? `${parseFloat(
-                    consignmentDetails.dimensions.length
-                  )}x${parseFloat(
-                    consignmentDetails.dimensions.breadth
-                  )}x${parseFloat(consignmentDetails.dimensions.height)} ${
-                    consignmentDetails.dimensions.unit || "cm"
-                  }`
+                  consignmentDetails.dimensions.length
+                )}x${parseFloat(
+                  consignmentDetails.dimensions.breadth
+                )}x${parseFloat(consignmentDetails.dimensions.height)} ${consignmentDetails.dimensions.unit || "cm"
+                }`
                 : "N/A"}
             </Text>
           </View>
@@ -705,37 +735,37 @@ const ConsignmentCarryDetails = ({ route }) => {
           <Text style={styles.boldText}>Expected Earning</Text>
           <Text style={styles.earningText}>
             {(consignmentDetails.expectedEarning || ride.expectedEarning) &&
-            (consignmentDetails.expectedEarning !== "0" || ride.expectedEarning !== "0") &&
-            (consignmentDetails.expectedEarning !== 0 || ride.expectedEarning !== 0)
+              (consignmentDetails.expectedEarning !== "0" || ride.expectedEarning !== "0") &&
+              (consignmentDetails.expectedEarning !== 0 || ride.expectedEarning !== 0)
               ? `₹${parseFloat(consignmentDetails.expectedEarning || ride.expectedEarning).toFixed(2)}`
               : ""}
           </Text>
         </View>
       </View>
 
-      {ride.status !== "Delivered" && 
-       ride.status !== "Completed" && 
-       ride.status !== "Consignment Completed" &&
-       ride.status !== "Consignment Delivered" &&
-       status !== "Delivered" && 
-       status !== "Completed" && 
-       status !== "Consignment Completed" && 
-       status !== "Consignment Delivered" && (
-        <View style={{ marginBottom: 20 }}>
-          <TouchableOpacity
-            style={styles.updateStatusButton}
-            onPress={() => setModalVisible(true)}
-          >
-            <View style={styles.arrowContainer}>
-              <Text style={styles.arrowText}>{"›››››  "}</Text>
-            </View>
-            <Text style={styles.updateStatusButtonText}>Update Status</Text>
-            <View style={styles.arrowContainer}>
-              <Text style={styles.arrowText}>{"  ›››››"}</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-      )}
+      {ride.status !== "Delivered" &&
+        ride.status !== "Completed" &&
+        ride.status !== "Consignment Completed" &&
+        ride.status !== "Consignment Delivered" &&
+        status !== "Delivered" &&
+        status !== "Completed" &&
+        status !== "Consignment Completed" &&
+        status !== "Consignment Delivered" && (
+          <View style={{ marginBottom: 20 }}>
+            <TouchableOpacity
+              style={styles.updateStatusButton}
+              onPress={() => setModalVisible(true)}
+            >
+              <View style={styles.arrowContainer}>
+                <Text style={styles.arrowText}>{"›››››  "}</Text>
+              </View>
+              <Text style={styles.updateStatusButtonText}>Update Status</Text>
+              <View style={styles.arrowContainer}>
+                <Text style={styles.arrowText}>{"  ›››››"}</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
     </ScrollView>
   );
 };

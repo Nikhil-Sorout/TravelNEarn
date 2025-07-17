@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -8,13 +8,24 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  ActivityIndicator,
 } from "react-native";
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
 import RNPickerSelect from "react-native-picker-select";
 import Icon from "react-native-vector-icons/FontAwesome";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { 
+  fetchRoute, 
+  decodePolyline, 
+  fitMapToRoute, 
+  getRouteColor, 
+  getRouteStrokeWidth,
+  getDefaultRegion,
+  isValidCoordinate 
+} from "../../Utils/routeUtils";
 
-const TravelMode = ({ navigation }) => {
+const TravelMode = ({ navigation, route }) => {
+  const mapRef = useRef(null);
   const [selectedMode, setSelectedMode] = useState("roadways");
   const [travelNumber, setTravelNumber] = useState("");
   const [travelDate, setTravelDate] = useState(new Date());
@@ -31,119 +42,133 @@ const TravelMode = ({ navigation }) => {
   const [duration, setDuration] = useState("");
   const [originCoords, setOriginCoords] = useState(null);
   const [destinationCoords, setDestinationCoords] = useState(null);
+  const [isLoadingRoute, setIsLoadingRoute] = useState(false);
+  const [routeError, setRouteError] = useState(null);
+
+  const {fullFrom, fullTo, from, to, selectedDate} = route.params;
 
   useEffect(() => {
     const fetchLocations = async () => {
       try {
-        const startingLocation = await AsyncStorage.getItem("startingLocation");
-        const goingLocation = await AsyncStorage.getItem("goingLocation");
+        const startingLocation = from;
+        const goingLocation = to;
 
         if (startingLocation && goingLocation) {
           setStartLocation(startingLocation);
           setEndLocation(goingLocation);
           await Promise.all([
             fetchCoordinates(startingLocation, goingLocation),
-            fetchRoute(startingLocation, goingLocation),
+            fetchRouteData(startingLocation, goingLocation),
           ]);
         }
       } catch (error) {
         console.error("Error fetching locations:", error);
+        setRouteError("Failed to load route data");
       }
     };
 
     fetchLocations();
   }, []);
 
-  const fetchRoute = async (origin, destination) => {
-    try {
-      const GOOGLE_MAPS_API_KEY = "AIzaSyCJbXV5opQV7TQnfQ_d3UISYQhZegrqdec";
-      const response = await fetch(
-        `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${destination}&mode=driving&key=${GOOGLE_MAPS_API_KEY}`
-      );
-      const data = await response.json();
-
-      if (data.routes.length > 0) {
-        const points = data.routes[0].overview_polyline.points;
-        const decodedCoordinates = decodePolyline(points);
-        await AsyncStorage.setItem(
-          "DecodedPolyLine",
-          JSON.stringify(decodedCoordinates)
-        );
-        setCoordinates(decodedCoordinates);
-      } else {
-        throw new Error("No routes found");
+  // Set the travel date from route parameter if available
+  useEffect(() => {
+    if (selectedDate) {
+      const parsedDate = new Date(selectedDate);
+      console.log("Parsed date: ", parsedDate)
+      if (!isNaN(parsedDate.getTime())) {
+        setTravelDate(parsedDate);
+        setDate(parsedDate);
+        console.log("Setting travel date from route parameter:", parsedDate);
       }
+    }
+  }, [selectedDate]);
+
+  // Fit map to route when both coordinates and route data are available
+  useEffect(() => {
+    if (mapRef.current && coordinates.length > 0 && originCoords && destinationCoords) {
+      // Calculate bounds for the entire route including coordinates
+      let minLat = Math.min(originCoords.latitude, destinationCoords.latitude);
+      let maxLat = Math.max(originCoords.latitude, destinationCoords.latitude);
+      let minLng = Math.min(originCoords.longitude, destinationCoords.longitude);
+      let maxLng = Math.max(originCoords.longitude, destinationCoords.longitude);
+
+      // Include all route coordinates in bounds calculation
+      coordinates.forEach(coord => {
+        minLat = Math.min(minLat, coord.latitude);
+        maxLat = Math.max(maxLat, coord.latitude);
+        minLng = Math.min(minLng, coord.longitude);
+        maxLng = Math.max(maxLng, coord.longitude);
+      });
+
+      // Add padding to ensure the entire route is visible
+      const latPadding = (maxLat - minLat) * 0.2; // 20% padding
+      const lngPadding = (maxLng - minLng) * 0.2; // 20% padding
+
+      const region = {
+        latitude: (minLat + maxLat) / 2,
+        longitude: (minLng + maxLng) / 2,
+        latitudeDelta: (maxLat - minLat) + latPadding,
+        longitudeDelta: (maxLng - minLng) + lngPadding,
+      };
+
+      // Animate to the calculated region
+      mapRef.current.animateToRegion(region, 1000);
+    }
+  }, [coordinates, originCoords, destinationCoords]);
+
+  const fetchRouteData = async (origin, destination) => {
+    setIsLoadingRoute(true);
+    setRouteError(null);
+    
+    try {
+      const GOOGLE_MAPS_API_KEY = "AIzaSyDW79z0Hne2ne3ap7ghZIe_X-UXSxUBEGc";
+      const routeData = await fetchRoute(origin, destination, GOOGLE_MAPS_API_KEY, 'driving');
+      
+      setCoordinates(routeData.coordinates);
+      setDistance(routeData.distance);
+      setDuration(routeData.duration);
+      
+      await AsyncStorage.setItem("DecodedPolyLine", JSON.stringify(routeData.coordinates));
+      
     } catch (error) {
       console.error("Error fetching route:", error);
+      setRouteError("Failed to load route. Please try again.");
+    } finally {
+      setIsLoadingRoute(false);
     }
   };
 
-  const decodePolyline = (encoded) => {
-    let points = [];
-    let index = 0,
-      len = encoded.length;
-    let lat = 0,
-      lng = 0;
 
-    while (index < len) {
-      let b,
-        shift = 0,
-        result = 0;
-      do {
-        b = encoded.charCodeAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      let dlat = result & 1 ? ~(result >> 1) : result >> 1;
-      lat += dlat;
-
-      shift = 0;
-      result = 0;
-      do {
-        b = encoded.charCodeAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      let dlng = result & 1 ? ~(result >> 1) : result >> 1;
-      lng += dlng;
-
-      points.push({ latitude: lat / 1e5, longitude: lng / 1e5 });
-    }
-    return points;
-  };
 
   const fetchCoordinates = async (origin, destination) => {
     try {
+      const baseurl = await AsyncStorage.getItem("apiBaseUrl")
       const response = await fetch(
-        `https://travel.timestringssystem.com/map/getdistanceandcoordinate?origin=${origin}&destination=${destination}`
+        `${baseurl}map/getdistanceandcoordinate?origin=${origin}&destination=${destination}`
       );
       const data = await response.json();
 
       if (data.originCoordinates && data.destinationCoordinates) {
-        setOriginCoords({
+        const originCoord = {
           latitude: data.originCoordinates.ltd,
           longitude: data.originCoordinates.lng,
-        });
-        setDestinationCoords({
+        };
+        const destCoord = {
           latitude: data.destinationCoordinates.ltd,
           longitude: data.destinationCoordinates.lng,
-        });
-        await AsyncStorage.setItem(
-          "setOriginCoords",
-          JSON.stringify(originCoords)
-        );
-        await AsyncStorage.setItem(
-          "setDestinationCoords",
-          JSON.stringify(destinationCoords)
-        );
-
-        setDistance(data.distance);
-        setDuration(data.duration);
+        };
+        
+        setOriginCoords(originCoord);
+        setDestinationCoords(destCoord);
+        
+        await AsyncStorage.setItem("setOriginCoords", JSON.stringify(originCoord));
+        await AsyncStorage.setItem("setDestinationCoords", JSON.stringify(destCoord));
       } else {
         throw new Error("Invalid coordinates data");
       }
     } catch (error) {
       console.error("Error fetching map data:", error);
+      setRouteError("Failed to load location coordinates");
     }
   };
 
@@ -174,6 +199,15 @@ const TravelMode = ({ navigation }) => {
   const onStartTimeChange = (event, selectedTime) => {
     setShowStartTimePicker(false);
     if (selectedTime) {
+      // Check if selected date is today and time is in the past
+      const today = new Date();
+      // const isToday = date.toDateString() === today.toDateString();
+      
+      // if (isToday && selectedTime <= today) {
+      //   alert("Start time for today must be after the current time.");
+      //   return;
+      // }
+      
       const formattedTime = selectedTime.toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
@@ -200,6 +234,16 @@ const TravelMode = ({ navigation }) => {
       alert(`Please enter ${modeLabels[selectedMode]}.`);
       return;
     }
+    
+    // Vehicle number validation - only alphanumeric characters
+    if (selectedMode === "roadways" || selectedMode === "car") {
+      const vehicleNumberRegex = /^[A-Za-z0-9]+$/;
+      if (!vehicleNumberRegex.test(travelNumber.trim())) {
+        alert("Vehicle number can only contain letters and numbers.");
+        return;
+      }
+    }
+    
     if (!travelDate) {
       alert("Please select a travel date.");
       return;
@@ -213,15 +257,92 @@ const TravelMode = ({ navigation }) => {
       return;
     }
 
+    // Check if selected date is today and validate times
+    const today = new Date();
+    const isToday = date.toDateString() === today.toDateString();
+    
+    if (isToday) {
+      const currentTime = today.getHours() * 60 + today.getMinutes(); // Convert to minutes
+      
+      // Parse start time
+      const startTimeMatch = startTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
+      if (startTimeMatch) {
+        let startHour = parseInt(startTimeMatch[1]);
+        const startMinute = parseInt(startTimeMatch[2]);
+        const startPeriod = startTimeMatch[3].toUpperCase();
+        
+        // Convert to 24-hour format
+        if (startPeriod === 'PM' && startHour !== 12) startHour += 12;
+        if (startPeriod === 'AM' && startHour === 12) startHour = 0;
+        
+        const startTimeInMinutes = startHour * 60 + startMinute;
+        
+        if (startTimeInMinutes <= currentTime) {
+          alert("Start time for today must be after the current time.");
+          return;
+        }
+      }
+      
+      // Parse end time
+      const endTimeMatch = endTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
+      if (endTimeMatch) {
+        let endHour = parseInt(endTimeMatch[1]);
+        const endMinute = parseInt(endTimeMatch[2]);
+        const endPeriod = endTimeMatch[3].toUpperCase();
+        
+        // Convert to 24-hour format
+        if (endPeriod === 'PM' && endHour !== 12) endHour += 12;
+        if (endPeriod === 'AM' && endHour === 12) endHour = 0;
+        
+        const endTimeInMinutes = endHour * 60 + endMinute;
+        
+        if (endTimeInMinutes <= currentTime) {
+          alert("End time for today must be after the current time.");
+          return;
+        }
+      }
+    }
+
+    // Validate that end time is after start time
+    const startTimeMatch = startTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
+    const endTimeMatch = endTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
+    
+    if (startTimeMatch && endTimeMatch) {
+      let startHour = parseInt(startTimeMatch[1]);
+      const startMinute = parseInt(startTimeMatch[2]);
+      const startPeriod = startTimeMatch[3].toUpperCase();
+      
+      let endHour = parseInt(endTimeMatch[1]);
+      const endMinute = parseInt(endTimeMatch[2]);
+      const endPeriod = endTimeMatch[3].toUpperCase();
+      
+      // Convert to 24-hour format for start time
+      if (startPeriod === 'PM' && startHour !== 12) startHour += 12;
+      if (startPeriod === 'AM' && startHour === 12) startHour = 0;
+      
+      // Convert to 24-hour format for end time
+      if (endPeriod === 'PM' && endHour !== 12) endHour += 12;
+      if (endPeriod === 'AM' && endHour === 12) endHour = 0;
+      
+      const startTimeInMinutes = startHour * 60 + startMinute;
+      const endTimeInMinutes = endHour * 60 + endMinute;
+      
+      if (endTimeInMinutes <= startTimeInMinutes) {
+        alert("End time must be after start time.");
+        return;
+      }
+    }
+
     try {
       console.log("Travel date : ", travelDate)
+      console.log("Date from route parameter: ", selectedDate)
       await AsyncStorage.setItem("travelMode", selectedMode);
       await AsyncStorage.setItem("travelNumber", travelNumber);
-      await AsyncStorage.setItem("searchingDate", travelDate.toISOString());
+      await AsyncStorage.setItem("searchingDate", date.toISOString());
       await AsyncStorage.setItem("startTime", startTime);
       await AsyncStorage.setItem("endTime", endTime);
 
-      navigation.navigate("PublishTravelDetails");
+      navigation.navigate("PublishTravelDetails", {fullFrom: fullFrom, fullTo: fullTo, from: from, to: to, selectedDate: date});
     } catch (error) {
       console.log("Error saving data:", error);
     }
@@ -248,33 +369,40 @@ const TravelMode = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <MapView
+        ref={mapRef}
         provider={PROVIDER_GOOGLE}
-        key={coordinates.length}
         style={styles.map}
-        initialRegion={{
-          latitude:
-            originCoords && coordinates.length > 1 ? originCoords.latitude : 28,
-          longitude:
-            originCoords && coordinates.length > 1
-              ? originCoords.longitude
-              : 77,
-          latitudeDelta: 5,
-          longitudeDelta: 5,
-        }}
+        initialRegion={
+          originCoords && destinationCoords
+            ? {
+                latitude: (originCoords.latitude + destinationCoords.latitude) / 2,
+                longitude: (originCoords.longitude + destinationCoords.longitude) / 2,
+                latitudeDelta: Math.abs(originCoords.latitude - destinationCoords.latitude) * 1.5,
+                longitudeDelta: Math.abs(originCoords.longitude - destinationCoords.longitude) * 1.5,
+              }
+            : getDefaultRegion()
+        }
+        showsUserLocation={false}
+        showsMyLocationButton={false}
+        showsCompass={true}
+        showsScale={true}
       >
-        <Polyline
-          coordinates={coordinates}
-          strokeColor="blue"
-          strokeWidth={5}
-        />
-        {originCoords && (
+        {coordinates.length > 0 && (
+          <Polyline
+            coordinates={coordinates}
+            strokeColor={getRouteColor('driving')}
+            strokeWidth={getRouteStrokeWidth('driving')}
+            lineDashPattern={[1]}
+          />
+        )}
+        {isValidCoordinate(originCoords) && (
           <Marker coordinate={originCoords} title={startLocation}>
             <View style={[styles.marker, styles.startMarker]}>
               <Icon name="user" size={25} color="#fff" />
             </View>
           </Marker>
         )}
-        {destinationCoords && (
+        {isValidCoordinate(destinationCoords) && (
           <Marker coordinate={destinationCoords} title={endLocation}>
             <View style={[styles.marker, styles.endMarker]}>
               <Icon name="map-marker" size={25} color="#fff" />
@@ -282,6 +410,31 @@ const TravelMode = ({ navigation }) => {
           </Marker>
         )}
       </MapView>
+      
+      {/* Loading overlay */}
+      {isLoadingRoute && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#D83F3F" />
+          <Text style={styles.loadingText}>Loading route...</Text>
+        </View>
+      )}
+      
+      {/* Error overlay */}
+      {routeError && (
+        <View style={styles.errorOverlay}>
+          <Text style={styles.errorText}>{routeError}</Text>
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={() => {
+              if (startLocation && endLocation) {
+                fetchRouteData(startLocation, endLocation);
+              }
+            }}
+          >
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => navigation.goBack()}
@@ -329,6 +482,8 @@ const TravelMode = ({ navigation }) => {
             placeholderTextColor="#999"
             value={travelNumber}
             onChangeText={setTravelNumber}
+            autoCapitalize="characters"
+            maxLength={20}
           />
 
           <Text style={styles.label}>
@@ -336,11 +491,11 @@ const TravelMode = ({ navigation }) => {
           </Text>
           <View style={styles.inputContainer}>
             <TouchableOpacity
-              style={styles.input}
+              style={[styles.input]}
               onPress={() => setShowDatePicker(true)}
             >
-              <Text style={styles.inputText}>
-                {travelDate ? travelDate.toDateString() : "Select Date"}
+              <Text style={[styles.inputText]}>
+                {date.toDateString()}
               </Text>
             </TouchableOpacity>
             <Icon
@@ -384,7 +539,7 @@ const TravelMode = ({ navigation }) => {
           mode="date"
           display="default"
           onChange={onDateChange}
-          minimumDate={new Date(new Date().setDate(new Date().getDate() + 1))}
+          minimumDate={new Date(new Date().setDate(new Date().getDate()))}
         />
       )}
       {showStartTimePicker && (
@@ -484,6 +639,59 @@ const styles = StyleSheet.create({
   },
   endMarker: {
     backgroundColor: "red",
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
+  },
+  errorOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#D83F3F',
+    textAlign: 'center',
+    marginBottom: 15,
+    fontWeight: '500',
+  },
+  retryButton: {
+    backgroundColor: '#D83F3F',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  routeDateInput: {
+    borderColor: '#D83F3F',
+    backgroundColor: '#fff5f5',
+  },
+  routeDateText: {
+    color: '#D83F3F',
+    fontWeight: '600',
   },
 });
 
