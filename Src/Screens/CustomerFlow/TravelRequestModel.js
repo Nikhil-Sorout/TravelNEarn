@@ -447,7 +447,7 @@ const TravelRequestModel = ({
           <View style={styles.card}>
             <View style={styles.rowBetween}>
               <Text style={styles.boldText}>Expected Earning</Text>
-              <Text style={styles.earningText}>₹{earning}</Text>
+              <Text style={styles.earningText}>₹{earning.totalFare}</Text>
             </View>
           </View>
         </ScrollView>
@@ -566,7 +566,7 @@ const TravelRequestModel = ({
         <View style={styles.card}>
           <View style={styles.rowBetween}>
             <Text style={styles.boldText}>Expected Earning</Text>
-            <Text style={styles.earningText}>₹{earning}</Text>
+            <Text style={styles.earningText}>₹{earning.totalFare}</Text>
           </View>
         </View>
 

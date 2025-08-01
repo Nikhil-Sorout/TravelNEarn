@@ -767,7 +767,7 @@ const ConsignmentRequestModel = ({
         <View style={styles.card}>
           <View style={styles.rowBetween}>
             <Text style={styles.boldText}>Total expected Earning</Text>
-            <Text style={styles.earningText}>₹{expectedEarning || "0"}</Text>
+            <Text style={styles.earningText}>₹{expectedEarning.totalFare || "0"}</Text>
           </View>
         </View>
 

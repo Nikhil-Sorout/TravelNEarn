@@ -24,8 +24,8 @@ const AddressBook = ({ navigation }) => {
         let baseurl = await AsyncStorage.getItem("apiBaseUrl");
 
         if (!baseurl) {
-          // baseurl = "https://travel.timestringssystem.com/";
-          baseurl = "http://192.168.1.25:5002/";
+          baseurl = "https://travel.timestringssystem.com/";
+          // baseurl = "http://192.168.1.25:5002/";
         }
 
         const phoneNumber = await AsyncStorage.getItem("phoneNumber");
@@ -81,8 +81,8 @@ const AddressBook = ({ navigation }) => {
       console.log("addressId", addressId)
       let baseurl = await AsyncStorage.getItem("apiBaseUrl");
       if (!baseurl) {
-        // baseurl = "https://travel.timestringssystem.com/";
-        baseurl = "http://192.168.1.25:5002/";
+        baseurl = "https://travel.timestringssystem.com/";
+        // baseurl = "http://192.168.1.25:5002/";
       
       }
       console.log("baseurl", baseurl)

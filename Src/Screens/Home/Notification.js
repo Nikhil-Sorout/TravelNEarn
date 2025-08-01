@@ -653,8 +653,30 @@ const NotificationsScreen = ({ navigation, route }) => {
                               );
                               return;
                             }
-
-                            if (!item.amount || isNaN(parseFloat(item.amount))) {
+                            let totalAmount = 0;
+                            console.log("Notification item amount structure:", JSON.stringify(item.amount, null, 2));
+                            console.log("Notification title:", item.title);
+                            
+                            if(item.title === "Consignment Accepted") {
+                              // For consignment accepted, show sender's total pay
+                              if (item.amount && typeof item.amount === 'object' && item.amount.senderTotalPay) {
+                                totalAmount = item.amount.senderTotalPay;
+                              } else if (item.amount && typeof item.amount === 'object' && item.amount.totalFare) {
+                                totalAmount = item.amount.totalFare;
+                              } else if (typeof item.amount === 'string' || typeof item.amount === 'number') {
+                                totalAmount = item.amount;
+                              }
+                            } else {
+                              // For other notifications (ride requests), show total fare
+                              if (item.amount && typeof item.amount === 'object' && item.amount.totalFare) {
+                                totalAmount = item.amount.totalFare;
+                              } else if (typeof item.amount === 'string' || typeof item.amount === 'number') {
+                                totalAmount = item.amount;
+                              }
+                            }
+                            
+                            console.log("Calculated totalAmount:", totalAmount);
+                            if (!totalAmount || isNaN(parseFloat(totalAmount))) {
                               Alert.alert(
                                 "Error",
                                 "Amount is missing or invalid. Please try again later."
@@ -668,7 +690,7 @@ const NotificationsScreen = ({ navigation, route }) => {
                               consignmentId: finalConsignmentId,
                               travelId: item.travelId || "N/A",
                               phoneNumber,
-                              amount: item.amount,
+                              amount: totalAmount,
                               notification: item,
                               travelmode: item.travelmode,
                               pickup: item.pickup,
@@ -711,6 +733,27 @@ const NotificationsScreen = ({ navigation, route }) => {
                               amount: item.amount || "N/A",
                             };
 
+                            // Extract specific amounts for consignment vs travel
+                            let consignmentOwnerAmount = "N/A";
+                            let travelerAmount = "N/A";
+                            
+                            if (item.title === "Consignment Accepted" && item.amount) {
+                              if (typeof item.amount === 'object') {
+                                consignmentOwnerAmount = item.amount.senderTotalPay || "N/A";
+                                travelerAmount = item.amount.totalFare || "N/A";
+                              } else {
+                                // If amount is a simple value, use it for both
+                                consignmentOwnerAmount = item.amount;
+                                travelerAmount = item.amount;
+                              }
+                            } else if (item.title === "Ride Request accept" && item.amount) {
+                              if (typeof item.amount === 'object') {
+                                travelerAmount = item.amount.totalFare || item.amount || "N/A";
+                              } else {
+                                travelerAmount = item.amount;
+                              }
+                            }
+
                             Alert.alert(
                               "Payment Receipt",
                               `Going Location: ${receiptDetails.pickup}\n` +
@@ -718,7 +761,10 @@ const NotificationsScreen = ({ navigation, route }) => {
                               `Travel Mode: ${receiptDetails.travelmode}\n` +
                               `Estimated Start Time: ${receiptDetails.pickuptime}\n` +
                               `Estimated End Time: ${receiptDetails.dropofftime}\n` +
-                              `Amount: ${receiptDetails.amount}`,
+                              `${item.title === "Consignment Accepted" ? 
+                                `Total Amount: ₹${consignmentOwnerAmount}\n` :
+                                `Total Amount: ₹${travelerAmount}`
+                              }`,
                               [
                                 { text: "OK", style: "cancel" },
                                 {
@@ -753,6 +799,26 @@ const NotificationsScreen = ({ navigation, route }) => {
                           //     amount: item.amount || "N/A",
                           //   };
 
+                          //   // Extract specific amounts for consignment vs travel
+                          //   let consignmentOwnerAmount = "N/A";
+                          //   let travelerAmount = "N/A";
+                          //   
+                          //   if (item.title === "Consignment Accepted" && item.amount) {
+                          //     if (typeof item.amount === 'object') {
+                          //       consignmentOwnerAmount = item.amount.senderTotalPay || "N/A";
+                          //       travelerAmount = item.amount.totalFare || "N/A";
+                          //     } else {
+                          //       consignmentOwnerAmount = item.amount;
+                          //       travelerAmount = item.amount;
+                          //     }
+                          //   } else if (item.title === "Ride Request accept" && item.amount) {
+                          //     if (typeof item.amount === 'object') {
+                          //       travelerAmount = item.amount.totalFare || item.amount || "N/A";
+                          //     } else {
+                          //       travelerAmount = item.amount;
+                          //     }
+                          //   }
+
                           //   Alert.alert(
                           //     "Payment Receipt",
                           //     `Going Location: ${receiptDetails.pickup}\n` +
@@ -760,7 +826,11 @@ const NotificationsScreen = ({ navigation, route }) => {
                           //     `Travel Mode: ${receiptDetails.travelmode}\n` +
                           //     `Estimated Start Time: ${receiptDetails.pickuptime}\n` +
                           //     `Estimated End Time: ${receiptDetails.dropofftime}\n` +
-                          //     `Amount: ${receiptDetails.amount}`,
+                          //     `${item.title === "Consignment Accepted" ? 
+                          //       `Consignment Owner Pay: ₹${consignmentOwnerAmount}\n` +
+                          //       `Traveler Fare: ₹${travelerAmount}` :
+                          //       `Total Amount: ₹${travelerAmount}`
+                          //     }`,
                           //     [
                           //       { text: "OK", style: "cancel" },
                           //       {

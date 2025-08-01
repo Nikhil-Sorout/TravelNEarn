@@ -478,7 +478,7 @@ const ConsignmentPayRequest = ({ route, navigation }) => {
 
               <View style={styles.rowBetween}>
                 <Text style={styles.boldText}>Total expected Earning</Text>
-                <Text style={styles.earningText}>₹{item.amount || "N/A"}</Text>
+                <Text style={styles.earningText}>₹{item.amount.totalFare || "N/A"}</Text>
               </View>
             </TouchableOpacity>
           </View>

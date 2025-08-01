@@ -14,27 +14,38 @@ import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
 import RNPickerSelect from "react-native-picker-select";
 import Icon from "react-native-vector-icons/FontAwesome";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import { 
-  fetchRoute, 
-  decodePolyline, 
-  fitMapToRoute, 
-  getRouteColor, 
+import RouteIcon from "react-native-vector-icons/FontAwesome6";
+import { Picker } from '@react-native-picker/picker';
+
+import {
+  fetchRoute,
+  decodePolyline,
+  fitMapToRoute,
+  getRouteColor,
   getRouteStrokeWidth,
   getDefaultRegion,
-  isValidCoordinate 
+  isValidCoordinate
 } from "../../Utils/routeUtils";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Header from "../../header";
+import { getCurvedPolylinePoints } from '../../Utils/getCurvedPolylinePonints';
 
 const TravelMode = ({ navigation, route }) => {
   const mapRef = useRef(null);
   const [selectedMode, setSelectedMode] = useState("roadways");
   const [travelNumber, setTravelNumber] = useState("");
-  const [travelDate, setTravelDate] = useState(new Date());
+  const [travelDate, setTravelDate] = useState(
+    route.params?.selectedDate ? new Date(route.params.selectedDate) : new Date()
+  );
+  const [endDate, setEndDate] = useState(
+    route.params?.selectedDate ? new Date(route.params.selectedDate) : new Date()
+  );
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
-  const [date, setDate] = useState(new Date());
+
   const [startLocation, setStartLocation] = useState("");
   const [endLocation, setEndLocation] = useState("");
   const [coordinates, setCoordinates] = useState([]);
@@ -44,9 +55,18 @@ const TravelMode = ({ navigation, route }) => {
   const [destinationCoords, setDestinationCoords] = useState(null);
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
   const [routeError, setRouteError] = useState(null);
+  const [stayDays, setStayDays] = useState('0');
+  const [stayHours, setStayHours] = useState('0');
+  const [subCategoryOfTravel, setSubCategoryOfTravel] = useState("");
 
-  const {fullFrom, fullTo, from, to, selectedDate} = route.params;
+  // const [curvedLinePoints, setCurvedLinePoints] = useState(null)
 
+  console.log("route params: ",route?.params)
+  const { fullFrom, fullTo, from, to, selectedDate, startCity, destCity } = route.params;
+  const curvedLinePoints =
+    originCoords && destinationCoords
+      ? getCurvedPolylinePoints(originCoords, destinationCoords)
+      : [];
   useEffect(() => {
     const fetchLocations = async () => {
       try {
@@ -70,18 +90,20 @@ const TravelMode = ({ navigation, route }) => {
     fetchLocations();
   }, []);
 
+  const dayOptions = ['0', '1', '2', '3', 'More than 3'];
+  // 0–3 days
+  const hourOptions = Array.from({ length: 24 }, (_, i) => i.toString()); // 0–23 hours
+
+
   // Set the travel date from route parameter if available
   useEffect(() => {
-    if (selectedDate) {
-      const parsedDate = new Date(selectedDate);
-      console.log("Parsed date: ", parsedDate)
+    if (route.params?.selectedDate) {
+      const parsedDate = new Date(route.params.selectedDate);
       if (!isNaN(parsedDate.getTime())) {
         setTravelDate(parsedDate);
-        setDate(parsedDate);
-        console.log("Setting travel date from route parameter:", parsedDate);
       }
     }
-  }, [selectedDate]);
+  }, [route.params?.selectedDate]);
 
   // Fit map to route when both coordinates and route data are available
   useEffect(() => {
@@ -100,14 +122,15 @@ const TravelMode = ({ navigation, route }) => {
         maxLng = Math.max(maxLng, coord.longitude);
       });
 
-      // Add padding to ensure the entire route is visible
-      const latPadding = (maxLat - minLat) * 0.2; // 20% padding
-      const lngPadding = (maxLng - minLng) * 0.2; // 20% padding
+      // Add padding: more on top (40%), others 20%
+      const latPadding = (maxLat - minLat) * 0.2; // 20% padding for bottom
+      const lngPadding = (maxLng - minLng) * 0.2; // 20% padding for left/right
+      const extraTopPadding = (maxLat - minLat) * 0.2; // extra 20% for top
 
       const region = {
-        latitude: (minLat + maxLat) / 2,
+        latitude: (minLat + maxLat) / 2 + extraTopPadding / 2, // shift center slightly down
         longitude: (minLng + maxLng) / 2,
-        latitudeDelta: (maxLat - minLat) + latPadding,
+        latitudeDelta: (maxLat - minLat) + latPadding + extraTopPadding, // total 40% top padding
         longitudeDelta: (maxLng - minLng) + lngPadding,
       };
 
@@ -119,17 +142,17 @@ const TravelMode = ({ navigation, route }) => {
   const fetchRouteData = async (origin, destination) => {
     setIsLoadingRoute(true);
     setRouteError(null);
-    
+
     try {
       const GOOGLE_MAPS_API_KEY = "AIzaSyDW79z0Hne2ne3ap7ghZIe_X-UXSxUBEGc";
       const routeData = await fetchRoute(origin, destination, GOOGLE_MAPS_API_KEY, 'driving');
-      
+
       setCoordinates(routeData.coordinates);
       setDistance(routeData.distance);
       setDuration(routeData.duration);
-      
+
       await AsyncStorage.setItem("DecodedPolyLine", JSON.stringify(routeData.coordinates));
-      
+
     } catch (error) {
       console.error("Error fetching route:", error);
       setRouteError("Failed to load route. Please try again.");
@@ -157,10 +180,10 @@ const TravelMode = ({ navigation, route }) => {
           latitude: data.destinationCoordinates.ltd,
           longitude: data.destinationCoordinates.lng,
         };
-        
+
         setOriginCoords(originCoord);
         setDestinationCoords(destCoord);
-        
+
         await AsyncStorage.setItem("setOriginCoords", JSON.stringify(originCoord));
         await AsyncStorage.setItem("setDestinationCoords", JSON.stringify(destCoord));
       } else {
@@ -189,11 +212,10 @@ const TravelMode = ({ navigation, route }) => {
   };
 
   const onDateChange = (event, selectedDate) => {
-    console.log("Selected date : ", selectedDate)
-    const currentDate = selectedDate || date;
     setShowDatePicker(false);
-    setDate(currentDate);
-    setTravelDate(currentDate);
+    if (selectedDate) {
+      setEndDate(selectedDate);
+    }
   };
 
   const onStartTimeChange = (event, selectedTime) => {
@@ -202,12 +224,12 @@ const TravelMode = ({ navigation, route }) => {
       // Check if selected date is today and time is in the past
       const today = new Date();
       // const isToday = date.toDateString() === today.toDateString();
-      
+
       // if (isToday && selectedTime <= today) {
       //   alert("Start time for today must be after the current time.");
       //   return;
       // }
-      
+
       const formattedTime = selectedTime.toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
@@ -230,20 +252,25 @@ const TravelMode = ({ navigation, route }) => {
   };
 
   const saveData = async () => {
-    if (!travelNumber.trim()) {
+    if (selectedMode !== "roadways" && !travelNumber.trim()) {
       alert(`Please enter ${modeLabels[selectedMode]}.`);
       return;
     }
-    
+
     // Vehicle number validation - only alphanumeric characters
-    if (selectedMode === "roadways" || selectedMode === "car") {
+    if (selectedMode !== "roadways") {
       const vehicleNumberRegex = /^[A-Za-z0-9]+$/;
       if (!vehicleNumberRegex.test(travelNumber.trim())) {
         alert("Vehicle number can only contain letters and numbers.");
         return;
       }
     }
-    
+    console.log(selectedMode, subCategoryOfTravel);
+    if(selectedMode === 'roadways' && subCategoryOfTravel === ""){
+      alert("Please select a type of vehicle")
+      return;
+    }
+
     if (!travelDate) {
       alert("Please select a travel date.");
       return;
@@ -259,90 +286,66 @@ const TravelMode = ({ navigation, route }) => {
 
     // Check if selected date is today and validate times
     const today = new Date();
-    const isToday = date.toDateString() === today.toDateString();
-    
-    if (isToday) {
-      const currentTime = today.getHours() * 60 + today.getMinutes(); // Convert to minutes
-      
-      // Parse start time
-      const startTimeMatch = startTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
-      if (startTimeMatch) {
-        let startHour = parseInt(startTimeMatch[1]);
-        const startMinute = parseInt(startTimeMatch[2]);
-        const startPeriod = startTimeMatch[3].toUpperCase();
-        
-        // Convert to 24-hour format
-        if (startPeriod === 'PM' && startHour !== 12) startHour += 12;
-        if (startPeriod === 'AM' && startHour === 12) startHour = 0;
-        
-        const startTimeInMinutes = startHour * 60 + startMinute;
-        
-        if (startTimeInMinutes <= currentTime) {
-          alert("Start time for today must be after the current time.");
-          return;
-        }
-      }
-      
-      // Parse end time
-      const endTimeMatch = endTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
-      if (endTimeMatch) {
-        let endHour = parseInt(endTimeMatch[1]);
-        const endMinute = parseInt(endTimeMatch[2]);
-        const endPeriod = endTimeMatch[3].toUpperCase();
-        
-        // Convert to 24-hour format
-        if (endPeriod === 'PM' && endHour !== 12) endHour += 12;
-        if (endPeriod === 'AM' && endHour === 12) endHour = 0;
-        
-        const endTimeInMinutes = endHour * 60 + endMinute;
-        
-        if (endTimeInMinutes <= currentTime) {
-          alert("End time for today must be after the current time.");
-          return;
-        }
-      }
+    const isToday = travelDate.toDateString() === today.toDateString();
+    const isEndDateToday = endDate.toDateString() === today.toDateString();
+
+    const parseTime = (timeStr) => {
+      const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+      if (!match) return null;
+
+      let hour = parseInt(match[1], 10);
+      const minute = parseInt(match[2], 10);
+      const period = match[3].toUpperCase();
+
+      if (period === 'PM' && hour !== 12) hour += 12;
+      if (period === 'AM' && hour === 12) hour = 0;
+
+      return hour * 60 + minute;
+    };
+
+    const startTimeInMinutes = parseTime(startTime);
+    const endTimeInMinutes = parseTime(endTime);
+    const currentTimeInMinutes = today.getHours() * 60 + today.getMinutes();
+
+    // Validate start time when start date is today
+    if (isToday && startTimeInMinutes !== null && startTimeInMinutes <= currentTimeInMinutes) {
+      alert("Start time must be after the current time.");
+      return;
     }
 
-    // Validate that end time is after start time
-    const startTimeMatch = startTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
-    const endTimeMatch = endTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
-    
-    if (startTimeMatch && endTimeMatch) {
-      let startHour = parseInt(startTimeMatch[1]);
-      const startMinute = parseInt(startTimeMatch[2]);
-      const startPeriod = startTimeMatch[3].toUpperCase();
-      
-      let endHour = parseInt(endTimeMatch[1]);
-      const endMinute = parseInt(endTimeMatch[2]);
-      const endPeriod = endTimeMatch[3].toUpperCase();
-      
-      // Convert to 24-hour format for start time
-      if (startPeriod === 'PM' && startHour !== 12) startHour += 12;
-      if (startPeriod === 'AM' && startHour === 12) startHour = 0;
-      
-      // Convert to 24-hour format for end time
-      if (endPeriod === 'PM' && endHour !== 12) endHour += 12;
-      if (endPeriod === 'AM' && endHour === 12) endHour = 0;
-      
-      const startTimeInMinutes = startHour * 60 + startMinute;
-      const endTimeInMinutes = endHour * 60 + endMinute;
-      
-      if (endTimeInMinutes <= startTimeInMinutes) {
-        alert("End time must be after start time.");
+    // Validate end time when end date is today
+    if (isEndDateToday && endTimeInMinutes !== null && endTimeInMinutes <= currentTimeInMinutes) {
+      alert("End time must be after the current time.");
+      return;
+    }
+
+    // Always validate that end time is after start time when dates are the same
+    if (travelDate.toDateString() === endDate.toDateString()) {
+      if (
+        startTimeInMinutes !== null &&
+        endTimeInMinutes !== null &&
+        endTimeInMinutes <= startTimeInMinutes
+      ) {
+        alert("End time must be after the start time.");
         return;
       }
     }
+
+
+
+
 
     try {
       console.log("Travel date : ", travelDate)
       console.log("Date from route parameter: ", selectedDate)
       await AsyncStorage.setItem("travelMode", selectedMode);
       await AsyncStorage.setItem("travelNumber", travelNumber);
-      await AsyncStorage.setItem("searchingDate", date.toISOString());
+      await AsyncStorage.setItem("searchingDate", travelDate.toISOString());
+      await AsyncStorage.setItem("endDate", endDate.toISOString());
       await AsyncStorage.setItem("startTime", startTime);
       await AsyncStorage.setItem("endTime", endTime);
 
-      navigation.navigate("PublishTravelDetails", {fullFrom: fullFrom, fullTo: fullTo, from: from, to: to, selectedDate: date});
+      navigation.navigate("PublishTravelDetails", { fullFrom: fullFrom, fullTo: fullTo, from: from, to: to, selectedDate: travelDate, endDate: endDate, stayDays, stayHours, vehicleType: subCategoryOfTravel, startCity: startCity, destCity: destCity });
     } catch (error) {
       console.log("Error saving data:", error);
     }
@@ -351,11 +354,19 @@ const TravelMode = ({ navigation, route }) => {
   useEffect(() => {
     const fetchTravelData = async () => {
       try {
-        const storedDate = await AsyncStorage.getItem("searchingDate");
         const storedStartTime = await AsyncStorage.getItem("startTime");
         const storedEndTime = await AsyncStorage.getItem("endTime");
 
-        if (storedDate) setTravelDate(new Date(storedDate));
+        // Only set travelDate from AsyncStorage if no route parameter is provided
+        if (!route.params?.selectedDate) {
+          const storedDate = await AsyncStorage.getItem("searchingDate");
+          if (storedDate) setTravelDate(new Date(storedDate));
+        }
+        
+        // Load endDate from AsyncStorage
+        const storedEndDate = await AsyncStorage.getItem("endDate");
+        if (storedEndDate) setEndDate(new Date(storedEndDate));
+        
         if (storedStartTime) setStartTime(storedStartTime);
         if (storedEndTime) setEndTime(storedEndTime);
       } catch (error) {
@@ -364,10 +375,34 @@ const TravelMode = ({ navigation, route }) => {
     };
 
     fetchTravelData();
-  }, []);
+  }, [route.params?.selectedDate]);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <Header title="Travel Details" />
+      <View style={{ padding: 5 }}>
+        {/* Date Text */}
+        <Text style={styles.selectedDateText}>
+          Travel Date: {travelDate.toDateString()}
+        </Text>
+
+        {/* Route Row */}
+        <View style={styles.routeContainer}>
+          {/* Icon Section */}
+          <View style={styles.iconWrapper}>
+            <RouteIcon name="route" size={24} color="#D83F3F" />
+          </View>
+
+          {/* Text Section */}
+          <View style={styles.textWrapper}>
+            <Text style={[styles.locationText, {fontWeight: 'bold'}]}>{startCity}</Text>
+            <Text style={styles.locationText}>{fullFrom}</Text>
+            <Text style={[styles.locationText, {fontWeight: 'bold'}]}>{destCity}</Text>
+            <Text style={styles.locationText}>{fullTo}</Text>
+          </View>
+        </View>
+      </View>
+
       <MapView
         ref={mapRef}
         provider={PROVIDER_GOOGLE}
@@ -375,11 +410,11 @@ const TravelMode = ({ navigation, route }) => {
         initialRegion={
           originCoords && destinationCoords
             ? {
-                latitude: (originCoords.latitude + destinationCoords.latitude) / 2,
-                longitude: (originCoords.longitude + destinationCoords.longitude) / 2,
-                latitudeDelta: Math.abs(originCoords.latitude - destinationCoords.latitude) * 1.5,
-                longitudeDelta: Math.abs(originCoords.longitude - destinationCoords.longitude) * 1.5,
-              }
+              latitude: (originCoords.latitude + destinationCoords.latitude) / 2,
+              longitude: (originCoords.longitude + destinationCoords.longitude) / 2,
+              latitudeDelta: Math.abs(originCoords.latitude - destinationCoords.latitude) * 1.5,
+              longitudeDelta: Math.abs(originCoords.longitude - destinationCoords.longitude) * 1.5,
+            }
             : getDefaultRegion()
         }
         showsUserLocation={false}
@@ -387,12 +422,12 @@ const TravelMode = ({ navigation, route }) => {
         showsCompass={true}
         showsScale={true}
       >
-        {coordinates.length > 0 && (
+        {curvedLinePoints.length > 0 && (
           <Polyline
-            coordinates={coordinates}
-            strokeColor={getRouteColor('driving')}
-            strokeWidth={getRouteStrokeWidth('driving')}
-            lineDashPattern={[1]}
+            coordinates={curvedLinePoints}
+            strokeColor="rgba(0,0,255,0.6)"
+            strokeWidth={2}
+            lineDashPattern={[5, 5]}
           />
         )}
         {isValidCoordinate(originCoords) && (
@@ -410,7 +445,7 @@ const TravelMode = ({ navigation, route }) => {
           </Marker>
         )}
       </MapView>
-      
+
       {/* Loading overlay */}
       {isLoadingRoute && (
         <View style={styles.loadingOverlay}>
@@ -418,12 +453,12 @@ const TravelMode = ({ navigation, route }) => {
           <Text style={styles.loadingText}>Loading route...</Text>
         </View>
       )}
-      
+
       {/* Error overlay */}
       {routeError && (
         <View style={styles.errorOverlay}>
           <Text style={styles.errorText}>{routeError}</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.retryButton}
             onPress={() => {
               if (startLocation && endLocation) {
@@ -467,7 +502,7 @@ const TravelMode = ({ navigation, route }) => {
             >
               <Text>
                 {selectedMode
-                  ? selectedMode === "roadways" 
+                  ? selectedMode === "roadways"
                     ? "Roadways"
                     : selectedMode.charAt(0).toUpperCase() + selectedMode.slice(1)
                   : "Please select a mode"}
@@ -475,21 +510,43 @@ const TravelMode = ({ navigation, route }) => {
             </RNPickerSelect>
           </View>
 
-          <Text style={styles.label}>{modeLabels[selectedMode]}</Text>
-          <TextInput
-            style={styles.input}
-            placeholder={`Enter ${modeLabels[selectedMode]}`}
-            placeholderTextColor="#999"
-            value={travelNumber}
-            onChangeText={setTravelNumber}
-            autoCapitalize="characters"
-            maxLength={20}
-          />
+          {selectedMode === "roadways" ? (
 
-          <Text style={styles.label}>
-            Select the date when you are traveling
-          </Text>
-          <View style={styles.inputContainer}>
+            <>
+              <Text style={[styles.label, {marginTop: 10}]}>Select Vehicle Type</Text>
+              <RNPickerSelect
+                onValueChange={(value) => setSubCategoryOfTravel(value)}
+                value={subCategoryOfTravel}
+                placeholder={{ label: 'Select vehicle', value: null }}
+                items={[
+                  { label: 'Car', value: 'Car' },
+                  { label: 'Bus', value: 'Bus' },
+                  { label: 'Other', value: 'Other' },
+                ]}
+                style={pickerSelectStyles}
+                useNativeAndroidPickerStyle={false}
+              />
+            </>
+
+          ) : (
+            <>
+              <Text style={styles.label}>{modeLabels[selectedMode]}</Text>
+              <TextInput
+                style={styles.input}
+                placeholder={`Enter ${modeLabels[selectedMode]}`}
+                placeholderTextColor="#999"
+                value={travelNumber}
+                onChangeText={(text) => setTravelNumber(text)}
+                autoCapitalize="characters"
+                maxLength={20}
+              />
+            </>
+          )}
+
+          {/* <Text style={styles.label}> */}
+          {/* Select the date when you are traveling */}
+          {/* </Text> */}
+          {/* <View style={styles.inputContainer}>
             <TouchableOpacity
               style={[styles.input]}
               onPress={() => setShowDatePicker(true)}
@@ -504,10 +561,10 @@ const TravelMode = ({ navigation, route }) => {
               color="#aaa"
               style={styles.calendarIcon}
             />
-          </View>
+          </View> */}
 
           <Text style={styles.label}>
-            Select the start & end time of your journey
+            Expected Time of start from Starting Location
           </Text>
           <View style={styles.timeContainer}>
             <TouchableOpacity
@@ -518,6 +575,33 @@ const TravelMode = ({ navigation, route }) => {
                 {startTime || "Start Time (e.g., 8:30 AM)"}
               </Text>
             </TouchableOpacity>
+            {/* <TouchableOpacity
+              style={[styles.input, styles.timeInput]}
+              onPress={() => setShowEndTimePicker(true)}
+            >
+              <Text style={styles.inputText}>
+                {endTime || "End Time (e.g., 8:00 PM)"}
+              </Text>
+            </TouchableOpacity> */}
+          </View>
+          <Text style={styles.label}>
+            Expected Time of arrival at Destination Location
+          </Text>
+          <View style={styles.timeContainer}>
+            <TouchableOpacity
+              style={[styles.input, { width: '45%', marginRight: 10 }]}
+              onPress={() => setShowDatePicker(true)}
+            >
+              <Text style={[styles.inputText]}>
+                {endDate.toDateString()}
+              </Text>
+            </TouchableOpacity>
+            <Icon
+              name="calendar"
+              size={20}
+              color="#aaa"
+              style={styles.calendarIcon}
+            />
             <TouchableOpacity
               style={[styles.input, styles.timeInput]}
               onPress={() => setShowEndTimePicker(true)}
@@ -527,44 +611,115 @@ const TravelMode = ({ navigation, route }) => {
               </Text>
             </TouchableOpacity>
           </View>
+          <Text style={styles.label}>Duration of Stay</Text>
+          <View style={styles.timeContainer}>
+            <View style={[styles.input, { width: '45%', marginRight: 10 }]}>
+              <Picker
+                selectedValue={stayDays}
+                onValueChange={(value) => setStayDays(value)}
+                style={styles.picker}
+                mode="dropdown"
+
+              >
+                {dayOptions.map((day) => (
+                  <Picker.Item key={day} label={`${day} Day${day !== '1' ? 's' : ''}`} value={day} />
+                ))}
+              </Picker>
+            </View>
+            <View style={[styles.input, { width: '45%' }]}>
+              <Picker
+                selectedValue={stayHours}
+                onValueChange={(value) => setStayHours(value)}
+                style={styles.picker}
+                mode="dropdown"
+              >
+                {hourOptions.map((hour) => (
+                  <Picker.Item key={hour} label={`${hour} Hour${hour !== '1' ? 's' : ''}`} value={hour} />
+                ))}
+              </Picker>
+            </View>
+          </View>
+
 
           <TouchableOpacity style={styles.nextButton} onPress={saveData}>
             <Text style={styles.nextButtonText}>Next</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
-      {showDatePicker && (
-        <DateTimePicker
-          value={date}
-          mode="date"
-          display="default"
-          onChange={onDateChange}
-          minimumDate={new Date(new Date().setDate(new Date().getDate()))}
-        />
-      )}
-      {showStartTimePicker && (
-        <DateTimePicker
-          value={date}
-          mode="time"
-          display="default"
-          onChange={onStartTimeChange}
-        />
-      )}
-      {showEndTimePicker && (
-        <DateTimePicker
-          value={date}
-          mode="time"
-          display="default"
-          onChange={onEndTimeChange}
-        />
-      )}
-    </View>
+      {
+        showDatePicker && (
+          <DateTimePicker
+            value={endDate}
+            mode="date"
+            display="default"
+            onChange={onDateChange}
+            minimumDate={new Date()}
+          />
+        )
+      }
+      {
+        showStartTimePicker && (
+          <DateTimePicker
+            value={travelDate}
+            mode="time"
+            display="default"
+            onChange={onStartTimeChange}
+          />
+        )
+      }
+      {
+        showEndTimePicker && (
+          <DateTimePicker
+            value={travelDate}
+            mode="time"
+            display="default"
+            onChange={onEndTimeChange}
+          />
+        )
+      }
+    </SafeAreaView >
   );
 };
 
+const pickerSelectStyles = {
+  inputIOS: {
+    fontSize: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    color: '#000',
+    backgroundColor: '#fff',
+  },
+  inputAndroid: {
+    // fontSize: 16,
+    // paddingHorizontal: 12,
+    // paddingVertical: 8,
+    // borderWidth: 1,
+    // borderColor: '#ccc',
+    // borderRadius: 8,
+    // color: '#000',
+    // backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    marginBottom: 16,
+    color: "#333",
+    backgroundColor: "#f9f9f9",
+    width: "100%",
+  },
+  placeholder: {
+    color: '#999',
+  },
+};
+
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
-  map: { flex: 2.5 },
+  map: { height: "30%" },
   detailsContainer: {
     flex: 3,
     padding: 16,
@@ -693,6 +848,101 @@ const styles = StyleSheet.create({
     color: '#D83F3F',
     fontWeight: '600',
   },
+  routeContainer: {
+    flexDirection: 'row',
+    alignItems: 'stretch', // Ensures children stretch to match each other's height
+    backgroundColor: '#F9F9F9',
+    borderRadius: 8,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  iconWrapper: {
+    backgroundColor: '#FFEAEA',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 16,
+  },
+  textWrapper: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+  },
+  locationText: {
+    fontSize: 16,
+    color: '#333',
+    marginBottom: 4,
+  },
+  // pickerWrapper: {
+  //   marginVertical: 10,
+  // },
+  label: {
+    fontSize: 14,
+    color: '#444',
+    marginBottom: 6,
+  },
+  // input: {
+  //   borderWidth: 1,
+  //   borderColor: '#ccc',
+  //   borderRadius: 8,
+  //   padding: 12,
+  //   fontSize: 16,
+  //   marginVertical: 10,
+  //   color: '#000',
+  // },
+  inputIOS: {
+    fontSize: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    color: '#000',
+    paddingRight: 30,
+  },
+  placeholder: {
+    color: '#999',
+  },
+  picker: {
+    height: 55,
+    color: '#000',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 6,
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    height: 45,
+    backgroundColor: '#fff',
+  },
+  timeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  selectedDateText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#D83F3F',
+    textAlign: 'center',
+    marginBottom: 10,
+    paddingVertical: 8,
+    backgroundColor: '#FFEAEA',
+    borderRadius: 8,
+    marginHorizontal: 10,
+  },
+
 });
+
 
 export default TravelMode;

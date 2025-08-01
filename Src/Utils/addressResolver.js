@@ -210,5 +210,35 @@ export const parseAddressWithGeocoding = async (address, apiKey) => {
   };
 };
 
+/**
+ * Fetch city and state from Indian PIN code using PostalPinCode.in API
+ * @param {string} pincode - 6-digit Indian postal code
+ * @returns {Promise<{ city: string, state: string }>} - City and state info
+ */
+export const getCityStateFromPincode = async (pincode) => {
+  if (!/^\d{6}$/.test(pincode)) {
+    console.warn('Invalid PIN code format');
+    return { city: '', state: '' };
+  }
+
+  try {
+    const response = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
+    const data = await response.json();
+
+    if (data && data[0]?.Status === "Success" && data[0].PostOffice?.length > 0) {
+      const postOffice = data[0].PostOffice[0];
+      const city = postOffice.District || '';
+      const state = postOffice.State || '';
+      return { city, state };
+    } else {
+      console.warn('Pincode not found or API returned failure');
+    }
+  } catch (error) {
+    console.error('Error fetching city/state from pincode:', error);
+  }
+
+  return { city: '', state: '' };
+};
+
 
 

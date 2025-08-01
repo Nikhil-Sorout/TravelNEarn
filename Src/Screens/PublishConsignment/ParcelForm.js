@@ -22,7 +22,7 @@ import * as ImagePicker from 'expo-image-picker';
 const ParcelDetails = ({ navigation, route }) => {
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("Non-Document");
-  const [subCategory, setSubCategory] = useState("Select Sub Category");
+  const [subCategory, setSubCategory] = useState("");
   const [weight, setWeight] = useState("");
   const [dimensions, setDimensions] = useState({
     length: 0,
@@ -31,13 +31,13 @@ const ParcelDetails = ({ navigation, route }) => {
   });
   const [handleWithCare, setHandleWithCare] = useState(false);
   const [specialRequest, setSpecialRequest] = useState("");
-  const [date, setDate] = useState(new Date());
+  const [date, setDate] = useState(route.params?.selectedDate ? new Date(route.params.selectedDate) : new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [duration, setDuration] = useState("1 HR");
   const [unit, setUnit] = useState("cm");
   const [isInch, setIsInch] = useState(false);
   const [selectedImages, setSelectedImages] = useState([]);
-  const {fullTo, fullFrom, from, to, selectedDate} = route.params
+  const { fullTo, fullFrom, from, to, selectedDate, startCity, destCity } = route.params
   const validateForm = () => {
     console.log(description, weight, dimensions)
     if (
@@ -126,7 +126,7 @@ const ParcelDetails = ({ navigation, route }) => {
 
   const saveData = async () => {
     if (!validateForm()) return;
-    
+
     try {
       const parcelDetails = {
         description,
@@ -141,33 +141,19 @@ const ParcelDetails = ({ navigation, route }) => {
         duration,
         images: selectedImages,
       };
-      
+
       // Save to AsyncStorage for local storage
       await AsyncStorage.setItem(
         "parcelDetails",
         JSON.stringify(parcelDetails)
       );
-      navigation.navigate("ParcelDetails", {fullFrom, fullTo, from, to, selectedDate});
+      navigation.navigate("ParcelDetails", { fullFrom, fullTo, from, to, selectedDate, category, subCategory, startCity, destCity });
     } catch (error) {
       console.error("Error saving data:", error);
     }
   };
 
-  useEffect(() => {
-    const fetchTravelDate = async () => {
-      try {
-        const storedDate = await AsyncStorage.getItem("searchingDate");
-        if (storedDate) {
-          // If a date is found, parse it into a Date object
-          setDate(new Date(storedDate));
-        }
-      } catch (error) {
-        console.log("Error retrieving travel date from AsyncStorage", error);
-      }
-    };
 
-    fetchTravelDate();
-  }, []);
 
   return (
     <View style={styles.container}>
@@ -175,15 +161,9 @@ const ParcelDetails = ({ navigation, route }) => {
         <TouchableOpacity style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color="white" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Parcel Details</Text>
+        <Text style={styles.headerTitle}>Consignment Details</Text>
       </View>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <Text style={styles.label}>Description of Consignment</Text>
-        <TextInput
-          style={[styles.input, { height: 100 }]}
-          value={description}
-          onChangeText={setDescription}
-        />
 
         <Text style={styles.label}>Category</Text>
 
@@ -206,30 +186,41 @@ const ParcelDetails = ({ navigation, route }) => {
   </Picker> */}
         </View>
 
-        <Text style={styles.label}>Sub Category</Text>
+        {
+          category != "Document" && (<>
+            <Text style={styles.label}>Sub Category</Text>
 
-        <View style={styles.input}>
-          <RNPickerSelect
-            onValueChange={handleSubCategoryChange}
-            items={[
-              { label: "Food & Beverages", value: "Food & Beverages" },
-              { label: "Electronics", value: "Electronics" },
-              { label: "Clothing & Fashion", value: "Clothing & Fashion" },
-              { label: "Books & Documents", value: "Books & Documents" },
-              { label: "Medical Supplies", value: "Medical Supplies" },
-              { label: "Fragile Items", value: "Fragile Items" },
-              { label: "Automotive Parts", value: "Automotive Parts" },
-              { label: "Home & Garden", value: "Home & Garden" },
-              { label: "Sports Equipment", value: "Sports Equipment" },
-              { label: "Jewelry & Accessories", value: "Jewelry & Accessories" },
-              { label: "Tools & Hardware", value: "Tools & Hardware" },
-              { label: "Toys & Games", value: "Toys & Games" },
-              { label: "Other", value: "Other" },
-            ]}
-          >
-            <Text>{subCategory ? subCategory : "Please Select Sub Category"}</Text>
-          </RNPickerSelect>
-        </View>
+            <View style={styles.input}>
+              <RNPickerSelect
+                onValueChange={handleSubCategoryChange}
+                disabled={category === "Document"}
+                items={[
+                  { label: "Food & Beverages", value: "Food & Beverages" },
+                  { label: "Electronics", value: "Electronics" },
+                  { label: "Clothing & Fashion", value: "Clothing & Fashion" },
+                  { label: "Books", value: "Books" },
+                  { label: "Medical Supplies", value: "Medical Supplies" },
+                  { label: "Fragile Items", value: "Fragile Items" },
+                  { label: "Automotive Parts", value: "Automotive Parts" },
+                  { label: "Home & Garden", value: "Home & Garden" },
+                  { label: "Sports Equipment", value: "Sports Equipment" },
+                  { label: "Jewelry & Accessories", value: "Jewelry & Accessories" },
+                  { label: "Tools & Hardware", value: "Tools & Hardware" },
+                  { label: "Toys & Games", value: "Toys & Games" },
+                  { label: "Other", value: "Other" },
+                ]}
+              >
+                {category === "Document" ? <Text>{""}</Text> : <Text>{subCategory ? subCategory : "Please Select Sub Category"}</Text>}
+              </RNPickerSelect>
+            </View></>)
+        }
+
+        <Text style={styles.label}>Description of Consignment</Text>
+        <TextInput
+          style={[styles.input, { height: 100 }]}
+          value={description}
+          onChangeText={setDescription}
+        />
 
         <Text style={styles.label}>Weight (Kg)</Text>
         <TextInput
@@ -278,7 +269,7 @@ const ParcelDetails = ({ navigation, route }) => {
             style={styles.dimensionInput}
             placeholder="Length"
             keyboardType="numeric"
-             onChangeText={(val) =>{
+            onChangeText={(val) => {
               const sanitized = val.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1');
               console.log(sanitized)
               setDimensions({ ...dimensions, length: sanitized })
@@ -290,7 +281,7 @@ const ParcelDetails = ({ navigation, route }) => {
             style={styles.dimensionInput}
             placeholder="Breadth"
             keyboardType="numeric"
-             onChangeText={(val) =>{
+            onChangeText={(val) => {
               const sanitized = val.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1');
               setDimensions({ ...dimensions, breadth: sanitized })
             }
@@ -302,7 +293,7 @@ const ParcelDetails = ({ navigation, route }) => {
             style={styles.dimensionInput}
             placeholder="Height"
             keyboardType="numeric"
-            onChangeText={(val) =>{
+            onChangeText={(val) => {
               const sanitized = val.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1');
               setDimensions({ ...dimensions, height: sanitized })
             }
@@ -359,20 +350,20 @@ const ParcelDetails = ({ navigation, route }) => {
           value={specialRequest}
           onChangeText={setSpecialRequest}
         />
-
+        {/* 
         <View>
           <Text style={styles.label}>Date of sending</Text>
           <TouchableOpacity onPress={() => setShowDatePicker(true)}>
             <Text style={styles.input}>{selectedDate.toDateString()}</Text>
             {/* <Icon name="calendar" size={20} color="#aaa" style={styles.calendarIcon} /> */}
-          </TouchableOpacity>
-        </View>
+        {/* </TouchableOpacity> */}
+        {/* </View> */}
 
         {/* {showDatePicker && (
           <DateTimePicker value={date} mode="date" display="default" onChange={onChangeDate} />
         )} */}
 
-        {showDatePicker && (
+        {/* {showDatePicker && (
           <DateTimePicker
             value={date}
             mode="date"
@@ -380,9 +371,9 @@ const ParcelDetails = ({ navigation, route }) => {
             onChange={onChangeDate}
             minimumDate={new Date(new Date().setDate(new Date().getDate() + 1))} // Set minimum date to day after tomorrow
           />
-        )}
+        )} */}
 
-        <Text style={styles.label}>Duration at end point</Text>
+        {/* <Text style={styles.label}>Duration at end point</Text>
 
         <View style={styles.input}>
           <RNPickerSelect
@@ -392,11 +383,12 @@ const ParcelDetails = ({ navigation, route }) => {
               { label: "2 HR", value: "2 HR" },
             ]}
           >
-            {/* <Text></Text> */}
+            
             <Text>{duration ? duration : "Please Select Duration"}</Text>
           </RNPickerSelect>
-        </View>
+        </View> */}
 
+        <Text style={styles.label}>Upload photos of Consignment if any</Text>
         <TouchableOpacity style={styles.uploadButton} onPress={pickImage}>
           <Text>+ Choose from device</Text>
         </TouchableOpacity>
@@ -469,7 +461,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 5,
     borderRadius: 8,
-    color : 'black'
+    color: 'black'
   },
   dimensionCross: { padding: 10 },
   button: {

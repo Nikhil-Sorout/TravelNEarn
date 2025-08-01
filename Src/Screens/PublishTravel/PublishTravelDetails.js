@@ -10,13 +10,25 @@ import {
   Text,
   TouchableOpacity,
   View,
+  ActivityIndicator,
 } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { default as FontAwesome } from 'react-native-vector-icons/FontAwesome';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import Icon from "react-native-vector-icons/FontAwesome6"
 import ReviewDetails from '../../Customer Traveller/ReviewDetails';
+import { getCurvedPolylinePoints } from '../../Utils/getCurvedPolylinePonints';
+import {
+  fetchRoute,
+  decodePolyline,
+  fitMapToRoute,
+  getRouteColor,
+  getRouteStrokeWidth,
+  getDefaultRegion,
+  isValidCoordinate
+} from "../../Utils/routeUtils";
 
-const TravelDetails = ({route}) => {
+const TravelDetails = ({ route }) => {
   const navigation = useNavigation();
   const bottomSheetRef = useRef();
   const [isModalVisible, setModalVisible] = useState(false);
@@ -41,8 +53,12 @@ const TravelDetails = ({route}) => {
   const [ratingData, setRatingData] = useState({ rating: null, average: null });
   const [ratingLoading, setRatingLoading] = useState(false);
   const [ratingError, setRatingError] = useState(null);
+  const [routeError, setRouteError] = useState(null);
+  const mapRef = useRef(null);
 
-  const {fullFrom, fullTo, from, to, selectedDate} = route.params;
+
+  console.log(route?.params)
+  const { fullFrom, fullTo, from, to, selectedDate, endDate, stayDays, stayHours, vehicleType, startCity, destCity } = route.params;
 
   useEffect(() => {
     const fetchTravelData = async () => {
@@ -70,6 +86,7 @@ const TravelDetails = ({route}) => {
           AsyncStorage.getItem('firstName'),
           AsyncStorage.getItem('lastName'),
         ]);
+        console.log("Travel number : ", travelNumber)
         console.log("startTime : ", startTime)
         console.log("endTime : ", endTime)
         console.log("Travel Mode : ", travelMode)
@@ -80,7 +97,7 @@ const TravelDetails = ({route}) => {
         setTravelNumber(travelNumber);
         setStartTime(startTime);
         setEndTime(endTime);
-        setSearchingDate(selectedDate);
+        setSearchingDate(searchingDate);
         setPhoneNumber(phoneNumber);
         setFirstName(firstName);
         setLastName(lastName);
@@ -98,6 +115,11 @@ const TravelDetails = ({route}) => {
 
     fetchTravelData();
   }, []);
+
+  const curvedLinePoints =
+    originCoords && destinationCoords
+      ? getCurvedPolylinePoints(originCoords, destinationCoords)
+      : [];
 
   // // Fetch rating when phoneNumber is available
   // useEffect(() => {
@@ -270,9 +292,9 @@ const TravelDetails = ({route}) => {
   const getTravelIcon = () => {
     switch (travelMode) {
       case 'roadways':
-        return <FontAwesome name="car" size={30} color="#D83F3F" />;
+        return <Icon name="road" size={30} color="#D83F3F" />;
       case 'airplane':
-        return <Ionicons name="airplane" size={30} color="#D83F3F" />;
+        return <Icon name="plane-up" size={30} color="#D83F3F" />;
       case 'train':
         return <FontAwesome name="train" size={30} color="#D83F3F" />;
       default:
@@ -299,20 +321,26 @@ const TravelDetails = ({route}) => {
 
   const handlePublishTravel = async () => {
     setLoading(true);
+    console.log("clicked")
     const requestData = {
-      travelMode: travelMode === "roadways" ? "car" : travelMode.toLowerCase(),
+      travelMode: travelMode === "roadways" ? "car" : travelMode?.toLowerCase(),
+      vehicleType: travelMode === "roadways" ? vehicleType ?? "" : "",
       travelmode_number: travelNumber,
       expectedStartTime: startTime,
       expectedEndTime: endTime,
       travelDate: searchingDate,
+      endDate: endDate,
       phoneNumber,
       fullFrom,
-      fullTo
+      fullTo,
+      stayDays,
+      stayHours
     };
+    console.log("hey i am here")
     console.log("requestData :", requestData)
     try {
       const baseurl = await AsyncStorage.getItem("apiBaseUrl");
-      
+
       const response = await fetch(
         `${baseurl}t/creates?Leavinglocation=${from}&Goinglocation=${to}`,
         {
@@ -335,6 +363,40 @@ const TravelDetails = ({route}) => {
     }
   };
 
+  // Fit map to route when both coordinates and route data are available
+  useEffect(() => {
+    if (mapRef.current && coordinates.length > 0 && originCoords && destinationCoords) {
+      // Calculate bounds for the entire route including coordinates
+      let minLat = Math.min(originCoords.latitude, destinationCoords.latitude);
+      let maxLat = Math.max(originCoords.latitude, destinationCoords.latitude);
+      let minLng = Math.min(originCoords.longitude, destinationCoords.longitude);
+      let maxLng = Math.max(originCoords.longitude, destinationCoords.longitude);
+
+      // Include all route coordinates in bounds calculation
+      coordinates.forEach(coord => {
+        minLat = Math.min(minLat, coord.latitude);
+        maxLat = Math.max(maxLat, coord.latitude);
+        minLng = Math.min(minLng, coord.longitude);
+        maxLng = Math.max(maxLng, coord.longitude);
+      });
+
+      // Add padding: more on top (40%), others 20%
+      const latPadding = (maxLat - minLat) * 0.2; // 20% padding for bottom
+      const lngPadding = (maxLng - minLng) * 0.2; // 20% padding for left/right
+      const extraTopPadding = (maxLat - minLat) * 0.2; // extra 20% for top
+
+      const region = {
+        latitude: (minLat + maxLat) / 2 + extraTopPadding / 2, // shift center slightly down
+        longitude: (minLng + maxLng) / 2,
+        latitudeDelta: (maxLat - minLat) + latPadding + extraTopPadding, // total 40% top padding
+        longitudeDelta: (maxLng - minLng) + lngPadding,
+      };
+
+      // Animate to the calculated region
+      mapRef.current.animateToRegion(region, 1000);
+    }
+  }, [coordinates, originCoords, destinationCoords]);
+
   return (
     <View style={styles.container}>
       <ScrollView scrollEnabled={true}>
@@ -356,58 +418,140 @@ const TravelDetails = ({route}) => {
           <Text style={styles.headerTitle}>Travel Details</Text>
         </View>
 
+        {/* <View style={styles.card}>
+          <View style={styles.locationBlock}>
+            <View style={styles.locationPoint}>
+              <Text style={styles.dateText}>{formatDate(searchingDate)}</Text>
+              <Text style={styles.timeText}>{startTime}</Text>
+              <Text style={styles.cityText}>Noida</Text>
+              <Text style={styles.addressText}>{startLocation}</Text>
+            </View>
+
+            <View style={styles.timeline}>
+              <View style={styles.dot} />
+              <View style={styles.line} />
+              <View style={styles.dot} />
+            </View>
+
+            <View style={styles.locationPoint}>
+              <Text style={styles.dateText}>{formatDate(endDate)}</Text>
+              <Text style={styles.timeText}>{endTime}</Text>
+              <Text style={styles.cityText}>Bhubaneswar</Text>
+              <Text style={styles.addressText}>{endLocation}</Text>
+            </View>
+          </View>
+        </View> */}
+
+
         <View style={styles.card}>
           <View style={styles.locationRow}>
             <Image source={require('../../Images/locon.png')} style={styles.locationIcon} />
-            <Text style={styles.locationText}>{startLocation}</Text>
+            <View>
+              <Text>{selectedDate ? formatDate(selectedDate) : ''}</Text>
+              <Text>{startTime}</Text>
+            </View>
+            <View>
+              <Text style={[styles.locationText, { fontWeight: 'bold' }]}>{startCity}</Text>
+              <Text style={styles.locationText}>{startLocation}</Text>
+            </View>
           </View>
           <View style={styles.verticalseparator}></View>
-          <View style={styles.separator} />
+          {/* <View style={styles.separator} /> */}
           <View style={styles.locationRow}>
             <Image source={require('../../Images/locend.png')} style={styles.locationIcon} />
-            <Text style={styles.locationText}>{endLocation}</Text>
+            <View>
+              <Text>{endDate ? formatDate(endDate) : ''}</Text>
+              <Text>{endTime}</Text>
+            </View>
+            <View>
+              <Text style={[styles.locationText, { fontWeight: 'bold' }]}>{destCity}</Text>
+              <Text style={styles.locationText}>{endLocation}</Text>
+            </View>
           </View>
-          <View style={styles.separator1} />
+          {/* <View style={styles.separator1} />
           <View style={styles.infoRow}>
             <Image source={require('../../Images/clock.png')} style={[styles.locationIcon, { marginLeft: 5 }]} />
             <Text style={styles.infoText}>{duration}</Text>
           </View>
-          <Text style={styles.infoText1}>{distance}</Text>
+          <Text style={styles.infoText1}>{distance}</Text> */}
         </View>
 
         <View style={styles.mapContainer}>
           <Text style={[styles.infoTitle, { marginBottom: 20 }]}>Track on map</Text>
-          <MapView
-            provider={PROVIDER_GOOGLE}
-            key={coordinates.length}
-            style={styles.map}
-            initialRegion={{
-              latitude: originCoords ? originCoords.latitude : 28,
-              longitude: originCoords ? originCoords.longitude : 77,
-              latitudeDelta: 5,
-              longitudeDelta: 5,
-            }}
-          >
-            <Polyline coordinates={coordinates} strokeColor="blue" strokeWidth={5} />
-            {originCoords && (
-              <Marker coordinate={originCoords} title={startLocation}>
-                <View style={[styles.marker, styles.startMarker]}>
-                  <FontAwesome name="user" size={25} color="#fff" />
-                </View>
-              </Marker>
-            )}
-            {destinationCoords && (
-              <Marker coordinate={destinationCoords} title={endLocation}>
-                <View style={[styles.marker, styles.endMarker]}>
-                  <FontAwesome name="map-marker" size={25} color="#fff" />
-                </View>
-              </Marker>
-            )}
-          </MapView>
+          {(originCoords && destinationCoords) ? (
+            <MapView
+              ref={mapRef}
+              provider={PROVIDER_GOOGLE}
+              style={styles.map}
+              initialRegion={{
+                latitude: (originCoords.latitude + destinationCoords.latitude) / 2,
+                longitude: (originCoords.longitude + destinationCoords.longitude) / 2,
+                latitudeDelta: Math.abs(originCoords.latitude - destinationCoords.latitude) * 1.5,
+                longitudeDelta: Math.abs(originCoords.longitude - destinationCoords.longitude) * 1.5,
+              }}
+              showsUserLocation={false}
+              showsMyLocationButton={false}
+              showsCompass={true}
+              showsScale={true}
+            >
+              {curvedLinePoints.length > 0 && (
+                <Polyline
+                  coordinates={curvedLinePoints}
+                  strokeColor="rgba(0,0,255,0.6)"
+                  strokeWidth={2}
+                  lineDashPattern={[5, 5]}
+                />
+              )}
+              {isValidCoordinate(originCoords) && (
+                <Marker coordinate={originCoords} title={startLocation}>
+                  <View style={[styles.marker, styles.startMarker]}>
+                    <Icon name="user" size={20} color="#fff" />
+                  </View>
+                </Marker>
+              )}
+              {isValidCoordinate(destinationCoords) && (
+                <Marker coordinate={destinationCoords} title={endLocation}>
+                  <View style={[styles.marker, styles.endMarker]}>
+                    <Icon name="location-dot" size={20} color="#fff" />
+                  </View>
+                </Marker>
+              )}
+            </MapView>
+          ) : (
+            <View style={[styles.map, { justifyContent: 'center', alignItems: 'center' }]}>
+              <ActivityIndicator size="large" color="#D83F3F" />
+              <Text>Loading map...</Text>
+            </View>
+          )}
+
+          {/* Loading overlay */}
+          {loading && (
+            <View style={styles.loadingOverlay}>
+              <ActivityIndicator size="large" color="#D83F3F" />
+              <Text style={styles.loadingText}>Loading route...</Text>
+            </View>
+          )}
+
+          {/* Error overlay */}
+          {routeError && (
+            <View style={styles.errorOverlay}>
+              <Text style={styles.errorText}>{routeError}</Text>
+              <TouchableOpacity
+                style={styles.retryButton}
+                onPress={() => {
+                  if (startLocation && endLocation) {
+                    fetchRoute(startLocation, endLocation);
+                  }
+                }}
+              >
+                <Text style={styles.retryButtonText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         <View style={styles.card}>
-          <View style={styles.otherInfo}>
+          {/* <View style={styles.otherInfo}>
             <View style={styles.infoBlock}>
               <Text style={styles.infoTitle}>Other Information</Text>
               <View style={[styles.infoRow, { marginTop: 10 }]}>
@@ -415,21 +559,33 @@ const TravelDetails = ({route}) => {
                 <Text style={styles.infoText}>{searchingDate ? formatDate(searchingDate) : ''}</Text>
               </View>
             </View>
-          </View>
-          <View style={{ marginLeft: 40 }}>
+          </View> */}
+          {/* <View style={{ marginLeft: 40 }}>
             <Text style={styles.infoText2}>
               {startTime} - {endTime}
             </Text>
-          </View>
-          <View style={styles.separator1} />
+          </View> */}
+          {/* <View style={styles.separator1} /> */}
           <Text style={styles.infoTitle}>Mode Of Travel</Text>
           <View style={styles.traveler}>
+            {/* {selectedMode === "roadways"} */}
             <View style={styles.iconContainer}>{getTravelIcon()}</View>
             <View style={styles.travelerDetails}>
-              <Text style={[styles.travelerName, { marginLeft: 15 }]}>{travelMode}</Text>
+              <Text style={[styles.travelerName, { marginLeft: 15 }]}>{travelMode === 'roadways' ? vehicleType : travelMode.toUpperCase()}</Text>
             </View>
           </View>
           <View style={styles.separator1} />
+          <Text style={[styles.infoTitle, { marginBottom: 5, marginLeft: 2 }]}>Staying at Destination Location</Text>
+          <View style={styles.traveler}>
+            {/* {selectedMode === "roadways"} */}
+            {/* <View style={styles.iconContainer}>{getTravelIcon()}</View> */}
+            <Icon name="hourglass-half" size={30} color="#D83F3F" />
+            <View style={styles.travelerDetails}>
+              <Text style={[styles.travelerName, { marginLeft: 15 }]}>{`For ${stayDays} days ${stayHours} hours`}</Text>
+            </View>
+          </View>
+
+          {/* <View style={styles.separator1} />
           <Text style={[styles.infoTitle, { marginBottom: 5, marginLeft: 2 }]}>Traveller Details</Text>
           <View style={styles.traveler}>
             <Image
@@ -455,11 +611,12 @@ const TravelDetails = ({route}) => {
                 </Text>
               )}
             </View>
-          </View>
+          </View> */}
+
         </View>
 
         <View style={{ margin: 20, marginBottom: 20 }}>
-          <TouchableOpacity style={styles.button} onPress={handlePublishTravel} disabled={loading}>
+          <TouchableOpacity style={styles.button} onPress={handlePublishTravel} >
             <Text style={styles.buttonText}>Publish My Travel</Text>
           </TouchableOpacity>
         </View>
@@ -510,6 +667,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 10,
+    width: '65%',
+    gap: 7
   },
   locationText: {
     fontSize: 16,
@@ -566,7 +725,7 @@ const styles = StyleSheet.create({
   },
   map: {
     width: '100%',
-    height: 180,
+    height: 200,
     borderRadius: 10,
     objectFit: 'cover',
   },
@@ -632,5 +791,49 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    zIndex: 1,
+  },
+  loadingText: {
+    marginTop: 10,
+    color: '#D83F3F',
+    fontSize: 16,
+  },
+  errorOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    zIndex: 1,
+  },
+  errorText: {
+    color: '#D83F3F',
+    fontSize: 18,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#D83F3F',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

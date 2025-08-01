@@ -15,6 +15,7 @@ import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
 import Icon from "react-native-vector-icons/FontAwesome";
 import Ionicons from "react-native-vector-icons/Ionicons"; // Import Ionicons
 import { Alert } from "react-native";
+import { getCurvedPolylinePoints } from '../../Utils/getCurvedPolylinePonints';
 
 const TravelMode = ({ navigation, route }) => {
   // Add this ref for the map
@@ -34,7 +35,14 @@ const TravelMode = ({ navigation, route }) => {
   const [destinationCoords, setDestinationCoords] = useState(null);
   const [isNameFocused, setIsNameFocused] = useState(false);
   const [isNumberFocused, setIsNumberFocused] = useState(false);
-  const {from, to, fullFrom, fullTo, selectedDate} = route.params
+  const { from, to, fullFrom, fullTo, selectedDate, startCity, destCity } = route.params
+
+
+
+  const curvedLinePoints =
+    originCoords && destinationCoords
+      ? getCurvedPolylinePoints(originCoords, destinationCoords)
+      : [];
   useEffect(() => {
     const fetchLocations = async () => {
       try {
@@ -208,7 +216,7 @@ const TravelMode = ({ navigation, route }) => {
   const validateMobileNumber = (number) => {
     // Remove any spaces, dashes, or parentheses from the number
     const cleanNumber = number.replace(/[\s\-\(\)]/g, '');
-    
+
     // Regular expression to match:
     // Optional + followed by 1-3 digits (country code)
     // Followed by exactly 10 digits (mobile number)
@@ -222,12 +230,12 @@ const TravelMode = ({ navigation, route }) => {
       alert(`Please enter Receiver's Name.`);
       return;
     }
-    
+
     if (!validateReceiverName(receivername)) {
       alert(`Please enter a valid name with only alphabets (letters).`);
       return;
     }
-    
+
     if (!receivernumber) {
       alert(`Please enter Receiver's Number.`);
       return;
@@ -241,7 +249,7 @@ const TravelMode = ({ navigation, route }) => {
     try {
       await AsyncStorage.setItem("receiverName", receivername.toString());
       await AsyncStorage.setItem("receiverNumber", receivernumber.toString());
-      navigation.navigate("ParcelForm", {from, to, fullFrom, fullTo, selectedDate}); // Navigate after saving data
+      navigation.navigate("ParcelForm", { from, to, fullFrom, fullTo, selectedDate, startCity, destCity }); // Navigate after saving data
     } catch (error) {
       console.log("Error saving data:", error);
     }
@@ -285,11 +293,12 @@ const TravelMode = ({ navigation, route }) => {
           longitudeDelta: 5,
         }}
       >
-        {coordinates.length > 0 && (
+        {curvedLinePoints.length > 0 && (
           <Polyline
-            coordinates={coordinates}
-            strokeColor="blue"
-            strokeWidth={5}
+            coordinates={curvedLinePoints}
+            strokeColor="rgba(0,0,255,0.6)"
+            strokeWidth={2}
+            lineDashPattern={[5, 5]}
           />
         )}
         {originCoords && (
@@ -376,7 +385,7 @@ const TravelMode = ({ navigation, route }) => {
           <TouchableOpacity style={styles.nextButton} onPress={saveData}>
             <Text style={styles.nextButtonText}>Next</Text>
           </TouchableOpacity>
-          </View>
+        </View>
         {/* </ScrollView> */}
       </KeyboardAwareScrollView>
     </View>

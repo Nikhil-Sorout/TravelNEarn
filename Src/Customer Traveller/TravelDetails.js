@@ -513,9 +513,9 @@ const TravelDetails = ({ route }) => {
               <Text style={[styles.travelerName, { marginLeft: 15 }]}>
                 {ride.travelMode}
               </Text>
-              <Text style={[styles.travelerName, { marginLeft: 15 }]}>
+              {/* <Text style={[styles.travelerName, { marginLeft: 15 }]}>
                 {ride.travelmode_number || "N/A"}
-              </Text>
+              </Text> */}
             </View>
           </View>
 

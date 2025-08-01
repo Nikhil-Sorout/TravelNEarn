@@ -121,11 +121,11 @@ const SearchRide = ({ navigation, route }) => {
             headers: { "Content-Type": "application/json" },
           }
         );
-        console.log("Search rides raw response:", response);
-        console.log(
-          "Search rides response:",
-          JSON.stringify(response.data, null, 2)
-        );
+        // console.log("Search rides raw response:", response);
+        // console.log(
+        //   "Search rides response:",
+        //   JSON.stringify(response.data, null, 2)
+        // );
         setCalculatedPrice(response?.data?.calculatedPrice);
         const rides = await response.data.availableRides || [];
         const profiles = await response.data.ridesWithProfile || [];
@@ -239,6 +239,7 @@ const SearchRide = ({ navigation, route }) => {
     setWaitingForCorrectMode(false);
     if (date && from && to) {
       const formattedDate = formatDate(date);
+      console.log(travelMode)
       fetchData(formattedDate, travelMode);
     }
   };
@@ -375,7 +376,7 @@ const SearchRide = ({ navigation, route }) => {
             </View>
           </View>
           <Text style={styles.price}>
-            ₹{calculatedPrice?.senderTotalPay || "N/A"}
+            ₹{calculatedPrice?.senderTotalPay|| "N/A"}
           </Text>
         </View>
       </TouchableOpacity>

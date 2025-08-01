@@ -113,6 +113,10 @@ const Search = ({ route }) => {
   const [addresses, setAddresses] = useState([]);
   const [addressLoading, setAddressLoading] = useState(false);
   const [addressError, setAddressError] = useState(null);
+  const [startCity, setStartCity] = useState('')
+  const [destCity, setDestCity] = useState('')
+  // const [goingCity, setGoingCity] = useState('')
+  // const [state, setState] = useState('')
 
 
   const fetchSuggestions = async () => {
@@ -197,14 +201,16 @@ const Search = ({ route }) => {
     // AsyncStorage.setItem("searchingDate", date.toString());
     navigation.navigate(
       activeTab === "Travellers"
-        ? "PublishSearchScreen"
-        : "PublishConsignmentSearchScreen",
+        ? "TravelMode"
+        : "ReceiverScreen",
       {
         from: fromAddress,
         to: toAddress,
         fullFrom: fullFrom,
         fullTo: fullTo,
-        selectedDate: date
+        selectedDate: date.toISOString(),
+        startCity,
+        destCity
       }
     );
   };
@@ -266,9 +272,12 @@ const Search = ({ route }) => {
     console.log("Item: ", item)
     // const formatted = `${item.flat} ${item.landmark} ${item.street} ${item.location}\n${item.city} ${item.state}`;
     if (addressFieldType === 'from') {
+      setStartCity(item.city)
+      // setState(item.state);
       setFullFrom(item.displayAddress);
       setFrom(item.googleMapsAddress);
     } else {
+      setDestCity(item.city)
       setFullTo(item.displayAddress);
       setTo(item.googleMapsAddress);
     }

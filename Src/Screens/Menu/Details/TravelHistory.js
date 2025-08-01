@@ -167,7 +167,7 @@ const TravelHistory = () => {
       <View style={styles.card}>
         <View style={styles.row}>
           <Text style={styles.boldText}>Travel ID: {item.travelId}</Text>
-          {renderStatusBadge(item.status)}
+          {/* {renderStatusBadge(item.status)} */}
         </View>
 
         <View style={styles.infoRow}>
@@ -221,7 +221,7 @@ const TravelHistory = () => {
             {getTravelIcon(item.travelMode)}
           </View>
           <Text style={commonStyles.infoText}>
-            {item.travelMode.toUpperCase()} - {item.travelmode_number}
+            {item.travelMode.toUpperCase()}
           </Text>
         </View>
 

@@ -17,14 +17,16 @@ import RBSheet from "react-native-raw-bottom-sheet"; // Importing the Bottom She
 import Icon from "react-native-vector-icons/FontAwesome"; // Import FontAwesome Icon for calendar
 import Ionicons from "react-native-vector-icons/Ionicons"; // Import Ionicons
 import ReviewDetails from "../../Customer Traveller/ReviewDetails";
+import { getCurvedPolylinePoints } from '../../Utils/getCurvedPolylinePonints';
 
-const TravelDetails = ({route}) => {
+const TravelDetails = ({ route }) => {
   const navigation = useNavigation();
 
   // Create a reference for the bottom sheet
   const bottomSheetRef = useRef();
   console.log(route?.params)
-  const {fullFrom, fullTo, from, to, selectedDate} = route?.params;
+  const { fullFrom, fullTo, from, to, selectedDate, category, subCategory, startCity, destCity } = route?.params;
+  console.log(route.params)
 
   // Initially, set the modal visibility to false to avoid it showing on the first enter
   const [isModalVisible, setModalVisible] = useState(false);
@@ -49,6 +51,10 @@ const TravelDetails = ({route}) => {
   const [originCoords, setOriginCoords] = useState(null);
   const [destinationCoords, setDestinationCoords] = useState(null);
 
+  const curvedLinePoints =
+    originCoords && destinationCoords
+      ? getCurvedPolylinePoints(originCoords, destinationCoords)
+      : [];
   // Add map reference
   const mapRef = useRef(null);
 
@@ -212,10 +218,10 @@ const TravelDetails = ({route}) => {
     try {
       const baseurl = await AsyncStorage.getItem("apiBaseUrl");
       // const baseurl = "http://192.168.1.30:5002/";
-      
+
       // Create FormData object for multipart/form-data
       const formData = new FormData();
-      
+
       // Add text fields
       formData.append('startinglocation', startLocation);
       formData.append('goinglocation', endLocation);
@@ -226,11 +232,12 @@ const TravelDetails = ({route}) => {
       formData.append('recieverphone', receiverNumber);
       formData.append('Description', parcelDetails.description);
       formData.append('weight', parcelDetails.weight);
-      formData.append('category', "nondocument");
+      formData.append('category', category.trim().toLowerCase().replace('-', ''));
+      formData.append('subcategory', subCategory.trim().toLowerCase().replace('-', ''));
       formData.append('dateOfSending', new Date(searchingDate).toISOString());
       formData.append('durationAtEndPoint', parcelDetails.duration);
       formData.append('phoneNumber', number);
-      
+
       // Add dimensions as JSON string
       const dimensions = {
         breadth: Number(parcelDetails.dimensions.breadth),
@@ -239,7 +246,7 @@ const TravelDetails = ({route}) => {
         unit: parcelDetails?.unit.toLowerCase() || "cm"
       };
       formData.append('dimensions', JSON.stringify(dimensions));
-      
+
       // Log all the data being sent
       console.log("Data being sent:");
       console.log("startinglocation:", startLocation);
@@ -251,13 +258,14 @@ const TravelDetails = ({route}) => {
       console.log("recieverphone:", receiverNumber);
       console.log("Description:", parcelDetails.description);
       console.log("weight:", parcelDetails.weight);
-      console.log("category:", "nondocument");
+      console.log("category:", category.trim().toLowerCase().replace('-', ''));
+      console.log("subCategory:", subCategory.trim().toLowerCase().replace('-', ''));
       console.log("dateOfSending:", searchingDate);
       console.log("durationAtEndPoint:", parcelDetails.duration);
       console.log("phoneNumber:", number);
       console.log("dimensions:", dimensions);
       console.log("parcelDetails:", parcelDetails);
-      
+
       // Add images if they exist
       if (parcelDetails?.images && parcelDetails.images.length > 0) {
         parcelDetails.images.forEach((image, index) => {
@@ -270,12 +278,12 @@ const TravelDetails = ({route}) => {
           formData.append('images', imageFile);
         });
       }
-      
+
       // Add other optional fields if they exist
       if (parcelDetails?.handleWithCare !== undefined) {
         formData.append('handleWithCare', parcelDetails.handleWithCare.toString());
       }
-      
+
       if (parcelDetails?.specialRequest) {
         formData.append('specialRequest', parcelDetails.specialRequest);
       }
@@ -289,10 +297,10 @@ const TravelDetails = ({route}) => {
         },
         body: formData,
       });
-      
+
       console.log("Response status:", response.status);
       console.log("Response headers:", response.headers);
-      
+
       const data = await response.json();
       console.log("Response data:", data);
 
@@ -332,7 +340,7 @@ const TravelDetails = ({route}) => {
         setTravelMode(travelMode);
         setStartTime(startTime);
         setEndTime(endTime);
-        setSearchingDate(searchingDate);
+        setSearchingDate(selectedDate || searchingDate);
         setParcelDetails(storedData ? JSON.parse(storedData) : null);
         setReceiverName(receiverName);
         setReceiverNumber(receiverNumber);
@@ -391,7 +399,7 @@ const TravelDetails = ({route}) => {
         <TouchableOpacity style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color="white" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Parcel Details</Text>
+        <Text style={styles.headerTitle}>Consignment Details</Text>
       </View>
 
       <ScrollView style={{ paddingBottom: 100 }}>
@@ -405,6 +413,8 @@ const TravelDetails = ({route}) => {
 
             <Text style={styles.locationText}>
               {name}: {number}
+              {"\n"}
+              <Text style={[styles.locationText, { fontWeight: 'bold' }]}>{startCity}</Text>
               {"\n"}
               <Text style={styles.callNowText}>{fullFrom}</Text>
             </Text>
@@ -421,6 +431,8 @@ const TravelDetails = ({route}) => {
 
             <Text style={styles.locationText}>
               {receiverName}: {receiverNumber}
+              {"\n"}
+              <Text style={[styles.locationText, { fontWeight: 'bold' }]}>{destCity}</Text>
               {"\n"}
               <Text style={styles.callNowText}>{fullTo}</Text>
             </Text>
@@ -441,7 +453,7 @@ const TravelDetails = ({route}) => {
         </View>
 
         <View style={styles.mapContainer}>
-          <Text style={[styles.infoTitle, { marginBottom: 20 }]}>
+         <Text style={[styles.infoTitle, { marginBottom: 20 }]}>
             Track on map
           </Text>
           <MapView
@@ -456,13 +468,14 @@ const TravelDetails = ({route}) => {
               longitudeDelta: 5,
             }}
           >
-            {coordinates.length > 0 && (
-              <Polyline
-                coordinates={coordinates}
-                strokeColor="blue"
-                strokeWidth={5}
-              />
-            )}
+             {curvedLinePoints.length > 0 && (
+                     <Polyline
+                       coordinates={curvedLinePoints}
+                       strokeColor="rgba(0,0,255,0.6)"
+                       strokeWidth={2}
+                       lineDashPattern={[5, 5]}
+                     />
+                   )}
 
             {originCoords && (
               <Marker coordinate={originCoords} title={startLocation}>
@@ -479,8 +492,8 @@ const TravelDetails = ({route}) => {
                 </View>
               </Marker>
             )}
-          </MapView>
-        </View>
+          </MapView> 
+        </View> 
 
         <View style={styles.card}>
           <Text style={styles.sectionTitle}> Description of parcel</Text>
@@ -509,7 +522,7 @@ const TravelDetails = ({route}) => {
           {showImageModal && selectedImageIndex !== null && parcelDetails?.images && parcelDetails.images[selectedImageIndex] && (
             <View style={{
               position: 'absolute', left: 0, top: 0, right: 0, bottom: 0,
-              backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', zIndex: 1000, 
+              backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', zIndex: 1000,
               // width: 50,
             }}>
               <TouchableOpacity style={{ position: 'absolute', top: 40, right: 20, zIndex: 1001 }} onPress={closeImageModal}>
@@ -659,7 +672,7 @@ const TravelDetails = ({route}) => {
                     { marginRight: 20, marginLeft: 5, marginTop: 0 },
                   ]}
                 >
-                  Duration you will {"\n"}be at the end point
+                  Category
                 </Text>
               </View>
               <Text
@@ -671,10 +684,11 @@ const TravelDetails = ({route}) => {
                     marginTop: 5,
                     fontSize: 15,
                     color: "black",
+                    width: "75%"
                   },
                 ]}
               >
-                {parcelDetails?.duration || "Loading..."}
+                {category + ' ' + subCategory}
               </Text>
             </View>
           </View>

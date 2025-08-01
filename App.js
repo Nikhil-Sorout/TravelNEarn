@@ -102,7 +102,7 @@ export default function App() {
       try {
         // Set required data for socket connection
         const apiBaseUrl = "https://travel.timestringssystem.com/";
-        // const apiBaseUrl = "http://192.168.1.25:5002/";
+        // const apiBaseUrl = "http://192.168.64.192:5002/";
         await AsyncStorage.setItem("apiBaseUrl", apiBaseUrl);
         await AsyncStorage.removeItem('addressFieldType')
         await AsyncStorage.removeItem('addressFrom')

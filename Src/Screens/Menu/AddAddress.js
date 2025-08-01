@@ -22,6 +22,7 @@ import {
 } from "react-native";
 import Config from "react-native-config";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
+import { fetchLocations } from "../../API/Location";
 
 // Simple Header component
 const Header = ({ title, navigation }) => {
@@ -31,7 +32,7 @@ const Header = ({ title, navigation }) => {
   return (
     <View style={[headerStyles.container, { marginTop: statusBarHeight }]}>
       <TouchableOpacity
-        onPress={() => navigation.goBack()}
+        onPress={() => navigation.replace("Navigation", { screen: "Publish" })}
         accessible
         accessibilityLabel="Go back"
       >
@@ -113,6 +114,12 @@ const AddAddress = ({ navigation, route }) => {
   const [showPin, setShowPin] = useState(false)
   const mapRef = useRef(null);
   const locationInputRef = useRef(null);
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [fromSelected, setFromSelected] = useState(false); // Track if "Leaving from" is selected
+  const [toSelected, setToSelected] = useState(false); // Track if "Going to" is selected
+  const [goingSuggestions, setGoingSuggestions] = useState([]);
+  const [leavingSuggestions, setLeavingSuggestions] = useState([]);
   // const {address : addressViaRoute} = route?.params || {}
   const addressViaRoute = route?.params?.address
   const addressFieldType = route?.params?.addressFieldType
@@ -153,6 +160,28 @@ const AddAddress = ({ navigation, route }) => {
       })
       .finally(() => setIsLoading(false));
   }, []);
+
+  const fetchSuggestions = async () => {
+    try {
+      if (from || to) {
+        const data = await fetchLocations(from, to);
+        setGoingSuggestions(data.goingSuggestions || []);
+        setLeavingSuggestions(data.leavingSuggestions || []);
+      }
+    } catch (error) {
+      console.error("Error fetching suggestions:", error.message);
+    }
+  };
+
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (!fromSelected || !toSelected) {
+        fetchSuggestions();
+      }
+    }, 300);
+    return () => clearTimeout(delayDebounceFn);
+  }, [from, to]);
+
 
   // Reverse geocode coordinates to address
   const fetchAddressFromCoords = useCallback(async (latitude, longitude) => {
@@ -200,13 +229,14 @@ const AddAddress = ({ navigation, route }) => {
 
   // Handle region change
   const handleRegionChange = (region) => {
-    console.log(region)
+    console.log("Region :", region)
     setRegion({
       latitude: region.latitude,
       longitude: region.longitude,
       latitudeDelta: region.latitudeDelta,
       longitudeDelta: region.longitudeDelta,
     })
+    setMarkerCoords({ latitude: region.latitude, longitude: region.longitude })
     fetchAddressFromCoords(region.latitude, region.longitude)
   }
   // Handle current location button
@@ -267,7 +297,7 @@ const AddAddress = ({ navigation, route }) => {
 
       // Create display address (full address for display)
       const displayAddress = `${address.flat}, ${address.street}, ${address.landmark}, ${address.city}, ${address.state} - ${address.pincode}`;
-      
+
       // Create Google Maps address (location, pincode, city, state for maps)
       const googleMapsAddress = `${address.location}, ${address.pincode}, ${address.city}, ${address.state}`;
 
@@ -324,7 +354,8 @@ const AddAddress = ({ navigation, route }) => {
   // Add address manually handler
   const handleAddManually = () => {
     // Navigate to manual address entry screen or show more fields
-    Alert.alert("Manual Entry", "Show manual address entry UI here.");
+    // Alert.alert("Manual Entry", "Show manual address entry UI here.");
+    navigation.navigate("AddStartingCityAddress", { addManually: true })
   };
 
   // UI
@@ -377,7 +408,14 @@ const AddAddress = ({ navigation, route }) => {
                 style={styles.input}
                 placeholder="Enter location/address"
                 value={address}
-                onChangeText={handleInputChange}
+                onChangeText={text => {
+                  handleInputChange(text);
+                  setFrom(text); // Use 'from' state for suggestions
+                  setFromSelected(false);
+                }}
+                onFocus={() => {
+                  setFromSelected(false);
+                }}
                 accessible
                 accessibilityLabel="Location address"
               />
@@ -388,6 +426,46 @@ const AddAddress = ({ navigation, route }) => {
                 <MaterialIcons name="search" size={20} />
               </TouchableOpacity>
             </View>
+            {/* Suggestions Dropdown */}
+            {(goingSuggestions.length > 0 && !fromSelected) && (
+              <TouchableWithoutFeedback onPress={() => {}}>
+                <View style={styles.suggestionsContainer}>
+                  <ScrollView
+                    nestedScrollEnabled={true}
+                    keyboardShouldPersistTaps="handled"
+                    contentContainerStyle={styles.suggestionScrollContent}
+                  >
+                    {goingSuggestions.map((item, index) => (
+                      <TouchableOpacity
+                        key={`from-${index}`}
+                        style={styles.suggestionItem}
+                        onPress={() => {
+                          setAddress(item);
+                          setFrom(item);
+                          setFromSelected(true);
+                          setGoingSuggestions([]);
+                          Keyboard.dismiss();
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Text
+                          style={styles.suggestionText}
+                          numberOfLines={1}
+                          ellipsizeMode="tail"
+                        >
+                          {item}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                    {goingSuggestions.length > 20 && (
+                      <Text style={styles.suggestionsFooter}>
+                        Showing first 20 suggestions...
+                      </Text>
+                    )}
+                  </ScrollView>
+                </View>
+              </TouchableWithoutFeedback>
+            )}
             <View style={styles.infoRow}>
               <MaterialIcons name="info-outline" size={18} color="#888" />
               <Text style={styles.infoText}>
@@ -414,14 +492,14 @@ const AddAddress = ({ navigation, route }) => {
             >
               <Text style={styles.saveButtonText}>Save Location</Text>
             </TouchableOpacity>
-            {/* <TouchableOpacity
-          style={styles.manualButton}
-          onPress={handleAddManually}
-          accessible
-          accessibilityLabel="Add address manually"
-        >
-          <Text style={styles.manualButtonText}>Add address manually</Text>
-        </TouchableOpacity> */}
+            <TouchableOpacity
+              style={styles.manualButton}
+              onPress={handleAddManually}
+              accessible
+              accessibilityLabel="Add address manually"
+            >
+              <Text style={styles.manualButtonText}>Add address manually</Text>
+            </TouchableOpacity>
           </View>
           {isLoading && (
             <View style={styles.loadingOverlay}>
@@ -440,6 +518,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
     paddingBottom: Platform.OS === "ios" ? 20 : 0,
+    paddingBottom: 20
   },
   flexMapContainer: {
     flex: 1,
@@ -552,6 +631,41 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     resizeMode: 'contain',
+  },
+  suggestionsContainer: {
+    position: 'absolute',
+    top: 50, // Adjust based on input height
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    zIndex: 100,
+    maxHeight: 200, // Limit height for suggestions
+  },
+  suggestionScrollContent: {
+    paddingVertical: 8,
+  },
+  suggestionItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#eee',
+  },
+  suggestionText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  suggestionsFooter: {
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    fontSize: 12,
+    color: '#888',
+    textAlign: 'center',
   },
 });
 

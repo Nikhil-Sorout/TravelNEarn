@@ -507,6 +507,10 @@ const PayNowScreen = ({ navigation, route }) => {
     }
   };
 
+  console.log("PayNowScreen - Received amount:", amount);
+  console.log("PayNowScreen - Amount type:", typeof amount);
+  console.log("PayNowScreen - Notification object:", notification);
+  
   const itemTotal = amount ? parseInt(amount) + parseInt(savedAmount || 0) : 0;
   const totalAmount = amount || 0;
 
@@ -679,6 +683,25 @@ const PayNowScreen = ({ navigation, route }) => {
               <Text style={styles.paymentText}>
                 Total: ₹{totalAmount || "N/A"}
               </Text>
+              {/* {notification?.amount && typeof notification.amount === 'object' && (
+                <View style={styles.amountBreakdown}>
+                  {notification.amount.senderTotalPay && (
+                    <Text style={styles.breakdownText}>
+                      Sender Pay: ₹{notification.amount.senderTotalPay}
+                    </Text>
+                  )}
+                  {notification.amount.totalFare && (
+                    <Text style={styles.breakdownText}>
+                      Total Fare: ₹{notification.amount.totalFare}
+                    </Text>
+                  )}
+                  {notification.amount.platformFee && (
+                    <Text style={styles.breakdownText}>
+                      Platform Fee: ₹{notification.amount.platformFee}
+                    </Text>
+                  )}
+                </View>
+              )} */}
             </View>
           </TouchableOpacity>
           <TouchableOpacity
@@ -882,6 +905,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#555",
     fontStyle: "italic",
+  },
+  amountBreakdown: {
+    marginTop: 5,
+  },
+  breakdownText: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 2,
   },
 });
 

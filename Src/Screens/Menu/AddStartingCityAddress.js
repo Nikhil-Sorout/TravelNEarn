@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { MaterialIcons, Ionicons, FontAwesome } from '@expo/vector-icons';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getCityStateFromPincode } from '../../Utils/addressResolver';
 
 const saveAsOptions = [
   { key: 'Home', label: 'Home', icon: <MaterialIcons name="home" size={22} /> },
@@ -11,14 +12,52 @@ const saveAsOptions = [
 ];
 
 const AddStartingCityAddress = ({ route, navigation }) => {
-  // Get address details and coordinates from navigation params
-  const { area = '', pincode = '', city = '', state = '', latitude, longitude } = route.params || {};
-  const addressFieldType = route?.params?.addressFieldType
+
+
   console.log("Address field type: ", addressFieldType)
+  const [area, setArea] = useState(route.params?.area || '');
+  const [pinCode, setPinCode] = useState(route.params?.pincode || '');
+  const [city, setCity] = useState(route.params?.city || '');
+  const [state, setState] = useState(route.params?.state || '');
   const [flat, setFlat] = useState('');
   const [landmark, setLandmark] = useState('');
-  const [saveAs, setSaveAs] = useState('Home');
+  const [saveAs, setSaveAs] = useState('');
   const [customLabel, setCustomLabel] = useState('');
+  const lastFetchedPincode = useRef(null);
+
+
+  // Get address details and coordinates from navigation params
+  const { latitude, longitude } = route.params || {};
+  const addManually = route?.params?.addManually;
+  // useEffect(() => {
+  //   const setVar = async () => {
+  //     setCity(city);
+  //     setState(state);
+  //     setPinCode(pincode);
+  //     setArea(area);
+  //   }
+  //   setVar();
+  // }, [city,state])
+
+  useEffect(() => {
+    const fetchCityState = async () => {
+      if (pinCode.length === 6 && pinCode !== lastFetchedPincode.current) {
+        lastFetchedPincode.current = pinCode;
+        const { city, state } = await getCityStateFromPincode(pinCode);
+        setCity(city);
+        setState(state);
+      } else if (pinCode.length < 6) {
+        setCity('');
+        setState('');
+      }
+    };
+
+    const delayDebounce = setTimeout(fetchCityState, 500);
+    return () => clearTimeout(delayDebounce);
+  }, [pinCode]);
+
+  const addressFieldType = route?.params?.addressFieldType
+
 
   // Validation and save handler
   const handleSave = async () => {
@@ -45,7 +84,7 @@ const AddStartingCityAddress = ({ route, navigation }) => {
       const body = {
         phoneNumber,
         location: area || city, // Use area if available, otherwise city
-        pincode: pincode || '', // Ensure pincode is never undefined
+        pincode: pinCode || '', // Ensure pincode is never undefined
         flat,
         street: area || city, // Use area if available, otherwise city
         landmark: landmark || '', // Ensure landmark is never undefined
@@ -53,14 +92,14 @@ const AddStartingCityAddress = ({ route, navigation }) => {
         state: state || '', // Ensure state is never undefined
         saveAs: saveAs === "Other" ? "Others" : saveAs, // backend expects "Others"
         customName: saveAs === "Other" ? customLabel : undefined,
-        displayAddress: `${flat}, ${landmark ? landmark + ', ' : ''}${area || city}, ${city || area}, ${state}${pincode ? ' - ' + pincode : ''}`,
-        googleMapsAddress: `${area || city}, ${city || area}, ${state}${pincode ? ' - ' + pincode : ''}`,
-        latitude,
-        longitude,
+        displayAddress: `${flat}, ${landmark ? landmark + ', ' : ''}${area || city}, ${city || area}, ${state}${pinCode ? ' - ' + pinCode : ''}`,
+        googleMapsAddress: `${area || city}, ${city || area}, ${state}${pinCode ? ' - ' + pinCode : ''}`,
+        latitude: "",
+        longitude: "",
       };
       // Remove undefined fields
+      console.log(body)
       Object.keys(body).forEach(key => body[key] === undefined && delete body[key]);
-
       const response = await fetch(`${baseurl}address/address`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -86,6 +125,11 @@ const AddStartingCityAddress = ({ route, navigation }) => {
       console.error(error);
     }
   };
+
+  // const handlePincode = async () => {
+  //   const { city, state } = await getCityStateFromPincode(value);
+  //   return {city, state}
+  // }
 
   return (
     <KeyboardAvoidingView
@@ -118,8 +162,14 @@ const AddStartingCityAddress = ({ route, navigation }) => {
             >
               <Marker coordinate={{ latitude, longitude }} />
             </MapView>
-          ) : (
-            <Text style={{ color: '#888', textAlign: 'center', marginTop: 40 }}>[No location selected]</Text>
+          ) : (<>
+            <TouchableOpacity style={{ backgroundColor: 'white', paddingHorizontal: 15, paddingVertical: 10, borderRadius: 5, position: 'absolute', bottom: 10, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+              onPress={() => navigation.replace("Address")}
+            >
+              <MaterialIcons name="my-location" size={22} color="#888" style={{ opacity: 0.8 }} />
+              <Text style={{ color: '#888', textAlign: 'center' }}>Select Location</Text>
+            </TouchableOpacity>
+          </>
           )}
         </View>
         {/* Form */}
@@ -142,22 +192,26 @@ const AddStartingCityAddress = ({ route, navigation }) => {
           />
           <Text style={styles.label}>Area, street, sector</Text>
           <TextInput
-            style={[styles.input, !area && styles.missingField]}
-            value={area || 'Area not found'}
-            editable={false}
+            style={[styles.input, !area && !addManually && styles.missingField]}
+            value={area || ''}
+            editable={addManually}
+            onChangeText={(text)=>setArea(text)}
           />
-          {!area && (
+          {!area && !addManually && (
             <Text style={styles.warningText}>
               ⚠️ Area information could not be extracted. Using city as area.
             </Text>
           )}
           <Text style={styles.label}>Pincode</Text>
           <TextInput
-            style={[styles.input, !pincode && styles.missingField]}
-            value={pincode || 'Pincode not found'}
-            editable={false}
+            style={[styles.input, !pinCode && !addManually && styles.missingField]}
+            placeholder="Enter PIN code"
+            keyboardType="number-pad"
+            value={pinCode}
+            onChangeText={setPinCode}
+            maxLength={6}
           />
-          {!pincode && (
+          {!pinCode && !addManually && (
             <Text style={styles.warningText}>
               ⚠️ Pincode could not be extracted from the address. You may want to verify the location.
             </Text>

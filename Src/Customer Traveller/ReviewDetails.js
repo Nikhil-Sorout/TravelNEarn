@@ -137,11 +137,11 @@ const ReviewDetails = ({
         </View>
 
         <View style={styles.fareDetails}>
-          <View style={styles.row}>
+          {/* <View style={styles.row}>
             <Text style={styles.label}>Base Fare</Text>
             <Text style={styles.value}>₹{baseFare || "0"}</Text>
-          </View>
-          <Text style={{fontSize: 12, color: "#666", marginBottom: 10}}>Total expected fare is calculated based on the weight of consignment + Platform fee</Text>
+          </View> */}
+          {/* <Text style={{fontSize: 12, color: "#666", marginBottom: 10}}>Total fare is calculated based on the weight of consignment + Platform fee</Text> */}
           {/* <View style={styles.row}>
             <Text style={styles.label}>Delivery Fee</Text>
             <Text style={styles.value}>₹{deliveryFee || "0"}</Text>
@@ -158,7 +158,7 @@ const ReviewDetails = ({
           </View> */}
           <View style={styles.divider} />
           <View style={styles.row}>
-            <Text style={styles.totalLabel}>Total Expected Fare</Text>
+            <Text style={styles.totalLabel}>Total Fare</Text>
             <Text style={styles.totalValue}>₹{earning || "0"}</Text>
           </View>
         </View>

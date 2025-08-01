@@ -395,7 +395,7 @@ const TravelPayRequest = ({ route, navigation }) => {
               </View>
               <View>
                 <Text style={{ fontFamily: "Inter-Bold", color: "green" }}>
-                  ₹ {item.earning} 
+                  ₹ {item.earning.totalFare} 
                 </Text>
               </View>
             </View>
