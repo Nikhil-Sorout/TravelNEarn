@@ -176,7 +176,7 @@ const ParcelDetails = ({ navigation, route }) => {
             ]}
           >
             {/* <Text></Text> */}
-            <Text>{category ? category : "Please Select Category"}</Text>
+            <Text style={{ color: '#000' }}>{category ? category : "Please Select Category"}</Text>
           </RNPickerSelect>
 
           {/* <Picker selectedValue={selectedMode} onValueChange={setSelectedMode} style={styles.picker}>
@@ -210,7 +210,7 @@ const ParcelDetails = ({ navigation, route }) => {
                   { label: "Other", value: "Other" },
                 ]}
               >
-                {category === "Document" ? <Text>{""}</Text> : <Text>{subCategory ? subCategory : "Please Select Sub Category"}</Text>}
+                {category === "Document" ? <Text style={{ color: '#000' }}>{""}</Text> : <Text style={{ color: '#000' }}>{subCategory ? subCategory : "Please Select Sub Category"}</Text>}
               </RNPickerSelect>
             </View></>)
         }
@@ -303,7 +303,7 @@ const ParcelDetails = ({ navigation, route }) => {
 
         <Text style={[styles.label, { marginTop: 20 }]}>Handle with care?</Text>
         {/* <TouchableOpacity style={handleWithCare ? styles.buttonActive : styles.button} onPress={() => setHandleWithCare(!handleWithCare)}>
-          <Text>{handleWithCare ? 'Yes' : 'No'}</Text>
+                      <Text style={{ color: '#000' }}>{handleWithCare ? 'Yes' : 'No'}</Text>
         </TouchableOpacity> */}
 
         <View style={styles.buttonContainer}>
@@ -384,13 +384,13 @@ const ParcelDetails = ({ navigation, route }) => {
             ]}
           >
             
-            <Text>{duration ? duration : "Please Select Duration"}</Text>
+            <Text style={{ color: '#000' }}>{duration ? duration : "Please Select Duration"}</Text>
           </RNPickerSelect>
         </View> */}
 
         <Text style={styles.label}>Upload photos of Consignment if any</Text>
         <TouchableOpacity style={styles.uploadButton} onPress={pickImage}>
-          <Text>+ Choose from device</Text>
+          <Text style={{ color: '#000' }}>+ Choose from device</Text>
         </TouchableOpacity>
 
         {/* Display selected images */}
@@ -445,6 +445,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     marginBottom: 8,
+    color: "#000",
   },
   input: {
     borderWidth: 1,
@@ -452,6 +453,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
+    color: "#000",
   },
   dimensionContainer: { flexDirection: "row", justifyContent: "space-between" },
   dimensionInput: {
@@ -463,7 +465,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     color: 'black'
   },
-  dimensionCross: { padding: 10 },
+  dimensionCross: { padding: 10, color: "#000" },
   button: {
     padding: 12,
     borderRadius: 8,

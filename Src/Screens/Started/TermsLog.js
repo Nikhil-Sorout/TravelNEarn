@@ -236,8 +236,9 @@ const WelcomeScreen = () => {
         <View style={styles.divider} />
 
         <TextInput
-          style={styles.phoneNumberSection}
+          style={[styles.phoneNumberSection, {color: "#000"}]}
           placeholder="Enter Phone Number"
+          placeholderTextColor={"grey"}
           value={phoneNumber}
           onChangeText={(text) => {
             const cleaned = text.replace(/[^0-9]/g, "");

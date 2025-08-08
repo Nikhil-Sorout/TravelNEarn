@@ -622,7 +622,7 @@ const TravelStartEndDetails = ({ route }) => {
         </View>
         <View style={styles.card}>
           <View style={styles.infoRow1}>
-            <Text style={{ fontSize: scale(16), fontWeight: "bold" }}>
+            <Text style={{ fontSize: scale(16), fontWeight: "bold", color: "#000" }}>
               Travel ID : {ride.travelId}
             </Text>
             <View>{renderStatusBadge(status)}</View>
@@ -654,6 +654,7 @@ const TravelStartEndDetails = ({ route }) => {
                   marginRight: scale(10),
                   marginTop: scale(5),
                   marginLeft: scale(10),
+                  color: '#000'
                 }}
               >
                 Consignment to Carry
@@ -689,6 +690,7 @@ const TravelStartEndDetails = ({ route }) => {
                   marginRight: scale(10),
                   marginTop: scale(5),
                   marginLeft: scale(10),
+                  color: "#000"
                 }}
               >
                 Earning
@@ -736,7 +738,7 @@ const TravelStartEndDetails = ({ route }) => {
         </View>
 
         <View style={styles.mapContainer}>
-          <Text style={[styles.infoTitle, { marginBottom: scale(20) }]}>
+          <Text style={[styles.infoTitle, { marginBottom: scale(20), color : "#000" }]}>
             Track on map
           </Text>
           <MapView
@@ -808,7 +810,7 @@ const TravelStartEndDetails = ({ route }) => {
               {getTravelIcon(ride.travelMode)}
             </View>
             <View style={styles.travelerDetails}>
-              <Text style={[styles.travelerName, { marginLeft: scale(15) }]}>
+              <Text style={[styles.travelerName, { marginLeft: scale(15), color :"#000" }]}>
                 {ride.travelMode}
               </Text>
               {/* <Text style={[styles.travelerName, { marginLeft: scale(15) }]}> */}
@@ -955,6 +957,7 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: moderateScale(16),
     fontWeight: "bold",
+    color : "#000"
   },
   infoSubtitle: {
     fontSize: moderateScale(14),

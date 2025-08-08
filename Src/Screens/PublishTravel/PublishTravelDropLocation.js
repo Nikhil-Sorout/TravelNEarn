@@ -388,7 +388,7 @@ const PublishTravelDropLocation = ({ navigation, route }) => {
   if (!location) {
     return (
       <View style={styles.loadingContainer}>
-        <Text>Loading location...</Text>
+        <Text style={{ color: '#000' }}>Loading location...</Text>
       </View>
     );
   }
@@ -480,7 +480,7 @@ const PublishTravelDropLocation = ({ navigation, route }) => {
               }}
               style={styles.searchIcon}
             >
-              <Text>🔍</Text>
+              <Text style={{ color: '#000' }}>🔍</Text>
             </TouchableOpacity>
           </View>
           {loading && <Text style={styles.loadingText}>Loading...</Text>}
@@ -615,7 +615,7 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
     zIndex: 10,
   },
-  greetingText: { fontSize: 18, fontWeight: "bold", marginBottom: 5 },
+  greetingText: { fontSize: 18, fontWeight: "bold", marginBottom: 5, color: "#000" },
   subGreetingText: { fontSize: 14, color: "gray", marginBottom: 10 },
   searchBox: {
     flexDirection: "row",
@@ -625,7 +625,7 @@ const styles = StyleSheet.create({
     padding: 3,
     marginBottom: 10,
   },
-  searchInput: { flex: 1, fontSize: 16, marginRight: 10, padding: 15 },
+  searchInput: { flex: 1, fontSize: 16, marginRight: 10, padding: 15, color: "#000" },
   searchIcon: { padding: 5 },
   suggestionsList: {
     flexGrow: 0,

@@ -229,7 +229,7 @@ const PublishLocation = ({ navigation, route }) => {
                 }}
                 style={styles.searchIcon}
               >
-                <Text>🔍</Text>
+                <Text style={{ color: '#000' }}>🔍</Text>
               </TouchableOpacity>
             </View>
 
@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
     alignContent: "center",
     backgroundColor: "transparent",
   },
-  greetingText: { fontSize: 18, fontWeight: "bold", marginBottom: 5 },
+  greetingText: { fontSize: 18, fontWeight: "bold", marginBottom: 5, color: "#000" },
   subGreetingText: { fontSize: 14, color: "gray", marginBottom: 10 },
   searchBox: {
     flexDirection: "row",
@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 10,
   },
-  suggestionsTitle: { fontSize: 16, fontWeight: "bold", marginBottom: 10 },
+  suggestionsTitle: { fontSize: 16, fontWeight: "bold", marginBottom: 10, color: "#000" },
   suggestionText: { fontSize: 14, color: "#333", paddingVertical: 5 },
   quickButtons: {
     flexDirection: "row",

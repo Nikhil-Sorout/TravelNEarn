@@ -65,7 +65,7 @@ const Contact = ({navigation}) => {
  
       
 {/* <Text></Text> */}
-<Text>{subject ? subject : "Please select a mode"}</Text>
+                <Text style={{ color: '#000' }}>{subject ? subject : "Please select a mode"}</Text>
       </RNPickerSelect>
       </View>
         </View>
@@ -127,6 +127,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 8,
+    color: '#000',
   },
   subtitle: {
     fontSize: 14,
@@ -153,6 +154,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 8,
     fontWeight: 'bold',
+    color: '#000',
   },
   input: {
     borderWidth: 1,
@@ -161,6 +163,7 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 14,
     backgroundColor: 'white',
+    color: '#000',
   },
   messageInput: {
     height: 100,

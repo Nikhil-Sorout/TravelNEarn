@@ -1561,7 +1561,7 @@ const TravelDetails = ({ route }) => {
         </View>
       </Modal>
 
-      <Header title="Track Your Consignment +" navigation={navigation} />
+      <Header title="Track Your Consignment" navigation={navigation} />
 
       <ScrollView>
         <View style={styles.mapContainer}>
@@ -1664,6 +1664,7 @@ const TravelDetails = ({ route }) => {
                 fontWeight: "bold",
                 marginRight: 10,
                 marginTop: 5,
+                color: "#000"
               }}
             >
               {status}

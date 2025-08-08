@@ -317,7 +317,7 @@ const Search = () => {
               onStartShouldSetResponder={() => true}
             >
               {/* Leaving From Input */}
-              <Text>{activeTab === "Travellers" ?"Leaving From":"Sending From"}</Text>
+              <Text style={{ color: '#000' }}>{activeTab === "Travellers" ?"Leaving From":"Sending From"}</Text>
               <View style={styles.inputContainer}>
                 <View style={styles.bulletPointRed} />
                 <TextInput
@@ -387,7 +387,7 @@ const Search = () => {
               </View>
 
               {/* Going To Input */}
-              <Text>{activeTab === "Travellers" ?"Going To":"Sending To"}</Text>
+              <Text style={{ color: '#000' }}>{activeTab === "Travellers" ?"Going To":"Sending To"}</Text>
               <View style={styles.inputContainer}>
                 <View style={styles.bulletPointGreen} />
                 <TextInput
@@ -691,6 +691,7 @@ const styles = StyleSheet.create({
   },
   inputText: {
     fontSize: moderateScale(16),
+    color: "#000"
   },
   notificationBadge: {
     position: "absolute",

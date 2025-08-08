@@ -511,7 +511,7 @@ const ConsignmentCarryDetails = ({ route }) => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <Text>Loading...</Text>
+        <Text style={{ color: '#000' }}>Loading...</Text>
       </View>
     );
   }

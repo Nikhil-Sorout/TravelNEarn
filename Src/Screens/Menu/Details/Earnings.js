@@ -4,7 +4,7 @@ import { StyleSheet, Text, View } from 'react-native'
 const Earnings = () => {
   return (
     <View>
-      <Text>Earnings</Text>
+      <Text style={{ color: '#000' }}>Earnings</Text>
     </View>
   )
 }

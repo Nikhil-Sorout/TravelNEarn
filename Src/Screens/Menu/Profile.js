@@ -452,6 +452,7 @@ const TextInputField = ({ label, value, onChangeText, editable = true }) => (
       onChangeText={onChangeText}
       editable={editable}
       placeholder={`Enter ${label}`}
+      placeholderTextColor="#000"
     />
   </View>
 );
@@ -507,7 +508,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     marginBottom: 15,
   },
-  sectionTitle: { fontSize: 16, fontWeight: "bold", marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontWeight: "bold", marginBottom: 10, color: "#000" },
   inputContainer: { marginBottom: 15 },
   inputLabel: { fontSize: 14, color: "#555", marginBottom: 5 },
   input: {
@@ -517,6 +518,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     paddingLeft: 10,
     backgroundColor: "#f9f9f9",
+    color: "#000"
   },
   verificationSection: {
     paddingHorizontal: 20,

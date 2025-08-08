@@ -305,7 +305,7 @@ const TravelDetails = ({ route }) => {
       <ScrollView>
         <View style={styles.card}>
           <View style={styles.infoRow1}>
-            <Text style={{ fontSize: scale(16), fontWeight: "bold" }}>
+            <Text style={{ fontSize: scale(16), fontWeight: "bold", color: "#000" }}>
               Travel ID:{ride.travelId}
             </Text>
             <View>{renderStatusBadge("UPCOMING")}</View>
@@ -682,6 +682,7 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: moderateScale(16),
     fontWeight: "bold",
+    color: "#000",
   },
   infoSubtitle: {
     fontSize: moderateScale(14),
@@ -716,6 +717,7 @@ const styles = StyleSheet.create({
   travelerName: {
     fontSize: moderateScale(16),
     fontWeight: "bold",
+    color: "#000",
   },
   travelerRating: {
     fontSize: moderateScale(14),

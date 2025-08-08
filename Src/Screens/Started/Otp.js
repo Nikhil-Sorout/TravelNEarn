@@ -157,7 +157,8 @@ const Otp = ({ navigation, route }) => {
                 <TextInput
                   key={index}
                   ref={(el) => (inputRefs.current[index] = el)}
-                  style={styles.otpInput}
+                  style={[styles.otpInput, {color: "#000"}]}
+                  placeholderTextColor={"grey"}
                   keyboardType="number-pad"
                   maxLength={1}
                   value={digit}

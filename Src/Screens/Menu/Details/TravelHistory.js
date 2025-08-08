@@ -258,6 +258,7 @@ const TravelHistory = () => {
         <TextInput
           style={styles.searchInput}
           placeholder="Search by location (from/to)"
+          placeholderTextColor={"#000"}
           value={searchText}
           onChangeText={setSearchText}
         />
@@ -509,6 +510,7 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: moderateScale(16),
     fontWeight: "bold",
+    color: "#000",
   },
   infoSubtitle: {
     fontSize: moderateScale(14),
@@ -543,6 +545,7 @@ const styles = StyleSheet.create({
   travelerName: {
     fontSize: moderateScale(16),
     fontWeight: "bold",
+    color: "#000",
   },
   travelerRating: {
     fontSize: moderateScale(14),

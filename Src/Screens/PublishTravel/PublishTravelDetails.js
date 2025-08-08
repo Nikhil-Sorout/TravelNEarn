@@ -447,8 +447,8 @@ const TravelDetails = ({ route }) => {
           <View style={styles.locationRow}>
             <Image source={require('../../Images/locon.png')} style={styles.locationIcon} />
             <View>
-              <Text>{selectedDate ? formatDate(selectedDate) : ''}</Text>
-              <Text>{startTime}</Text>
+              <Text style={{ color: '#000' }}>{selectedDate ? formatDate(selectedDate) : ''}</Text>
+              <Text style={{ color: '#000' }}>{startTime}</Text>
             </View>
             <View>
               <Text style={[styles.locationText, { fontWeight: 'bold' }]}>{startCity}</Text>
@@ -460,8 +460,8 @@ const TravelDetails = ({ route }) => {
           <View style={styles.locationRow}>
             <Image source={require('../../Images/locend.png')} style={styles.locationIcon} />
             <View>
-              <Text>{endDate ? formatDate(endDate) : ''}</Text>
-              <Text>{endTime}</Text>
+              <Text style={{ color: '#000' }}>{endDate ? formatDate(endDate) : ''}</Text>
+              <Text style={{ color: '#000' }}>{endTime}</Text>
             </View>
             <View>
               <Text style={[styles.locationText, { fontWeight: 'bold' }]}>{destCity}</Text>
@@ -520,7 +520,7 @@ const TravelDetails = ({ route }) => {
           ) : (
             <View style={[styles.map, { justifyContent: 'center', alignItems: 'center' }]}>
               <ActivityIndicator size="large" color="#D83F3F" />
-              <Text>Loading map...</Text>
+              <Text style={{ color: '#000' }}>Loading map...</Text>
             </View>
           )}
 
@@ -740,6 +740,7 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: 16,
     fontWeight: 'bold',
+    color: '#000',
   },
   traveler: {
     flexDirection: 'row',
@@ -758,6 +759,7 @@ const styles = StyleSheet.create({
   travelerName: {
     fontSize: 16,
     fontWeight: 'bold',
+    color: '#000',
   },
   travelerRating: {
     fontSize: 14,

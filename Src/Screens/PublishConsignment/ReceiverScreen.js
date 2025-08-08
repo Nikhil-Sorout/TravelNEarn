@@ -46,8 +46,9 @@ const TravelMode = ({ navigation, route }) => {
   useEffect(() => {
     const fetchLocations = async () => {
       try {
-        const startingLocation = await AsyncStorage.getItem("startingLocation");
-        const goingLocation = await AsyncStorage.getItem("goingLocation");
+        // Use route params instead of AsyncStorage
+        const startingLocation = fullFrom || from;
+        const goingLocation = fullTo || to;
 
         if (startingLocation && goingLocation) {
           setStartLocation(startingLocation);
@@ -65,7 +66,7 @@ const TravelMode = ({ navigation, route }) => {
     };
 
     fetchLocations();
-  }, []);
+  }, [from, to, fullFrom, fullTo]);
 
   const fetchRoute = async (origin, destination) => {
     try {

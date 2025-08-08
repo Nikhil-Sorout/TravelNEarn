@@ -232,8 +232,8 @@ const TravelDetails = ({ route }) => {
       formData.append('recieverphone', receiverNumber);
       formData.append('Description', parcelDetails.description);
       formData.append('weight', parcelDetails.weight);
-      formData.append('category', category.trim().toLowerCase().replace('-', ''));
-      formData.append('subcategory', subCategory.trim().toLowerCase().replace('-', ''));
+      formData.append('category', category.trim().replace('-', '').toLowerCase());
+      formData.append('subcategory', subCategory ? subCategory.trim().replace('-', '').toLowerCase() : '');
       formData.append('dateOfSending', new Date(searchingDate).toISOString());
       formData.append('durationAtEndPoint', parcelDetails.duration);
       formData.append('phoneNumber', number);
@@ -258,8 +258,8 @@ const TravelDetails = ({ route }) => {
       console.log("recieverphone:", receiverNumber);
       console.log("Description:", parcelDetails.description);
       console.log("weight:", parcelDetails.weight);
-      console.log("category:", category.trim().toLowerCase().replace('-', ''));
-      console.log("subCategory:", subCategory.trim().toLowerCase().replace('-', ''));
+      console.log("category:", category.trim().replace('-', '').toLowerCase());
+      console.log("subCategory:", subCategory ? subCategory.trim().replace('-', '').toLowerCase() : '');
       console.log("dateOfSending:", searchingDate);
       console.log("durationAtEndPoint:", parcelDetails.duration);
       console.log("phoneNumber:", number);
@@ -453,7 +453,7 @@ const TravelDetails = ({ route }) => {
         </View>
 
         <View style={styles.mapContainer}>
-         <Text style={[styles.infoTitle, { marginBottom: 20 }]}>
+         <Text style={[styles.infoTitle, { marginBottom: 10, color: "#000" }]}>
             Track on map
           </Text>
           <MapView
@@ -504,7 +504,7 @@ const TravelDetails = ({ route }) => {
           {/* Simple Image Gallery */}
           {parcelDetails?.images && parcelDetails.images.length > 0 && (
             <View style={{ marginVertical: 10 }}>
-              <Text style={{ fontWeight: 'bold', marginBottom: 5 }}>Parcel Images</Text>
+              <Text style={{ fontWeight: 'bold', marginBottom: 5, color: "#000" }}>Parcel Images</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 {parcelDetails.images.map((img, idx) => (
                   <TouchableOpacity key={idx} onPress={() => handleImagePress(idx)}>
@@ -551,7 +551,7 @@ const TravelDetails = ({ route }) => {
                 <Text
                   style={[
                     styles.infoTitle,
-                    { marginRight: 20, marginLeft: 5, marginTop: 0 },
+                    { marginRight: 20, marginLeft: 5, marginTop: 0, color: "#000" },
                   ]}
                 >
                   Weight
@@ -585,7 +585,7 @@ const TravelDetails = ({ route }) => {
                 <Text
                   style={[
                     styles.infoTitle,
-                    { marginRight: 20, marginLeft: 5, marginTop: 0 },
+                    { marginRight: 20, marginLeft: 5, marginTop: 0, color: "#000" },
                   ]}
                 >
                   Dimensions ({parcelDetails?.unit.toLowerCase()})
@@ -613,7 +613,7 @@ const TravelDetails = ({ route }) => {
           <View style={styles.dottedLine} />
           {/* Extra Information */}
           <View style={styles.extraInfo}>
-            <Text style={styles.infoTitle} numberOfLines={1}>
+            <Text style={[styles.infoTitle, {color: "#000"}]} numberOfLines={1}>
               Handle with Care
             </Text>
           </View>
@@ -624,7 +624,7 @@ const TravelDetails = ({ route }) => {
           </View>
           <View style={styles.dottedLine} />
           <View style={styles.extraInfo}>
-            <Text style={styles.infoTitle} numberOfLines={1}>
+            <Text style={[styles.infoTitle, {color: "#000"}]} numberOfLines={1}>
               Special Requests
             </Text>
           </View>
@@ -642,7 +642,7 @@ const TravelDetails = ({ route }) => {
                 <Text
                   style={[
                     styles.infoTitle,
-                    { marginRight: 20, marginLeft: 5, marginTop: 0 },
+                    { marginRight: 20, marginLeft: 5, marginTop: 0, color: '#000' },
                   ]}
                 >
                   Date of Sending {"\n"}
@@ -669,7 +669,7 @@ const TravelDetails = ({ route }) => {
                 <Text
                   style={[
                     styles.infoTitle,
-                    { marginRight: 20, marginLeft: 5, marginTop: 0 },
+                    { marginRight: 20, marginLeft: 5, marginTop: 0, color: '#000' },
                   ]}
                 >
                   Category
@@ -684,7 +684,7 @@ const TravelDetails = ({ route }) => {
                     marginTop: 5,
                     fontSize: 15,
                     color: "black",
-                    width: "75%"
+                    width: "45%"
                   },
                 ]}
               >

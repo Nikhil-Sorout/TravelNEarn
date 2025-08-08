@@ -212,6 +212,7 @@ const ConsignmentHistory = () => {
         <TextInput
           style={styles.searchInput}
           placeholder="Search by location or ID"
+          placeholderTextColor={"#000"}
           value={searchText}
           onChangeText={setSearchText}
         />
@@ -479,6 +480,7 @@ const styles = StyleSheet.create({
   },
   driverName: {
     fontSize: 16,
+    color: "#000",
   },
   driverRating: {
     fontSize: 12,

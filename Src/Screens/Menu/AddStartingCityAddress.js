@@ -178,6 +178,7 @@ const AddStartingCityAddress = ({ route, navigation }) => {
           <TextInput
             style={styles.input}
             placeholder="Enter flat, housing no, building, apartment, ..."
+            placeholderTextColor="#000"
             value={flat}
             multiline={true}
             numberOfLines={1}
@@ -187,6 +188,7 @@ const AddStartingCityAddress = ({ route, navigation }) => {
           <TextInput
             style={styles.input}
             placeholder="Landmark (optional)"
+            placeholderTextColor="#000"
             value={landmark}
             onChangeText={setLandmark}
           />
@@ -206,6 +208,7 @@ const AddStartingCityAddress = ({ route, navigation }) => {
           <TextInput
             style={[styles.input, !pinCode && !addManually && styles.missingField]}
             placeholder="Enter PIN code"
+            placeholderTextColor="#000"
             keyboardType="number-pad"
             value={pinCode}
             onChangeText={setPinCode}
@@ -269,6 +272,7 @@ const AddStartingCityAddress = ({ route, navigation }) => {
             <TextInput
               style={styles.input}
               placeholder="Enter custom label"
+              placeholderTextColor="#000"
               value={customLabel}
               onChangeText={setCustomLabel}
             />

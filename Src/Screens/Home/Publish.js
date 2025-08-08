@@ -363,7 +363,7 @@ const Search = ({ route }) => {
               ]}
               onStartShouldSetResponder={() => true}
             >
-              <Text style={styles.inputLabel}>{activeTab === "Travellers" ? "Leaving From" : "Sending From"}</Text>
+              <Text style={{color: "#000"}}>{activeTab === "Travellers" ? "Leaving From" : "Sending From"}</Text>
               {/* Leaving From Input */}
               {/* <Text style={styles.inputLabel}>Leaving From</Text> */}
               <View style={styles.inputContainer}>
@@ -421,7 +421,7 @@ const Search = ({ route }) => {
                     </TouchableWithoutFeedback>
                   )}
               </View>
-              <Text style={styles.inputLabel}>{activeTab === "Travellers" ? "Going To" : "Sending To"}</Text>
+              <Text style={{color: "#000"}}>{activeTab === "Travellers" ? "Going To" : "Sending To"}</Text>
               <View style={styles.inputContainer}>
                 <View style={styles.bulletPointGreen} />
                 <TouchableOpacity
@@ -538,7 +538,7 @@ const Search = ({ route }) => {
         backdropOpacity={0.4}
       >
         <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, height: height * 0.3 }}>
-          <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>
+          <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10, color: "#000" }}>
             {addressFieldType === 'from' ? 'Select Starting City Address' : 'Select Destination City Address'}
           </Text>
           <TouchableOpacity onPress={handleAddNewAddress} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>
@@ -559,7 +559,7 @@ const Search = ({ route }) => {
                   style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' }}
                   onPress={() => handleSelectAddress(item)}
                 >
-                  <Text style={{ fontWeight: 'bold', fontSize: 15 }}>{item.saveAs === "Others" ? item.customName : item.saveAs}</Text>
+                  <Text style={{ fontWeight: 'bold', fontSize: 15, color: "#000" }}>{item.saveAs === "Others" ? item.customName : item.saveAs}</Text>
                   <Text style={{ color: '#333' }} numberOfLines={1} ellipsizeMode="tail">
                     {item.flat} {item.landmark} {item.street} {item.location}
                   </Text>
@@ -755,6 +755,7 @@ const styles = StyleSheet.create({
   },
   inputText: {
     fontSize: moderateScale(16),
+    color: '#000'
   },
   notificationBadge: {
     position: "absolute",

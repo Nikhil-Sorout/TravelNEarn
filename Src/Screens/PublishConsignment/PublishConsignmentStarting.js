@@ -50,6 +50,7 @@ const InputItem = ({ item, address, handleInputChange, disabled = false }) => {
         <TextInput
           style={[styles.input, disabled && styles.disabledInput]}
           placeholder={item.placeholder}
+          placeholderTextColor="#000"
           value={address[item.value] || ""}
           onChangeText={(text) => handleInputChange(item.value, text)}
           editable={!disabled}

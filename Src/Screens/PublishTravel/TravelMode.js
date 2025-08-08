@@ -489,7 +489,7 @@ const TravelMode = ({ navigation, route }) => {
       </TouchableOpacity>
       <ScrollView>
         <View style={styles.detailsContainer}>
-          <Text style={styles.label}>Mode of Travel</Text>
+          <Text style={[styles.label, {color: "#000"}]}>Mode of Travel</Text>
           <View style={styles.input}>
             <RNPickerSelect
               onValueChange={handleValueChange}
@@ -500,7 +500,7 @@ const TravelMode = ({ navigation, route }) => {
               ]}
               value={selectedMode}
             >
-              <Text>
+              <Text style={{color: "grey"}}>
                 {selectedMode
                   ? selectedMode === "roadways"
                     ? "Roadways"
@@ -513,7 +513,7 @@ const TravelMode = ({ navigation, route }) => {
           {selectedMode === "roadways" ? (
 
             <>
-              <Text style={[styles.label, {marginTop: 10}]}>Select Vehicle Type</Text>
+              <Text style={[styles.label, {marginTop: 10, color :"#000"}]}>Select Vehicle Type</Text>
               <RNPickerSelect
                 onValueChange={(value) => setSubCategoryOfTravel(value)}
                 value={subCategoryOfTravel}
@@ -530,7 +530,7 @@ const TravelMode = ({ navigation, route }) => {
 
           ) : (
             <>
-              <Text style={styles.label}>{modeLabels[selectedMode]}</Text>
+              <Text style={[styles.label, {color: '#000', marginTop: 10}]}>{modeLabels[selectedMode]}</Text>
               <TextInput
                 style={styles.input}
                 placeholder={`Enter ${modeLabels[selectedMode]}`}
@@ -563,7 +563,7 @@ const TravelMode = ({ navigation, route }) => {
             />
           </View> */}
 
-          <Text style={styles.label}>
+          <Text style={[styles.label, {color: "#000", marginTop: 10}]}>
             Expected Time of start from Starting Location
           </Text>
           <View style={styles.timeContainer}>
@@ -584,7 +584,7 @@ const TravelMode = ({ navigation, route }) => {
               </Text>
             </TouchableOpacity> */}
           </View>
-          <Text style={styles.label}>
+          <Text style={[styles.label, {color: "#000"}]}>
             Expected Time of arrival at Destination Location
           </Text>
           <View style={styles.timeContainer}>
@@ -611,7 +611,7 @@ const TravelMode = ({ navigation, route }) => {
               </Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.label}>Duration of Stay</Text>
+          <Text style={[styles.label, {color: "#000"}]}>Duration of Stay</Text>
           <View style={styles.timeContainer}>
             <View style={[styles.input, { width: '45%', marginRight: 10 }]}>
               <Picker
