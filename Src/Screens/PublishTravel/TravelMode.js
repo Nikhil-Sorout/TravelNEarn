@@ -101,6 +101,8 @@ const TravelMode = ({ navigation, route }) => {
       const parsedDate = new Date(route.params.selectedDate);
       if (!isNaN(parsedDate.getTime())) {
         setTravelDate(parsedDate);
+        // Automatically set end date to the same as travel date on initial load
+        setEndDate(parsedDate);
       }
     }
   }, [route.params?.selectedDate]);
@@ -360,12 +362,19 @@ const TravelMode = ({ navigation, route }) => {
         // Only set travelDate from AsyncStorage if no route parameter is provided
         if (!route.params?.selectedDate) {
           const storedDate = await AsyncStorage.getItem("searchingDate");
-          if (storedDate) setTravelDate(new Date(storedDate));
+          if (storedDate) {
+            const parsedDate = new Date(storedDate);
+            setTravelDate(parsedDate);
+            // Automatically set end date to the same as travel date on initial load
+            setEndDate(parsedDate);
+          }
         }
         
-        // Load endDate from AsyncStorage
-        const storedEndDate = await AsyncStorage.getItem("endDate");
-        if (storedEndDate) setEndDate(new Date(storedEndDate));
+        // Load endDate from AsyncStorage only if no route parameter and no stored travel date
+        if (!route.params?.selectedDate) {
+          const storedEndDate = await AsyncStorage.getItem("endDate");
+          if (storedEndDate) setEndDate(new Date(storedEndDate));
+        }
         
         if (storedStartTime) setStartTime(storedStartTime);
         if (storedEndTime) setEndTime(storedEndTime);

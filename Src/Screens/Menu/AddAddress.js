@@ -277,7 +277,7 @@ const AddAddress = ({ navigation, route }) => {
   // Save location handler (implement as needed)
   const handleSaveLocation = async () => {
     if (!address || !markerCoords) {
-      Alert.alert("Error", "Please select a location on the map.");
+      Alert.alert("Alert", "Please select a location on the map (Click on that search icon)");
       return;
     }
 
@@ -423,7 +423,7 @@ const AddAddress = ({ navigation, route }) => {
                 fetchCoordsFromAddress(address)
                 setShowPin(true)
               }}>
-                <MaterialIcons name="search" size={20} />
+                <MaterialIcons name="search" size={20} color={"black"} />
               </TouchableOpacity>
             </View>
             {/* Suggestions Dropdown */}
@@ -644,7 +644,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
-    zIndex: 100,
+    zIndex: 1000,
     maxHeight: 200, // Limit height for suggestions
   },
   suggestionScrollContent: {

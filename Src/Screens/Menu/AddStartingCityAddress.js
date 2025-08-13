@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
   map: { ...StyleSheet.absoluteFillObject, borderRadius: 12 },
   form: { padding: 16, paddingBottom: 40 },
   label: { fontSize: 15, color: '#333', marginTop: 10, marginBottom: 2 },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, fontSize: 15, backgroundColor: '#fafafa', marginBottom: 2 },
+  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, fontSize: 15, backgroundColor: '#fafafa', marginBottom: 2, color : "#000" },
   saveAsRow: { flexDirection: 'row', justifyContent: 'space-between', marginVertical: 14 },
   saveAsOption: {
     flex: 1,

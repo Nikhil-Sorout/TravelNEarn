@@ -657,7 +657,7 @@ const NotificationsScreen = ({ navigation, route }) => {
                             console.log("Notification item amount structure:", JSON.stringify(item.amount, null, 2));
                             console.log("Notification title:", item.title);
                             
-                            if(item.title === "Consignment Accepted") {
+                            if(item.title === "Consignment Accepted" || item.title === "Ride Request accept") {
                               // For consignment accepted, show sender's total pay
                               if (item.amount && typeof item.amount === 'object' && item.amount.senderTotalPay) {
                                 totalAmount = item.amount.senderTotalPay;
