@@ -9,6 +9,10 @@ import {
   TouchableOpacity,
   View,
   ActivityIndicator,
+  StatusBar,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
 } from "react-native";
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
 import RNPickerSelect from "react-native-picker-select";
@@ -29,9 +33,22 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Header from "../../header";
 import { getCurvedPolylinePoints } from '../../Utils/getCurvedPolylinePonints';
+import {
+  scale,
+  verticalScale,
+  moderateScale,
+  moderateVerticalScale,
+  fontScale,
+  responsivePadding,
+  responsiveFontSize,
+  responsiveDimensions,
+  screenWidth,
+  screenHeight
+} from '../../Utils/responsive';
 
 const TravelMode = ({ navigation, route }) => {
   const mapRef = useRef(null);
+  const scrollViewRef = useRef(null);
   const [selectedMode, setSelectedMode] = useState("roadways");
   const [travelNumber, setTravelNumber] = useState("");
   const [travelDate, setTravelDate] = useState(
@@ -140,6 +157,37 @@ const TravelMode = ({ navigation, route }) => {
       mapRef.current.animateToRegion(region, 1000);
     }
   }, [coordinates, originCoords, destinationCoords]);
+
+  // Keyboard event listeners
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      (event) => {
+        // When keyboard shows, scroll to make the input visible
+        setTimeout(() => {
+          if (scrollViewRef.current && travelNumber) {
+            scrollViewRef.current.scrollToEnd({ animated: true });
+          }
+        }, 300);
+      }
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => {
+        // When keyboard hides, scroll back to top
+        setTimeout(() => {
+          if (scrollViewRef.current) {
+            scrollViewRef.current.scrollTo({ y: 0, animated: true });
+          }
+        }, 100);
+      }
+    );
+
+    return () => {
+      keyboardDidShowListener?.remove();
+      keyboardDidHideListener?.remove();
+    };
+  }, [travelNumber]);
 
   const fetchRouteData = async (origin, destination) => {
     setIsLoadingRoute(true);
@@ -388,28 +436,32 @@ const TravelMode = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar backgroundColor="#D83F3F" barStyle="light-content" />
       <Header title="Travel Details" />
-      <View style={{ padding: 5 }}>
-        {/* Date Text */}
+      
+      {/* Route Section with Dots and Circles */}
+      <View style={styles.routeSection}>
         <Text style={styles.selectedDateText}>
           Travel Date: {travelDate.toDateString()}
         </Text>
-
-        {/* Route Row */}
-        <View style={styles.routeContainer}>
-          {/* Icon Section */}
-          <View style={styles.iconWrapper}>
-            <RouteIcon name="route" size={24} color="#D83F3F" />
-          </View>
-
-          {/* Text Section */}
-          <View style={styles.textWrapper}>
-            <Text style={[styles.locationText, {fontWeight: 'bold'}]}>{startCity}</Text>
-            <Text style={styles.locationText}>{fullFrom}</Text>
-            <Text style={[styles.locationText, {fontWeight: 'bold'}]}>{destCity}</Text>
-            <Text style={styles.locationText}>{fullTo}</Text>
+        
+        <View style={styles.routeItem}>
+          <View style={styles.routeDot} />
+          <View style={styles.routeContent}>
+            <Text style={styles.routeCity}>{startCity || "Starting City"}</Text>
+            <Text style={styles.routeAddress}>{fullFrom || "Starting Address"}</Text>
           </View>
         </View>
+        
+        <View style={styles.routeItem}>
+          <View style={styles.routeDot} />
+          <View style={styles.routeContent}>
+            <Text style={styles.routeCity}>{destCity || "Destination City"}</Text>
+            <Text style={styles.routeAddress}>{fullTo || "Destination Address"}</Text>
+          </View>
+        </View>
+        
+        <View style={styles.routeLine} />
       </View>
 
       <MapView
@@ -442,14 +494,14 @@ const TravelMode = ({ navigation, route }) => {
         {isValidCoordinate(originCoords) && (
           <Marker coordinate={originCoords} title={startLocation}>
             <View style={[styles.marker, styles.startMarker]}>
-              <Icon name="user" size={25} color="#fff" />
+              <Icon name="user" size={responsiveDimensions.icon.medium} color="#fff" />
             </View>
           </Marker>
         )}
         {isValidCoordinate(destinationCoords) && (
           <Marker coordinate={destinationCoords} title={endLocation}>
             <View style={[styles.marker, styles.endMarker]}>
-              <Icon name="map-marker" size={25} color="#fff" />
+              <Icon name="map-marker" size={responsiveDimensions.icon.medium} color="#fff" />
             </View>
           </Marker>
         )}
@@ -491,12 +543,22 @@ const TravelMode = ({ navigation, route }) => {
               alignItems: "center",
               alignSelf: "center",
             }}
-            size={20}
+            size={responsiveDimensions.icon.small}
             color="white"
           />
         </View>
       </TouchableOpacity>
-      <ScrollView>
+      
+                     <ScrollView 
+           ref={scrollViewRef}
+           showsVerticalScrollIndicator={false}
+           keyboardShouldPersistTaps="always"
+           contentContainerStyle={{ paddingBottom: 200 }}
+           nestedScrollEnabled={true}
+           keyboardDismissMode="on-drag"
+           style={{ flex: 1 }}
+           removeClippedSubviews={false}
+         >
         <View style={styles.detailsContainer}>
           <Text style={[styles.label, {color: "#000"}]}>Mode of Travel</Text>
           <View style={styles.input}>
@@ -540,15 +602,20 @@ const TravelMode = ({ navigation, route }) => {
           ) : (
             <>
               <Text style={[styles.label, {color: '#000', marginTop: 10}]}>{modeLabels[selectedMode]}</Text>
-              <TextInput
-                style={styles.input}
-                placeholder={`Enter ${modeLabels[selectedMode]}`}
-                placeholderTextColor="#999"
-                value={travelNumber}
-                onChangeText={(text) => setTravelNumber(text)}
-                autoCapitalize="characters"
-                maxLength={20}
-              />
+                             <TextInput
+                 style={styles.input}
+                 placeholder={`Enter ${modeLabels[selectedMode]}`}
+                 placeholderTextColor="#999"
+                 value={travelNumber}
+                 onChangeText={(text) => setTravelNumber(text)}
+                 autoCapitalize="characters"
+                 maxLength={20}
+                 returnKeyType="next"
+                 blurOnSubmit={false}
+                 enablesReturnKeyAutomatically={false}
+                 contextMenuHidden={false}
+                 selectTextOnFocus={false}
+               />
             </>
           )}
 
@@ -621,40 +688,41 @@ const TravelMode = ({ navigation, route }) => {
             </TouchableOpacity>
           </View>
           <Text style={[styles.label, {color: "#000"}]}>Duration of Stay</Text>
-          <View style={styles.timeContainer}>
-            <View style={[styles.input, { width: '45%', marginRight: 10 }]}>
-              <Picker
-                selectedValue={stayDays}
-                onValueChange={(value) => setStayDays(value)}
-                style={styles.picker}
-                mode="dropdown"
-
-              >
-                {dayOptions.map((day) => (
-                  <Picker.Item key={day} label={`${day} Day${day !== '1' ? 's' : ''}`} value={day} />
-                ))}
-              </Picker>
+                      <View style={styles.timeContainer}>
+              <View style={[styles.input, { width: '45%', marginRight: 10, padding: 0, paddingHorizontal: scale(5) }]}>
+                <Picker
+                  selectedValue={stayDays}
+                  onValueChange={(value) => setStayDays(value)}
+                  style={styles.picker}
+                  mode="dropdown"
+                  dropdownIconColor="#000"
+                >
+                  {dayOptions.map((day) => (
+                    <Picker.Item key={day} label={`${day} Day${day !== '1' ? 's' : ''}`} value={day} />
+                  ))}
+                </Picker>
+              </View>
+              <View style={[styles.input, { width: '45%', padding: 0, paddingHorizontal: scale(5) }]}>
+                <Picker
+                  selectedValue={stayHours}
+                  onValueChange={(value) => setStayHours(value)}
+                  style={styles.picker}
+                  mode="dropdown"
+                  dropdownIconColor="#000"
+                >
+                  {hourOptions.map((hour) => (
+                    <Picker.Item key={hour} label={`${hour} Hour${hour !== '1' ? 's' : ''}`} value={hour} />
+                  ))}
+                </Picker>
+              </View>
             </View>
-            <View style={[styles.input, { width: '45%' }]}>
-              <Picker
-                selectedValue={stayHours}
-                onValueChange={(value) => setStayHours(value)}
-                style={styles.picker}
-                mode="dropdown"
-              >
-                {hourOptions.map((hour) => (
-                  <Picker.Item key={hour} label={`${hour} Hour${hour !== '1' ? 's' : ''}`} value={hour} />
-                ))}
-              </Picker>
-            </View>
-          </View>
 
 
-          <TouchableOpacity style={styles.nextButton} onPress={saveData}>
-            <Text style={styles.nextButtonText}>Next</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+                     <TouchableOpacity style={styles.nextButton} onPress={saveData}>
+             <Text style={styles.nextButtonText}>Next</Text>
+           </TouchableOpacity>
+         </View>
+         </ScrollView>
       {
         showDatePicker && (
           <DateTimePicker
@@ -692,30 +760,22 @@ const TravelMode = ({ navigation, route }) => {
 
 const pickerSelectStyles = {
   inputIOS: {
-    fontSize: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
+    fontSize: responsiveFontSize.md,
+    paddingVertical: verticalScale(12),
+    paddingHorizontal: responsivePadding.medium,
     borderWidth: 1,
     borderColor: '#ccc',
-    borderRadius: 8,
+    borderRadius: scale(8),
     color: '#000',
     backgroundColor: '#fff',
   },
   inputAndroid: {
-    // fontSize: 16,
-    // paddingHorizontal: 12,
-    // paddingVertical: 8,
-    // borderWidth: 1,
-    // borderColor: '#ccc',
-    // borderRadius: 8,
-    // color: '#000',
-    // backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    marginBottom: 16,
+    borderRadius: scale(8),
+    padding: responsivePadding.medium,
+    fontSize: responsiveFontSize.sm,
+    marginBottom: verticalScale(16),
     color: "#333",
     backgroundColor: "#f9f9f9",
     width: "100%",
@@ -729,18 +789,65 @@ const pickerSelectStyles = {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
   map: { height: "30%" },
+  routeSection: {
+    paddingHorizontal: responsivePadding.horizontal,
+    paddingVertical: responsivePadding.medium,
+    backgroundColor: '#fff',
+    position: 'relative',
+  },
+  routeItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: verticalScale(10),
+  },
+  routeDot: {
+    width: scale(12),
+    height: scale(12),
+    borderRadius: scale(6),
+    backgroundColor: '#D32F2F',
+    marginTop: scale(4),
+    marginRight: scale(12),
+  },
+  routeContent: {
+    flex: 1,
+  },
+  routeCity: {
+    fontSize: responsiveFontSize.md,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: scale(2),
+  },
+  routeAddress: {
+    fontSize: responsiveFontSize.sm,
+    color: '#666',
+    lineHeight: verticalScale(18),
+  },
+  routeLine: {
+    position: 'absolute',
+    width: scale(2),
+    height: verticalScale(40),
+    backgroundColor: '#D32F2F',
+    left: scale(25),
+    top: verticalScale(90),
+    zIndex: 1,
+  },
   detailsContainer: {
-    flex: 3,
-    padding: 16,
+    flex: 1,
+    padding: responsivePadding.medium,
     backgroundColor: "#fff",
-    borderTopLeftRadius: 20,
+    borderTopLeftRadius: scale(20),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: scale(4),
     elevation: 5,
   },
-  label: { fontSize: 16, fontWeight: "700", color: "#000", marginBottom: 8 },
+  label: { 
+    fontSize: responsiveFontSize.md, 
+    fontWeight: "700", 
+    color: "#000", 
+    marginBottom: verticalScale(8) 
+  },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -754,10 +861,10 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    marginBottom: 16,
+    borderRadius: scale(8),
+    padding: responsivePadding.medium,
+    fontSize: responsiveFontSize.sm,
+    marginBottom: verticalScale(16),
     color: "#333",
     backgroundColor: "#f9f9f9",
     width: "100%",
@@ -769,32 +876,36 @@ const styles = StyleSheet.create({
   timeInput: { flex: 1, marginRight: 8 },
   nextButton: {
     backgroundColor: "#D83F3F",
-    padding: 16,
-    borderRadius: 8,
+    padding: responsivePadding.medium,
+    borderRadius: scale(8),
     alignItems: "center",
-    marginTop: 16,
+    marginTop: verticalScale(16),
   },
-  nextButtonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
+  nextButtonText: { 
+    color: "#fff", 
+    fontSize: responsiveFontSize.md, 
+    fontWeight: "bold" 
+  },
   header1: {
     position: "absolute",
-    top: 40,
+    top: verticalScale(40),
     width: "13%",
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#D83F3F",
-    padding: 15,
-    borderRadius: 12,
-    marginHorizontal: 10,
+    padding: responsivePadding.medium,
+    borderRadius: scale(12),
+    marginHorizontal: scale(10),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 5,
+    shadowRadius: scale(5),
     elevation: 5,
   },
   marker: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: scale(32),
+    height: scale(32),
+    borderRadius: scale(16),
     justifyContent: "center",
     alignItems: "center",
   },
@@ -815,8 +926,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 10,
-    fontSize: 16,
+    marginTop: verticalScale(10),
+    fontSize: responsiveFontSize.md,
     color: '#333',
     fontWeight: '500',
   },
@@ -829,24 +940,24 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: responsivePadding.medium,
   },
   errorText: {
-    fontSize: 16,
+    fontSize: responsiveFontSize.md,
     color: '#D83F3F',
     textAlign: 'center',
-    marginBottom: 15,
+    marginBottom: verticalScale(15),
     fontWeight: '500',
   },
   retryButton: {
     backgroundColor: '#D83F3F',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingHorizontal: scale(20),
+    paddingVertical: verticalScale(10),
+    borderRadius: scale(8),
   },
   retryButtonText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: responsiveFontSize.sm,
     fontWeight: '600',
   },
   routeDateInput: {
@@ -857,98 +968,21 @@ const styles = StyleSheet.create({
     color: '#D83F3F',
     fontWeight: '600',
   },
-  routeContainer: {
-    flexDirection: 'row',
-    alignItems: 'stretch', // Ensures children stretch to match each other's height
-    backgroundColor: '#F9F9F9',
-    borderRadius: 8,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  iconWrapper: {
-    backgroundColor: '#FFEAEA',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 16,
-  },
-  textWrapper: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-  },
-  locationText: {
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 4,
-  },
-  // pickerWrapper: {
-  //   marginVertical: 10,
-  // },
-  label: {
-    fontSize: 14,
-    color: '#444',
-    marginBottom: 6,
-  },
-  // input: {
-  //   borderWidth: 1,
-  //   borderColor: '#ccc',
-  //   borderRadius: 8,
-  //   padding: 12,
-  //   fontSize: 16,
-  //   marginVertical: 10,
-  //   color: '#000',
-  // },
-  inputIOS: {
-    fontSize: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    color: '#000',
-    paddingRight: 30,
-  },
-  placeholder: {
-    color: '#999',
-  },
+
   picker: {
-    height: 55,
+    height: verticalScale(55),
     color: '#000',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 6,
-    justifyContent: 'center',
-    paddingHorizontal: 10,
-    height: 45,
-    backgroundColor: '#fff',
-  },
-  timeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 10,
   },
   selectedDateText: {
-    fontSize: 18,
+    fontSize: responsiveFontSize.lg,
     fontWeight: 'bold',
     color: '#D83F3F',
     textAlign: 'center',
-    marginBottom: 10,
-    paddingVertical: 8,
+    marginBottom: verticalScale(10),
+    paddingVertical: verticalScale(8),
     backgroundColor: '#FFEAEA',
-    borderRadius: 8,
-    marginHorizontal: 10,
+    borderRadius: scale(8),
+    marginHorizontal: scale(10),
   },
 
 });

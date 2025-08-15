@@ -46,6 +46,15 @@ const WebViewScreen = ({ route, navigation }) => {
         verificationPhoneNumber
       );
 
+      // Extract totalFare and senderTotalPay from route params if available
+      let totalFare = null;
+      let senderTotalPay = null;
+      
+      if (route.params?.notification && route.params.notification.amount && typeof route.params.notification.amount === 'object') {
+        totalFare = route.params.notification.amount.totalFare;
+        senderTotalPay = route.params.notification.amount.senderTotalPay;
+      }
+
       console.log("Making payment verification request")
       const baseUrl = await AsyncStorage.getItem("apiBaseUrl")
       const response = await fetch(
@@ -64,6 +73,8 @@ const WebViewScreen = ({ route, navigation }) => {
             phoneNumber: verificationPhoneNumber,
             travelId: travelId,
             amount: parseFloat(amount) || 0,
+            totalFare: totalFare ? parseFloat(totalFare) : null,
+            senderTotalPay: senderTotalPay ? parseFloat(senderTotalPay) : null,
           }),
         }
       );

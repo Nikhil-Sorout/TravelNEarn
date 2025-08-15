@@ -1,14 +1,27 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons, Ionicons, FontAwesome } from '@expo/vector-icons';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getCityStateFromPincode } from '../../Utils/addressResolver';
+import {
+  scale,
+  verticalScale,
+  moderateScale,
+  moderateVerticalScale,
+  fontScale,
+  responsivePadding,
+  responsiveFontSize,
+  responsiveDimensions,
+  screenWidth,
+  screenHeight
+} from '../../Utils/responsive';
 
 const saveAsOptions = [
-  { key: 'Home', label: 'Home', icon: <MaterialIcons name="home" size={22} /> },
-  { key: 'Work', label: 'Work', icon: <Ionicons name="briefcase" size={22} /> },
-  { key: 'Other', label: 'Other', icon: <FontAwesome name="tag" size={20} /> },
+  { key: 'Home', label: 'Home', icon: <MaterialIcons name="home" size={responsiveDimensions.icon.small} /> },
+  { key: 'Work', label: 'Work', icon: <Ionicons name="briefcase" size={responsiveDimensions.icon.small} /> },
+  { key: 'Other', label: 'Other', icon: <FontAwesome name="tag" size={responsiveDimensions.icon.small} /> },
 ];
 
 const AddStartingCityAddress = ({ route, navigation }) => {
@@ -116,7 +129,14 @@ const AddStartingCityAddress = ({ route, navigation }) => {
           await AsyncStorage.setItem("addressTo", JSON.stringify(body));
         }
 
-        navigation.popToTop();
+        // Navigate back to the Publish screen where address fields are located
+        navigation.navigate("Navigation", { 
+          screen: "Publish",
+          params: { 
+            addressSaved: true,
+            addressFieldType: addressFieldType 
+          }
+        });
       } else {
         Alert.alert("Error", data.message || "Failed to save address.");
       }
@@ -132,16 +152,17 @@ const AddStartingCityAddress = ({ route, navigation }) => {
   // }
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: '#fff' }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
-    >
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1, backgroundColor: '#fff' }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
+      >
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <MaterialIcons name="arrow-back" size={24} color="#000" />
+            <MaterialIcons name="arrow-back" size={responsiveDimensions.icon.medium} color="#000" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{`Add ${addressFieldType === "from" ? "Starting" : "Destination"} City Address`}</Text>
         </View>
@@ -163,11 +184,11 @@ const AddStartingCityAddress = ({ route, navigation }) => {
               <Marker coordinate={{ latitude, longitude }} />
             </MapView>
           ) : (<>
-            <TouchableOpacity style={{ backgroundColor: 'white', paddingHorizontal: 15, paddingVertical: 10, borderRadius: 5, position: 'absolute', bottom: 10, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+            <TouchableOpacity style={styles.locationButton}
               onPress={() => navigation.replace("Address")}
             >
-              <MaterialIcons name="my-location" size={22} color="#888" style={{ opacity: 0.8 }} />
-              <Text style={{ color: '#888', textAlign: 'center' }}>Select Location</Text>
+              <MaterialIcons name="my-location" size={responsiveDimensions.icon.small} color="#888" style={{ opacity: 0.8 }} />
+              <Text style={styles.locationButtonText}>Select Location</Text>
             </TouchableOpacity>
           </>
           )}
@@ -196,6 +217,8 @@ const AddStartingCityAddress = ({ route, navigation }) => {
           <TextInput
             style={[styles.input, !area && !addManually && styles.missingField]}
             value={area || ''}
+            placeholder='Enter area, street, sector'
+            placeholderTextColor={"black"}
             editable={addManually}
             onChangeText={(text)=>setArea(text)}
           />
@@ -219,7 +242,7 @@ const AddStartingCityAddress = ({ route, navigation }) => {
               ⚠️ Pincode could not be extracted from the address. You may want to verify the location.
             </Text>
           )}
-          <View style={{ flexDirection: 'row', gap: 10 }}>
+          <View style={styles.cityStateRow}>
             <View style={{ flex: 1 }}>
               <Text style={styles.label}>City</Text>
               <TextInput
@@ -280,36 +303,99 @@ const AddStartingCityAddress = ({ route, navigation }) => {
           <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
             <Text style={styles.saveBtnText}>Add Address</Text>
           </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
-  );
+                 </View>
+       </ScrollView>
+       </KeyboardAvoidingView>
+     </SafeAreaView>
+   );
 };
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderBottomColor: '#eee', backgroundColor: '#fff' },
-  headerTitle: { fontSize: 18, fontWeight: '500', marginLeft: 15, color: '#222' },
-  mapContainer: { height: 160, backgroundColor: '#f2f2f2', justifyContent: 'center', alignItems: 'center', position: 'relative', marginBottom: 10 },
-  map: { ...StyleSheet.absoluteFillObject, borderRadius: 12 },
-  form: { padding: 16, paddingBottom: 40 },
-  label: { fontSize: 15, color: '#333', marginTop: 10, marginBottom: 2 },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, fontSize: 15, backgroundColor: '#fafafa', marginBottom: 2, color : "#000" },
-  saveAsRow: { flexDirection: 'row', justifyContent: 'space-between', marginVertical: 14 },
+  header: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    padding: responsivePadding.medium, 
+    borderBottomWidth: scale(1), 
+    borderBottomColor: '#eee', 
+    backgroundColor: '#fff' 
+  },
+  headerTitle: { 
+    fontSize: responsiveFontSize.lg, 
+    fontWeight: '500', 
+    marginLeft: responsivePadding.medium, 
+    color: '#222' 
+  },
+  mapContainer: { 
+    height: verticalScale(160), 
+    backgroundColor: '#f2f2f2', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    position: 'relative', 
+    marginBottom: scale(10) 
+  },
+  map: { 
+    ...StyleSheet.absoluteFillObject, 
+    borderRadius: scale(12) 
+  },
+  locationButton: {
+    backgroundColor: 'white', 
+    paddingHorizontal: scale(15), 
+    paddingVertical: scale(10), 
+    borderRadius: scale(5), 
+    position: 'absolute', 
+    bottom: scale(10), 
+    display: 'flex', 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between'
+  },
+  locationButtonText: {
+    color: '#888', 
+    textAlign: 'center',
+    fontSize: responsiveFontSize.sm,
+    marginLeft: scale(8)
+  },
+  form: { 
+    padding: responsivePadding.horizontal, 
+    paddingBottom: verticalScale(40) 
+  },
+  label: { 
+    fontSize: responsiveFontSize.md, 
+    color: '#333', 
+    marginTop: scale(10), 
+    marginBottom: scale(2) 
+  },
+  input: { 
+    borderWidth: scale(1), 
+    borderColor: '#ccc', 
+    borderRadius: scale(8), 
+    padding: scale(10), 
+    fontSize: responsiveFontSize.md, 
+    backgroundColor: '#fafafa', 
+    marginBottom: scale(2), 
+    color: "#000",
+    minHeight: verticalScale(48)
+  },
+  saveAsRow: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    marginVertical: verticalScale(14) 
+  },
   saveAsOption: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 6,
-    borderWidth: 2,
-    borderRadius: 10,
-    marginHorizontal: 4,
+    padding: scale(6),
+    borderWidth: scale(2),
+    borderRadius: scale(10),
+    marginHorizontal: scale(4),
     backgroundColor: '#fff',
     borderColor: '#bbb',
     shadowColor: '#2196F3',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: scale(2) },
     shadowOpacity: 0.10,
-    shadowRadius: 3,
+    shadowRadius: scale(3),
     elevation: 1,
   },
   saveAsSelected: {
@@ -319,9 +405,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
   },
   saveAsLabel: {
-    marginLeft: 8,
+    marginLeft: scale(8),
     fontWeight: '600',
-    fontSize: 15,
+    fontSize: responsiveFontSize.md,
     color: '#222',
     letterSpacing: 0.2,
     textAlignVertical: 'center',
@@ -329,10 +415,34 @@ const styles = StyleSheet.create({
   saveAsLabelSelected: {
     color: '#fff',
   },
-  saveBtn: { backgroundColor: '#D32F2F', borderRadius: 8, marginTop: 20, paddingVertical: 14, alignItems: 'center' },
-  saveBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  missingField: { backgroundColor: '#fff3cd', borderColor: '#ffeaa7' },
-  warningText: { color: '#856404', fontSize: 12, marginTop: 4, marginBottom: 8, fontStyle: 'italic' },
+  saveBtn: { 
+    backgroundColor: '#D32F2F', 
+    borderRadius: scale(8), 
+    marginTop: verticalScale(20), 
+    paddingVertical: verticalScale(14), 
+    alignItems: 'center',
+    minHeight: verticalScale(50)
+  },
+  saveBtnText: { 
+    color: '#fff', 
+    fontSize: responsiveFontSize.md, 
+    fontWeight: 'bold' 
+  },
+  missingField: { 
+    backgroundColor: '#fff3cd', 
+    borderColor: '#ffeaa7' 
+  },
+  warningText: { 
+    color: '#856404', 
+    fontSize: fontScale(12), 
+    marginTop: scale(4), 
+    marginBottom: scale(8), 
+    fontStyle: 'italic' 
+  },
+  cityStateRow: {
+    flexDirection: 'row', 
+    gap: scale(10)
+  },
 });
 
 export default AddStartingCityAddress; 

@@ -266,6 +266,7 @@ const NotificationsScreen = ({ navigation, route }) => {
     amount,
     travelId,
     title = "Ride Payment",
+    notification = null,
   }) => {
     console.log("Verifying payment for Travel ID:", travelId);
     try {
@@ -283,18 +284,30 @@ const NotificationsScreen = ({ navigation, route }) => {
         throw new Error("Amount must be a positive number.");
       }
 
+      // Extract totalFare and senderTotalPay from notification if available
+      let totalFare = null;
+      let senderTotalPay = null;
+      
+      if (notification && notification.amount && typeof notification.amount === 'object') {
+        totalFare = notification.amount.totalFare;
+        senderTotalPay = notification.amount.senderTotalPay;
+      }
+
       console.log("Verifying payment with:", {
         razorpay_order_id,
         razorpay_payment_id,
         razorpay_signature,
         phoneNumber: finalPhoneNumber,
         amount: amountNum,
+        totalFare,
+        senderTotalPay,
         travelId,
         title,
       });
 
+      const baseUrl = await AsyncStorage.getItem("apiBaseUrl");
       const response = await fetch(
-        `https://travel.timestringssystem.com/p/verify-order`,
+        `${baseUrl}p/verify-order`,
         {
           method: "POST",
           headers: {
@@ -307,6 +320,8 @@ const NotificationsScreen = ({ navigation, route }) => {
             razorpay_signature,
             phoneNumber: finalPhoneNumber,
             amount: amountNum,
+            totalFare: totalFare ? parseFloat(totalFare) : null,
+            senderTotalPay: senderTotalPay ? parseFloat(senderTotalPay) : null,
             travelId: travelId || "N/A",
             title,
           }),

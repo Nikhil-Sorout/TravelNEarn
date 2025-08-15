@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import ConsignmentRequestModel from "./ConsignmentRequestModel";
 import TravelRequestModel from "./TravelRequestModel";
@@ -118,7 +119,7 @@ const TravelPayRequest = ({ route, navigation }) => {
 
   const getIconName = (mode) => {
     switch (mode.toLowerCase()) {
-      case "car":
+      case "roadways":
         return "car";
       case "train":
         return "train";
@@ -310,7 +311,7 @@ const TravelPayRequest = ({ route, navigation }) => {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -375,8 +376,8 @@ const TravelPayRequest = ({ route, navigation }) => {
                   }}
                 />
                 <View>
-                  <Text style={{ fontFamily: "Inter-Regular" }}>
-                    {item.rider}
+                  <Text style={{ fontFamily: "Inter-Regular", color : "#000" }}>
+                    {item.rider} 
                   </Text>
                   <View
                     style={{
@@ -387,7 +388,7 @@ const TravelPayRequest = ({ route, navigation }) => {
                     }}
                   >
                     <Ionicons name="star" color={"orange"} />
-                    <Text>
+                    <Text style={{ color : "#000" }}>
                       {item.rating || "0"} ({item.totalRating || "0"} ratings)
                     </Text>
                   </View>
@@ -443,7 +444,7 @@ const TravelPayRequest = ({ route, navigation }) => {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 

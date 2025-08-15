@@ -1,10 +1,11 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons'; // Import Ionicons
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Header from '../../header';
 const PrivacyPolicy = ({navigation}) => {
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container}>
           {/* Header */}
           <Header title="Privacy Policy" navigation={navigation} />
 
@@ -20,7 +21,7 @@ const PrivacyPolicy = ({navigation}) => {
               ...
             </Text>
           </ScrollView>
-        </View>
+        </SafeAreaView>
     );
 };
 

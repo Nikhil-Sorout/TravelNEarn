@@ -9,8 +9,10 @@ import {
   Text,
   TouchableOpacity,
   View,
+  StatusBar,
 } from "react-native";
 import { useRoute } from "@react-navigation/native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const ConsignmentDetails = () => {
   const navigation = useNavigation();
@@ -130,18 +132,20 @@ const ConsignmentDetails = () => {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="chevron-back" size={24} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Consignment Details</Text>
-        <Ionicons name="help-circle-outline" size={24} color="#fff" />
-      </View>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="light-content" backgroundColor="#D32F2F" />
+      <ScrollView style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="chevron-back" size={24} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Consignment Details</Text>
+          <Ionicons name="help-circle-outline" size={24} color="#fff" />
+        </View>
 
       {/* Card 1 - Pickup & Dropoff */}
       <View style={styles.card}>
@@ -315,11 +319,16 @@ const ConsignmentDetails = () => {
       <TouchableOpacity style={styles.footerButton} onPress={handleRequest}>
         <Text style={styles.buttonText}>Request to Carry the Consignment</Text>
       </TouchableOpacity>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#D32F2F",
+  },
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",

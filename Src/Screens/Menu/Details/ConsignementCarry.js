@@ -9,7 +9,9 @@ import {
   View,
 } from "react-native";
 import Header from "../../../header";
+import { SafeAreaView } from "react-native-safe-area-context";
 import commonStyles from "../../../styles";
+import { scale, verticalScale ,responsiveFontSize } from "../../../Utils/responsive";
 
 const ConsignmentCarry = ({ route }) => {
   const { travelId } = route.params;
@@ -244,10 +246,10 @@ const ConsignmentCarry = ({ route }) => {
           <View
             style={[
               commonStyles.verticalseparator,
-              { marginTop: -5, marginBottom: 5 },
+              { marginTop: -5, marginBottom: 5, position: 'absolute', top: verticalScale(35), left: scale(-3) },
             ]}
           ></View>
-          <View style={styles.separator} />
+          {/* <View style={styles.separator} /> */}
 
           <View style={styles.locationRow}>
             <Image
@@ -318,7 +320,8 @@ const ConsignmentCarry = ({ route }) => {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      {/* <StatusBar backgroundColor="#D83F3F" barStyle="light-content" /> */}
       <Header title="Consignments to carry" navigation={navigation} />
       {travelData.length === 0 ? (
         <Text style={styles.noDataText}>No consignments available</Text>
@@ -330,7 +333,7 @@ const ConsignmentCarry = ({ route }) => {
           contentContainerStyle={styles.listContainer}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -339,55 +342,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f9f9f9",
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#d32f2f",
-    height: 60,
-    paddingHorizontal: 0,
-    marginTop: 30,
-  },
-  backButton: {
-    position: "absolute",
-    left: 15,
-  },
-  headerTitle: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  searchBarContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    marginTop: 10,
-  },
-  searchInput: {
-    flex: 1,
-    borderColor: "#ddd",
-    borderWidth: 1,
-    borderRadius: 5,
-    paddingLeft: 40,
-    paddingVertical: 8,
-    fontSize: 14,
-    backgroundColor: "#f1f1f1",
-  },
-  searchIcon: {
-    position: "absolute",
-    left: 10,
-    marginLeft: 18,
-  },
+
   listContainer: {
-    padding: 15,
+    padding: scale(15),
   },
   card: {
     backgroundColor: "#ffffff",
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 12,
+    borderRadius: scale(8),
+    padding: scale(15),
+    marginBottom: verticalScale(12),
     borderWidth: 1,
     borderColor: "#e0e0e0",
   },
@@ -395,108 +358,108 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: verticalScale(10),
   },
   boldText: {
     fontWeight: "bold",
-    fontSize: 16,
+    fontSize: responsiveFontSize.md,
     color: "#333",
   },
   badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 2,
-    width: 150,
-    marginBottom: 10,
+    paddingHorizontal: scale(10),
+    paddingVertical: verticalScale(8),
+    borderRadius: scale(2),
+    width: scale(150),
+    marginBottom: verticalScale(10),
     justifyContent: "center",
     alignItems: "center",
   },
   dateText: {
-    fontSize: 14,
+    fontSize: responsiveFontSize.sm,
     color: "#666",
-    marginBottom: 8,
+    marginBottom: verticalScale(8),
   },
   locationRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    marginBottom: 5,
+    marginBottom: verticalScale(15),
   },
   locationIcon: {
-    width: 20,
-    height: 20,
-    marginTop: 3,
+    width: scale(20),
+    height: scale(20),
+    marginTop: verticalScale(3),
   },
   locationText: {
-    fontSize: 16,
+    fontSize: responsiveFontSize.md,
     color: "#333",
-    marginLeft: 10,
+    marginLeft: scale(10),
     fontWeight: "bold",
     flex: 1,
   },
   locationDescription: {
     color: "#555",
-    fontSize: 16,
+    fontSize: responsiveFontSize.md,
     fontWeight: "normal",
   },
   carRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 10,
+    marginVertical: verticalScale(10),
   },
   carText: {
-    marginLeft: 8,
-    fontSize: 14,
+    marginLeft: scale(8),
+    fontSize: responsiveFontSize.sm,
     color: "#444",
   },
   separator: {
     borderStyle: "dashed",
     borderWidth: 1,
     borderColor: "#ddd",
-    marginVertical: 10,
-    marginLeft: 40,
-    marginTop: -20,
+    marginVertical: verticalScale(10),
+    marginLeft: scale(40),
+    marginTop: verticalScale(-20),
   },
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 5,
+    marginBottom: verticalScale(5),
   },
   infoIcon: {
-    width: 24,
-    height: 24,
-    marginRight: 8,
+    width: scale(24),
+    height: scale(24),
+    marginRight: scale(8),
   },
   infoTitle: {
-    fontSize: 14,
+    fontSize: responsiveFontSize.sm,
     fontWeight: "bold",
     color: "#444",
   },
   infoValue: {
-    fontSize: 15,
+    fontSize: responsiveFontSize.md,
     color: "#333",
-    marginLeft: 32,
-    marginTop: 3,
+    marginLeft: scale(32),
+    marginTop: verticalScale(3),
   },
   infoBlock: {
     flex: 1,
-    marginVertical: 5,
+    marginVertical: verticalScale(5),
   },
   otherInfo: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 15,
+    marginTop: verticalScale(15),
   },
   buttonContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     borderTopWidth: 1,
     borderTopColor: "#eee",
-    marginTop: 10,
-    paddingTop: 10,
+    marginTop: verticalScale(10),
+    paddingTop: verticalScale(10),
   },
   button: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: verticalScale(10),
     justifyContent: "center",
     alignItems: "center",
   },
@@ -511,12 +474,12 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#1976d2",
     fontWeight: "500",
-    fontSize: 14,
+    fontSize: responsiveFontSize.sm,
   },
   noDataText: {
     textAlign: "center",
-    marginTop: 20,
-    fontSize: 16,
+    marginTop: verticalScale(20),
+    fontSize: responsiveFontSize.md,
     color: "#555",
   },
 });

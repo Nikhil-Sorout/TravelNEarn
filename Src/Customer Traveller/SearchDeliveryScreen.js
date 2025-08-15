@@ -146,6 +146,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily:'Inter-Bold',
     marginBottom: 8,
+    color: "#000"
   },
   inputContainer: {
     flexDirection: "row",
@@ -162,13 +163,15 @@ const styles = StyleSheet.create({
     height: 45,
     marginLeft: 10,
     marginTop: 0,
+    color: "#000"
   },
   inputDate: {
     flex: 1,
     height: 45,
     marginLeft: 10,
-    marginTop: 12,
+    // marginTop: 12,
     color: "#000",
+    textAlignVertical: 'center'
   },
   searchButton: {
     backgroundColor: "#E53935",

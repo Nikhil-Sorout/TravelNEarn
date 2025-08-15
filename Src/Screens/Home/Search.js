@@ -23,13 +23,23 @@ import {
   scale, 
   verticalScale, 
   moderateScale,
+  moderateVerticalScale,
   responsiveFontSize, 
   responsivePadding,
+  responsiveDimensions,
   screenWidth,
   screenHeight 
 } from "../../Utils/responsive";
 
 const { width, height } = Dimensions.get("window");
+
+// Responsive breakpoints
+const isSmallScreen = screenWidth < 375;
+const isMediumScreen = screenWidth >= 375 && screenWidth < 414;
+const isLargeScreen = screenWidth >= 414;
+const isShortScreen = screenHeight < 700;
+const isMediumHeight = screenHeight >= 700 && screenHeight < 800;
+const isTallScreen = screenHeight >= 800;
 
 const Search = () => {
   const navigation = useNavigation();
@@ -50,9 +60,9 @@ const Search = () => {
   const [isToFocused, setIsToFocused] = useState(false);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
 
-  // Format display text to truncate long addresses
+  // Format display text to truncate long addresses based on screen size
   const formatDisplayText = (text) => {
-    const maxLength = screenWidth < 375 ? 25 : screenWidth < 390 ? 30 : 35;
+    const maxLength = isSmallScreen ? 25 : isMediumScreen ? 30 : 35;
     if (text && text.length > maxLength) {
       return text.substring(0, maxLength - 3) + "...";
     }
@@ -86,7 +96,7 @@ const Search = () => {
       // Delay to ensure the keyboard is shown
       setTimeout(() => {
         if (scrollViewRef.current) {
-          const scrollY = screenHeight < 700 ? 200 : screenHeight < 800 ? 250 : 300;
+          const scrollY = isShortScreen ? verticalScale(200) : isMediumHeight ? verticalScale(250) : verticalScale(300);
           scrollViewRef.current.scrollTo({
             y: scrollY,
             animated: true
@@ -237,7 +247,7 @@ const Search = () => {
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? (screenHeight < 700 ? 80 : 100) : 0}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? (isShortScreen ? verticalScale(80) : verticalScale(100)) : 0}
     >
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       <TouchableWithoutFeedback onPress={closeSuggestions}>
@@ -268,7 +278,7 @@ const Search = () => {
                   style={styles.notificationIconContainer}
                   onPress={handleNotificationPress}
                 >
-                  <Icon name="bell-o" size={moderateScale(25)} color="#fff" />
+                  <Icon name="bell-o" size={responsiveDimensions.icon.medium} color="#fff" />
                   {unreadNotificationsCount > 0 && (
                     <View style={styles.notificationBadge}>
                       <Text style={styles.notificationBadgeText}>
@@ -310,15 +320,17 @@ const Search = () => {
               style={[
                 styles.formContainer,
                 { 
-                  marginHorizontal: screenWidth < 375 ? scale(10) : scale(20),
-                  paddingHorizontal: screenWidth < 375 ? scale(15) : scale(20),
+                  marginHorizontal: isSmallScreen ? responsivePadding.small : responsivePadding.horizontal,
                 }
               ]}
               onStartShouldSetResponder={() => true}
             >
               {/* Leaving From Input */}
-              <Text style={{ color: '#000' }}>{activeTab === "Travellers" ?"Leaving From":"Sending From"}</Text>
-              <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>{activeTab === "Travellers" ?"Leaving From":"Sending From"}</Text>
+              <View style={[
+                styles.inputContainer,
+                isFromFocused && goingSuggestions.length > 0 && !fromSelected && { zIndex: 1000 }
+              ]}>
                 <View style={styles.bulletPointRed} />
                 <TextInput
                   style={[styles.input, { textAlign: "left" }]}
@@ -351,6 +363,10 @@ const Search = () => {
                           nestedScrollEnabled={true}
                           keyboardShouldPersistTaps="handled"
                           contentContainerStyle={styles.suggestionScrollContent}
+                          showsVerticalScrollIndicator={true}
+                          scrollIndicatorInsets={{ right: 1 }}
+                          bounces={false}
+                          alwaysBounceVertical={false}
                         >
                           {goingSuggestions.map((item, index) => (
                             <TouchableOpacity
@@ -387,8 +403,11 @@ const Search = () => {
               </View>
 
               {/* Going To Input */}
-              <Text style={{ color: '#000' }}>{activeTab === "Travellers" ?"Going To":"Sending To"}</Text>
-              <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>{activeTab === "Travellers" ?"Going To":"Sending To"}</Text>
+              <View style={[
+                styles.inputContainer,
+                isToFocused && leavingSuggestions.length > 0 && !toSelected && { zIndex: 1000 }
+              ]}>
                 <View style={styles.bulletPointGreen} />
                 <TextInput
                   style={[styles.input, { textAlign: "left" }]}
@@ -420,6 +439,10 @@ const Search = () => {
                           nestedScrollEnabled={true}
                           keyboardShouldPersistTaps="handled"
                           contentContainerStyle={styles.suggestionScrollContent}
+                          showsVerticalScrollIndicator={true}
+                          scrollIndicatorInsets={{ right: 1 }}
+                          bounces={false}
+                          alwaysBounceVertical={false}
                         >
                           {leavingSuggestions.map((item, index) => (
                             <TouchableOpacity
@@ -456,10 +479,10 @@ const Search = () => {
               </View>
 
               {/* Date Picker with Calendar Icon */}
-              <View style={styles.inputContainer}>
+              <View style={[styles.inputContainer, { zIndex: 0 }]}>
                 <Icon
                   name="calendar"
-                  size={moderateScale(20)}
+                  size={responsiveDimensions.icon.small}
                   color="#aaa"
                   style={styles.calendarIcon}
                 />
@@ -484,7 +507,7 @@ const Search = () => {
                   style={{ 
                     width: moderateScale(50), 
                     fontFamily: "Inter-Regular",
-                    transform: [{ scale: screenWidth < 375 ? 0.9 : 1 }]
+                    transform: [{ scale: isSmallScreen ? 0.9 : 1 }]
                   }}
                   display={Platform.OS === "ios" ? "spinner" : "default"}
                   onChange={onChange}
@@ -520,9 +543,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5', // Light background for better contrast
   },
   headerContainer: {
-    height: verticalScale(480),
-    minHeight: screenHeight * 0.55, // Ensure minimum height for smaller screens
-    maxHeight: screenHeight * 0.65, // Prevent header from being too large on big screens
+    height: isShortScreen ? verticalScale(400) : isMediumHeight ? verticalScale(450) : verticalScale(480),
+    minHeight: screenHeight * 0.5, // Ensure minimum height for smaller screens
+    maxHeight: screenHeight * 0.6, // Prevent header from being too large on big screens
   },
   textureBackground: {
     width: "100%",
@@ -535,26 +558,26 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: "#fff",
-    fontSize: moderateScale(46),
+    fontSize: isSmallScreen ? moderateScale(36) : isMediumScreen ? moderateScale(42) : moderateScale(46),
     fontFamily: "Inter-Bold",
     fontWeight: "900",
     marginBottom: verticalScale(10),
-    marginTop: verticalScale(-200),
+    marginTop: isShortScreen ? verticalScale(-150) : isMediumHeight ? verticalScale(-180) : verticalScale(-200),
     textAlign: "center",
-    paddingHorizontal: scale(20),
+    paddingHorizontal: responsivePadding.horizontal,
   },
   subHeader: {
     color: "white",
-    fontSize: moderateScale(20),
+    fontSize: responsiveFontSize.lg,
     position: "absolute",
-    bottom: "40%",
+    bottom: isShortScreen ? "35%" : isMediumHeight ? "38%" : "40%",
     fontFamily: "Inter-Bold",
     textAlign: "center",
   },
   notificationIconContainer: {
     position: "absolute",
-    top: verticalScale(43),
-    right: scale(20),
+    top: isShortScreen ? verticalScale(35) : verticalScale(43),
+    right: responsivePadding.horizontal,
     padding: scale(8),
   },
   tabContainer: {
@@ -563,9 +586,9 @@ const styles = StyleSheet.create({
     borderColor: "white",
     borderRadius: scale(8),
     alignSelf: "center",
-    marginTop: verticalScale(-180),
+    marginTop: isShortScreen ? verticalScale(-140) : isMediumHeight ? verticalScale(-160) : verticalScale(-180),
     width: "90%",
-    maxWidth: scale(350),
+    maxWidth: responsiveDimensions.button.width,
     minHeight: verticalScale(44), // Ensure minimum touch target size
   },
   tabButton: {
@@ -578,7 +601,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
   },
   tabText: {
-    fontSize: moderateScale(14),
+    fontSize: responsiveFontSize.sm,
     fontFamily: "OpenSans-Bold",
     color: "white",
   },
@@ -587,10 +610,10 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     width: "90%",
-    maxWidth: scale(350),
+    maxWidth: responsiveDimensions.button.width,
     backgroundColor: "#fff",
     marginVertical: verticalScale(20),
-    padding: scale(20),
+    padding: responsivePadding.horizontal,
     borderRadius: scale(15),
     alignSelf: "center",
     elevation: 5,
@@ -598,6 +621,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: verticalScale(2) },
     shadowOpacity: 0.1,
     shadowRadius: scale(4),
+    position: "relative",
+    zIndex: 1,
+  },
+  inputLabel: {
+    color: '#000',
+    fontSize: responsiveFontSize.md,
+    fontFamily: "Inter-Regular",
+    marginBottom: verticalScale(5),
   },
   inputContainer: {
     flexDirection: "row",
@@ -606,6 +637,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1.5,
     borderBottomColor: "#ddd",
     minHeight: verticalScale(50),
+    position: "relative",
+    zIndex: 1,
   },
   bulletPointRed: {
     width: scale(10),
@@ -623,7 +656,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontSize: moderateScale(16),
+    fontSize: responsiveFontSize.md,
     fontFamily: "Inter-Regular",
     paddingVertical: verticalScale(10),
     color: "#333",
@@ -635,10 +668,11 @@ const styles = StyleSheet.create({
     borderRadius: scale(15),
     alignItems: "center",
     marginTop: verticalScale(10),
+    minHeight: verticalScale(50), // Ensure minimum touch target
   },
   searchButtonText: {
     color: "#fff",
-    fontSize: moderateScale(16),
+    fontSize: responsiveFontSize.md,
     fontFamily: "Inter-Bold",
   },
   calendarIcon: {
@@ -654,9 +688,10 @@ const styles = StyleSheet.create({
     borderRadius: scale(8),
     borderWidth: 1,
     borderColor: "#ddd",
-    maxHeight: verticalScale(200),
-    zIndex: 999,
-    elevation: 5,
+    maxHeight: isShortScreen ? verticalScale(180) : verticalScale(250),
+    minHeight: verticalScale(50),
+    zIndex: 9999,
+    elevation: 10,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: verticalScale(2) },
     shadowOpacity: 0.2,
@@ -665,7 +700,7 @@ const styles = StyleSheet.create({
   },
   suggestionItem: {
     paddingVertical: verticalScale(10),
-    paddingHorizontal: scale(15),
+    paddingHorizontal: responsivePadding.medium,
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
     width: "100%",
@@ -673,12 +708,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   suggestionText: {
-    fontSize: moderateScale(15),
+    fontSize: responsiveFontSize.sm,
     fontFamily: "Inter-Regular",
     color: "#333",
   },
   suggestionsFooter: {
-    fontSize: moderateScale(12),
+    fontSize: responsiveFontSize.xs,
     color: "#888",
     textAlign: "center",
     paddingVertical: verticalScale(5),
@@ -688,9 +723,10 @@ const styles = StyleSheet.create({
   },
   suggestionScrollContent: {
     flexGrow: 1,
+    paddingVertical: verticalScale(2),
   },
   inputText: {
-    fontSize: moderateScale(16),
+    fontSize: responsiveFontSize.md,
     color: "#000"
   },
   notificationBadge: {
@@ -707,7 +743,7 @@ const styles = StyleSheet.create({
   },
   notificationBadgeText: {
     color: "#000",
-    fontSize: moderateScale(12),
+    fontSize: responsiveFontSize.xs,
     fontWeight: "bold",
   },
 });

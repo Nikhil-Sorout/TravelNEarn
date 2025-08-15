@@ -103,17 +103,17 @@ const AddressBook = ({ navigation }) => {
   };
 
   // Handle address item press - navigate to publish consignment location
-  const handleAddressPress = (address) => {
-    // Construct googleMapsAddress from address components
-    const googleMapsAddress = `${address.location}, ${address.pincode}, ${address.city}, ${address.state}`;
+  // const handleAddressPress = (address) => {
+  //   // Construct googleMapsAddress from address components
+  //   const googleMapsAddress = `${address.location}, ${address.pincode}, ${address.city}, ${address.state}`;
     
-    // Navigate to PublishConsignmentLocation with the address
-    navigation.navigate("PublishConsignmentLocation", {
-      googleMapsAddress: googleMapsAddress,
-      initialLocation: address.googleMapsAddress || googleMapsAddress,
-      address: address // Pass the full address object for constructing displayAddress
-    });
-  };
+  //   // Navigate to PublishConsignmentLocation with the address
+  //   navigation.navigate("PublishConsignmentLocation", {
+  //     googleMapsAddress: googleMapsAddress,
+  //     initialLocation: address.googleMapsAddress || googleMapsAddress,
+  //     address: address // Pass the full address object for constructing displayAddress
+  //   });
+  // };
 
   if (loading) {
     return (
@@ -137,7 +137,7 @@ const AddressBook = ({ navigation }) => {
             <TouchableOpacity
               key={index}
               style={styles.addressItem}
-              onPress={() => handleAddressPress(item)}
+              // onPress={() => handleAddressPress(item)}
               activeOpacity={0.7}
             >
               <View style={styles.addressIconContainer}>
@@ -240,6 +240,7 @@ const styles = StyleSheet.create({
   addressTitle: {
     fontSize: 16,
     fontWeight: "bold",
+    color: '#000'
   },
   address: {
     color: "#333",

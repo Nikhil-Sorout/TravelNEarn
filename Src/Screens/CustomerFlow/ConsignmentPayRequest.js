@@ -14,6 +14,7 @@ import {
 import Ionicons from "react-native-vector-icons/Ionicons";
 import ConsignmentRequestModel from "./ConsignmentRequestModel";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
@@ -389,7 +390,7 @@ const ConsignmentPayRequest = ({ route, navigation }) => {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -503,7 +504,7 @@ const ConsignmentPayRequest = ({ route, navigation }) => {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 

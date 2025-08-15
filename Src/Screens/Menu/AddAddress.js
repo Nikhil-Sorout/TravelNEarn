@@ -4,6 +4,18 @@ import * as Location from "expo-location";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { parseAddress, parseAddressWithGeocoding } from "../../Utils/addressResolver";
 import {
+  scale,
+  verticalScale,
+  moderateScale,
+  moderateVerticalScale,
+  fontScale,
+  responsivePadding,
+  responsiveFontSize,
+  responsiveDimensions,
+  screenWidth,
+  screenHeight
+} from "../../Utils/responsive";
+import {
   ActivityIndicator,
   Alert,
   Keyboard,
@@ -36,7 +48,7 @@ const Header = ({ title, navigation }) => {
         accessible
         accessibilityLabel="Go back"
       >
-        <MaterialIcons name="arrow-back" size={24} color="#000" />
+        <MaterialIcons name="arrow-back" size={responsiveDimensions.icon.medium} color="#000" />
       </TouchableOpacity>
       <Text style={headerStyles.title}>{title}</Text>
     </View>
@@ -47,16 +59,16 @@ const headerStyles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 15,
-    borderBottomWidth: 1,
+    padding: responsivePadding.medium,
+    borderBottomWidth: scale(1),
     borderBottomColor: "#eee",
     backgroundColor: "#fff",
     zIndex: 10,
   },
   title: {
-    fontSize: 18,
+    fontSize: responsiveFontSize.lg,
     fontWeight: "500", // Less bold than before
-    marginLeft: 15,
+    marginLeft: responsivePadding.medium,
     color: "#222",
   },
 });
@@ -92,7 +104,7 @@ const InputItem = memo(
               accessible
               accessibilityLabel={`Clear ${item.label}`}
             >
-              <MaterialIcons name="clear" size={20} color="#666" />
+              <MaterialIcons name="clear" size={responsiveDimensions.icon.small} color="#666" />
             </TouchableOpacity>
           )}
         </View>
@@ -406,7 +418,8 @@ const AddAddress = ({ navigation, route }) => {
               <TextInput
                 ref={locationInputRef}
                 style={styles.input}
-                placeholder="Enter location/address"
+                placeholder="Enter address"
+                placeholderTextColor={"grey"}
                 value={address}
                 onChangeText={text => {
                   handleInputChange(text);
@@ -423,51 +436,49 @@ const AddAddress = ({ navigation, route }) => {
                 fetchCoordsFromAddress(address)
                 setShowPin(true)
               }}>
-                <MaterialIcons name="search" size={20} color={"black"} />
+                <MaterialIcons name="search" size={responsiveDimensions.icon.small} color={"black"} />
               </TouchableOpacity>
             </View>
             {/* Suggestions Dropdown */}
             {(goingSuggestions.length > 0 && !fromSelected) && (
-              <TouchableWithoutFeedback onPress={() => {}}>
-                <View style={styles.suggestionsContainer}>
-                  <ScrollView
-                    nestedScrollEnabled={true}
-                    keyboardShouldPersistTaps="handled"
-                    contentContainerStyle={styles.suggestionScrollContent}
-                  >
-                    {goingSuggestions.map((item, index) => (
-                      <TouchableOpacity
-                        key={`from-${index}`}
-                        style={styles.suggestionItem}
-                        onPress={() => {
-                          setAddress(item);
-                          setFrom(item);
-                          setFromSelected(true);
-                          setGoingSuggestions([]);
-                          Keyboard.dismiss();
-                        }}
-                        activeOpacity={0.7}
+              <View style={styles.suggestionsContainer}>
+                <ScrollView
+                  nestedScrollEnabled={true}
+                  keyboardShouldPersistTaps="handled"
+                  contentContainerStyle={styles.suggestionScrollContent}
+                >
+                  {goingSuggestions.map((item, index) => (
+                    <TouchableOpacity
+                      key={`from-${index}`}
+                      style={styles.suggestionItem}
+                      onPress={() => {
+                        setAddress(item);
+                        setFrom(item);
+                        setFromSelected(true);
+                        setGoingSuggestions([]);
+                        Keyboard.dismiss();
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text
+                        style={styles.suggestionText}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
                       >
-                        <Text
-                          style={styles.suggestionText}
-                          numberOfLines={1}
-                          ellipsizeMode="tail"
-                        >
-                          {item}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                    {goingSuggestions.length > 20 && (
-                      <Text style={styles.suggestionsFooter}>
-                        Showing first 20 suggestions...
+                        {item}
                       </Text>
-                    )}
-                  </ScrollView>
-                </View>
-              </TouchableWithoutFeedback>
+                    </TouchableOpacity>
+                  ))}
+                  {goingSuggestions.length > 20 && (
+                    <Text style={styles.suggestionsFooter}>
+                      Showing first 20 suggestions...
+                    </Text>
+                  )}
+                </ScrollView>
+              </View>
             )}
             <View style={styles.infoRow}>
-              <MaterialIcons name="info-outline" size={18} color="#888" />
+              <MaterialIcons name="info-outline" size={responsiveDimensions.icon.small} color="#888" />
               <Text style={styles.infoText}>
                 Based on dropped pin, to change enter full address
               </Text>
@@ -517,12 +528,11 @@ const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
     backgroundColor: "#fff",
-    paddingBottom: Platform.OS === "ios" ? 20 : 0,
-    paddingBottom: 20
+    paddingBottom: verticalScale(20)
   },
   flexMapContainer: {
     flex: 1,
-    minHeight: 150,
+    minHeight: verticalScale(150),
     backgroundColor: "#eee",
     justifyContent: "center",
     alignItems: "center",
@@ -535,81 +545,84 @@ const styles = StyleSheet.create({
   },
   currentLocationButton: {
     position: "absolute",
-    bottom: 80,
-    right: 16,
+    bottom: verticalScale(80),
+    right: scale(16),
     backgroundColor: "#fff",
-    borderRadius: 24,
-    padding: 6,
+    borderRadius: scale(24),
+    padding: scale(6),
     elevation: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.12,
     shadowRadius: 1,
-    zIndex: 10,
+    zIndex: 1,
     // opacity: 1 // Less visible
   },
   inputSection: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingHorizontal: responsivePadding.horizontal,
+    paddingTop: responsivePadding.medium,
     backgroundColor: "#fff",
+    position: 'relative', // Important for suggestions positioning
+    zIndex: 1, // Lower z-index than suggestions
   },
   inputWithInfo: {
     flexDirection: "row",
     alignItems: "center",
     borderColor: "#ccc",
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    marginBottom: 6,
+    borderWidth: scale(1),
+    borderRadius: scale(8),
+    paddingHorizontal: scale(10),
+    marginBottom: scale(6),
     backgroundColor: "#fafafa",
   },
   input: {
     flex: 1,
-    height: 48,
-    fontSize: 16,
+    height: verticalScale(48),
+    fontSize: responsiveFontSize.md,
     color: "#222",
   },
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 2,
-    marginBottom: 8,
+    marginTop: scale(2),
+    marginBottom: scale(8),
   },
   infoText: {
     color: "#888",
-    fontSize: 13,
-    marginLeft: 6,
+    fontSize: fontScale(13),
+    marginLeft: scale(6),
   },
   buttonSection: {
-    paddingHorizontal: 16,
-    marginTop: 16,
-    paddingVertical: 10
+    paddingHorizontal: responsivePadding.horizontal,
+    marginTop: responsivePadding.medium,
+    paddingVertical: scale(10),
+    zIndex: 0, // Lower z-index than suggestions
   },
   saveButton: {
     backgroundColor: "#D32F2F",
-    height: 50,
-    borderRadius: 8,
+    height: verticalScale(50),
+    borderRadius: scale(8),
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: scale(10),
   },
   saveButtonText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: responsiveFontSize.md,
     fontWeight: "bold",
   },
   manualButton: {
     borderColor: "#4B7BEC",
-    borderWidth: 1.5,
-    height: 50,
-    borderRadius: 8,
+    borderWidth: scale(1.5),
+    height: verticalScale(50),
+    borderRadius: scale(8),
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#fff",
   },
   manualButtonText: {
     color: "#4B7BEC",
-    fontSize: 16,
+    fontSize: responsiveFontSize.md,
     fontWeight: "bold",
   },
   loadingOverlay: {
@@ -623,47 +636,47 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: '50%',
     left: '50%',
-    marginLeft: -24, // half of pin width
-    marginTop: -48, // adjust depending on pin height
+    marginLeft: -scale(24), // half of pin width
+    marginTop: -scale(48), // adjust depending on pin height
     zIndex: 20,
   },
   pin: {
-    width: 48,
-    height: 48,
+    width: scale(48),
+    height: scale(48),
     resizeMode: 'contain',
   },
   suggestionsContainer: {
     position: 'absolute',
-    top: 50, // Adjust based on input height
-    left: 0,
-    right: 0,
+    top: verticalScale(60), // Responsive positioning below the input field
+    left: responsivePadding.horizontal,
+    right: responsivePadding.horizontal,
     backgroundColor: '#fff',
-    borderRadius: 8,
-    elevation: 5,
+    borderRadius: scale(8),
+    elevation: 15, // Very high elevation for Android
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    zIndex: 1000,
-    maxHeight: 200, // Limit height for suggestions
+    shadowOffset: { width: 0, height: scale(4) },
+    shadowOpacity: 0.4,
+    shadowRadius: scale(8),
+    zIndex: 9999, // Maximum z-index to appear above buttons
+    maxHeight: verticalScale(200), // Limit height for suggestions
   },
   suggestionScrollContent: {
-    paddingVertical: 8,
+    paddingVertical: scale(8),
   },
   suggestionItem: {
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderBottomWidth: 0.5,
+    paddingVertical: scale(10),
+    paddingHorizontal: scale(15),
+    borderBottomWidth: scale(0.5),
     borderBottomColor: '#eee',
   },
   suggestionText: {
-    fontSize: 14,
+    fontSize: responsiveFontSize.sm,
     color: '#333',
   },
   suggestionsFooter: {
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    fontSize: 12,
+    paddingVertical: scale(8),
+    paddingHorizontal: scale(15),
+    fontSize: fontScale(12),
     color: '#888',
     textAlign: 'center',
   },

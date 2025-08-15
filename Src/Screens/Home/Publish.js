@@ -29,30 +29,23 @@ import {
   scale, 
   verticalScale, 
   moderateScale,
+  moderateVerticalScale,
   responsiveFontSize, 
   responsivePadding,
+  responsiveDimensions,
   screenWidth,
   screenHeight 
 } from "../../Utils/responsive";
 
 const { width, height } = Dimensions.get("window");
 
-// Responsive scaling functions
-// const scale = (size) => {
-//   const baseWidth = 393; // iPhone 14 Pro width
-//   const scaleFactor = width / baseWidth;
-//   return Math.round(size * scaleFactor);
-// };
-
-// const verticalScale = (size) => {
-//   const baseHeight = 852; // iPhone 14 Pro height
-//   const scaleFactor = height / baseHeight;
-//   return Math.round(size * scaleFactor);
-// };
-
-// const moderateScale = (size, factor = 0.5) => {
-//   return size + (scale(size) - size) * factor;
-// };
+// Responsive breakpoints
+const isSmallScreen = screenWidth < 375;
+const isMediumScreen = screenWidth >= 375 && screenWidth < 414;
+const isLargeScreen = screenWidth >= 414;
+const isShortScreen = screenHeight < 700;
+const isMediumHeight = screenHeight >= 700 && screenHeight < 800;
+const isTallScreen = screenHeight >= 800;
 
 const Search = ({ route }) => {
   const navigation = useNavigation();
@@ -94,7 +87,7 @@ const Search = ({ route }) => {
 
   // Function to ensure text is displayed properly in TextInput
   const formatDisplayText = (text) => {
-    const maxLength = screenWidth < 375 ? 25 : screenWidth < 390 ? 30 : 35;
+    const maxLength = isSmallScreen ? 25 : isMediumScreen ? 30 : 35;
     if (text && text.length > maxLength) {
       return text.substring(0, maxLength - 3) + "...";
     }
@@ -146,7 +139,7 @@ const Search = ({ route }) => {
       // Delay to ensure the keyboard is shown
       setTimeout(() => {
         if (scrollViewRef.current) {
-          const scrollY = screenHeight < 700 ? 200 : screenHeight < 800 ? 250 : 300;
+          const scrollY = isShortScreen ? verticalScale(200) : isMediumHeight ? verticalScale(250) : verticalScale(300);
           scrollViewRef.current.scrollTo({
             y: scrollY,
             animated: true
@@ -294,12 +287,13 @@ const Search = ({ route }) => {
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? (screenHeight < 700 ? 80 : 100) : 0}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? (isShortScreen ? verticalScale(80) : verticalScale(100)) : 0}
     >
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       <TouchableWithoutFeedback onPress={closeSuggestions}>
         <ScrollView
           ref={scrollViewRef}
+          contentContainerStyle={{ flexGrow: 1 }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -324,7 +318,7 @@ const Search = ({ route }) => {
                   style={styles.notificationIconContainer}
                   onPress={() => navigation.navigate("Notification")}
                 >
-                  <Icon name="bell-o" size={moderateScale(25)} color="#fff" />
+                  <Icon name="bell-o" size={responsiveDimensions.icon.medium} color="#fff" />
                 </TouchableOpacity>
               </ImageBackground>
             </View>
@@ -357,24 +351,23 @@ const Search = ({ route }) => {
               style={[
                 styles.formContainer,
                 {
-                  marginHorizontal: width < 375 ? 10 : 20,
-                  paddingHorizontal: width < 375 ? 15 : 20,
+                  marginHorizontal: isSmallScreen ? responsivePadding.small : responsivePadding.horizontal,
                 }
               ]}
               onStartShouldSetResponder={() => true}
             >
-              <Text style={{color: "#000"}}>{activeTab === "Travellers" ? "Leaving From" : "Sending From"}</Text>
+              <Text style={styles.inputLabel}>{activeTab === "Travellers" ? "Leaving From" : "Sending From"}</Text>
               {/* Leaving From Input */}
               {/* <Text style={styles.inputLabel}>Leaving From</Text> */}
               <View style={styles.inputContainer}>
                 <View style={styles.bulletPointRed} />
                 <TouchableOpacity
-                  style={[styles.input, { flexDirection: 'row', alignItems: 'center' }]}
+                  style={[styles.input, { textAlign: "left" }]}
                   onPress={() => openAddressModal('from')}
                   activeOpacity={0.7}
                 >
-                  <Text style={{ color: from ? '#333' : '#aaa', flex: 1 }} numberOfLines={1} ellipsizeMode="tail">
-                    {fullFrom || (activeTab === "Travellers" ? "Starting City Address" : "Starting City Address")}
+                  <Text style={{ color: from ? '#333' : '#aaa', flex: 1, fontSize: responsiveFontSize.md, fontFamily: "Inter-Regular" }} numberOfLines={1} ellipsizeMode="head">
+                    {fullFrom || "Starting City Address"}
                   </Text>
                 </TouchableOpacity>
                 {/* Show suggestions only if focused, not selected, and suggestions exist */}
@@ -421,16 +414,16 @@ const Search = ({ route }) => {
                     </TouchableWithoutFeedback>
                   )}
               </View>
-              <Text style={{color: "#000"}}>{activeTab === "Travellers" ? "Going To" : "Sending To"}</Text>
+              <Text style={styles.inputLabel}>{activeTab === "Travellers" ? "Going To" : "Sending To"}</Text>
               <View style={styles.inputContainer}>
                 <View style={styles.bulletPointGreen} />
                 <TouchableOpacity
-                  style={[styles.input, { flexDirection: 'row', alignItems: 'center' }]}
+                  style={[styles.input, { textAlign: "left" }]}
                   onPress={() => openAddressModal('to')}
                   activeOpacity={0.7}
                 >
-                  <Text style={{ color: to ? '#333' : '#aaa', flex: 1 }} numberOfLines={1} ellipsizeMode="tail">
-                    {fullTo || (activeTab === "Travellers" ? "Destination City Address" : "Destination City Address")}
+                  <Text style={{ color: to ? '#333' : '#aaa', flex: 1, fontSize: responsiveFontSize.md, fontFamily: "Inter-Regular" }} numberOfLines={1} ellipsizeMode="head">
+                    {fullTo || "Destination City Address"}
                   </Text>
                 </TouchableOpacity>
 
@@ -482,7 +475,7 @@ const Search = ({ route }) => {
               <View style={styles.inputContainer}>
                 <Icon
                   name="calendar"
-                  size={moderateScale(20)}
+                  size={responsiveDimensions.icon.small}
                   color="#aaa"
                   style={styles.calendarIcon}
                 />
@@ -493,7 +486,14 @@ const Search = ({ route }) => {
                   onStartShouldSetResponder={() => true}
                 >
                   <Text style={styles.inputText}>
-                    {date ? date.toDateString() : "Select Date"}
+                    {date
+                      ? date.toLocaleDateString("en-US", {
+                        weekday: "short",
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })
+                      : "Select Date"}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -505,16 +505,14 @@ const Search = ({ route }) => {
                   style={{
                     width: moderateScale(50),
                     fontFamily: "Inter-Regular",
-                    transform: [{ scale: screenWidth < 375 ? 0.9 : 1 }]
+                    transform: [{ scale: isSmallScreen ? 0.9 : 1 }]
                   }}
                   display={Platform.OS === "ios" ? "spinner" : "default"}
                   onChange={onChange}
                   minimumDate={new Date()}
                   maximumDate={
-                    new Date(
-                      new Date().setFullYear(new Date().getFullYear() + 2)
-                    )
-                  }
+                    new Date(new Date().setFullYear(new Date().getFullYear() + 1))
+                  } // Set max date to 1 year from now
                 />
               )}
 
@@ -537,33 +535,33 @@ const Search = ({ route }) => {
         style={{ justifyContent: 'flex-end', margin: 0 }}
         backdropOpacity={0.4}
       >
-        <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, height: height * 0.3 }}>
-          <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10, color: "#000" }}>
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>
             {addressFieldType === 'from' ? 'Select Starting City Address' : 'Select Destination City Address'}
           </Text>
-          <TouchableOpacity onPress={handleAddNewAddress} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>
-            <Icon name="location-arrow" size={20} color="#D83F3F" style={{ marginRight: 8 }} />
-            <Text style={{ color: '#D83F3F', fontWeight: 'bold', fontSize: 16 }}>Add New Address</Text>
+          <TouchableOpacity onPress={handleAddNewAddress} style={styles.addNewAddressButton}>
+            <Icon name="location-arrow" size={responsiveDimensions.icon.small} color="#D83F3F" style={{ marginRight: scale(8) }} />
+            <Text style={styles.addNewAddressText}>Add New Address</Text>
           </TouchableOpacity>
           {addressLoading ? (
-            <ActivityIndicator size="large" color="#D32F2F" style={{ marginTop: 20 }} />
+            <ActivityIndicator size="large" color="#D32F2F" style={{ marginTop: verticalScale(20) }} />
           ) : addressError ? (
-            <Text style={{ color: 'red', marginTop: 20 }}>{addressError}</Text>
+            <Text style={styles.errorText}>{addressError}</Text>
           ) : addresses.length === 0 ? (
-            <Text style={{ color: 'grey', marginTop: 20 }}>No addresses found.</Text>
+            <Text style={styles.noAddressText}>No addresses found.</Text>
           ) : (
             <ScrollView showsVerticalScrollIndicator={false}>
               {addresses.map((item, idx) => (
                 <TouchableOpacity
                   key={item._id || idx}
-                  style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' }}
+                  style={styles.addressItem}
                   onPress={() => handleSelectAddress(item)}
                 >
-                  <Text style={{ fontWeight: 'bold', fontSize: 15, color: "#000" }}>{item.saveAs === "Others" ? item.customName : item.saveAs}</Text>
-                  <Text style={{ color: '#333' }} numberOfLines={1} ellipsizeMode="tail">
+                  <Text style={styles.addressName}>{item.saveAs === "Others" ? item.customName : item.saveAs}</Text>
+                  <Text style={styles.addressDetails} numberOfLines={1} ellipsizeMode="tail">
                     {item.flat} {item.landmark} {item.street} {item.location}
                   </Text>
-                  <Text style={{ color: 'grey', fontSize: 13 }} numberOfLines={1} ellipsizeMode="tail">
+                  <Text style={styles.addressLocation} numberOfLines={1} ellipsizeMode="tail">
                     {item.city} {item.state}
                   </Text>
                 </TouchableOpacity>
@@ -584,9 +582,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5', // Light background for better contrast
   },
   headerContainer: {
-    height: verticalScale(480),
-    minHeight: screenHeight * 0.55, // Ensure minimum height for smaller screens
-    maxHeight: screenHeight * 0.65, // Prevent header from being too large on big screens
+    height: isShortScreen ? verticalScale(400) : isMediumHeight ? verticalScale(450) : verticalScale(480),
+    minHeight: screenHeight * 0.5, // Ensure minimum height for smaller screens
+    maxHeight: screenHeight * 0.6, // Prevent header from being too large on big screens
   },
   textureBackground: {
     width: "100%",
@@ -599,26 +597,26 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: "#fff",
-    fontSize: moderateScale(46),
+    fontSize: isSmallScreen ? moderateScale(36) : isMediumScreen ? moderateScale(42) : moderateScale(46),
     fontFamily: "Inter-Bold",
     fontWeight: "900",
     marginBottom: verticalScale(10),
-    marginTop: verticalScale(-200),
+    marginTop: isShortScreen ? verticalScale(-150) : isMediumHeight ? verticalScale(-180) : verticalScale(-200),
     textAlign: "center",
-    paddingHorizontal: scale(20),
+    paddingHorizontal: responsivePadding.horizontal,
   },
   subHeader: {
     color: "white",
-    fontSize: moderateScale(20),
+    fontSize: responsiveFontSize.lg,
     position: "absolute",
-    bottom: "40%",
+    bottom: isShortScreen ? "35%" : isMediumHeight ? "38%" : "40%",
     fontFamily: "Inter-Bold",
     textAlign: "center",
   },
   notificationIconContainer: {
     position: "absolute",
-    top: verticalScale(43),
-    right: scale(20),
+    top: isShortScreen ? verticalScale(35) : verticalScale(43),
+    right: responsivePadding.horizontal,
     padding: scale(8),
   },
   tabContainer: {
@@ -627,9 +625,9 @@ const styles = StyleSheet.create({
     borderColor: "white",
     borderRadius: scale(8),
     alignSelf: "center",
-    marginTop: verticalScale(-180),
+    marginTop: isShortScreen ? verticalScale(-140) : isMediumHeight ? verticalScale(-160) : verticalScale(-180),
     width: "90%",
-    maxWidth: scale(350),
+    maxWidth: responsiveDimensions.button.width,
     minHeight: verticalScale(44), // Ensure minimum touch target size
   },
   tabButton: {
@@ -642,7 +640,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
   },
   tabText: {
-    fontSize: moderateScale(14),
+    fontSize: responsiveFontSize.sm,
     fontFamily: "OpenSans-Bold",
     color: "white",
   },
@@ -651,10 +649,10 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     width: "90%",
-    maxWidth: scale(350),
+    maxWidth: responsiveDimensions.button.width,
     backgroundColor: "#fff",
     marginVertical: verticalScale(20),
-    padding: scale(20),
+    padding: responsivePadding.horizontal,
     borderRadius: scale(15),
     alignSelf: "center",
     elevation: 5,
@@ -662,6 +660,12 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: verticalScale(2) },
     shadowOpacity: 0.1,
     shadowRadius: scale(4),
+  },
+  inputLabel: {
+    color: '#000',
+    fontSize: responsiveFontSize.md,
+    fontFamily: "Inter-Regular",
+    marginBottom: verticalScale(5),
   },
   inputContainer: {
     flexDirection: "row",
@@ -687,7 +691,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontSize: moderateScale(16),
+    fontSize: responsiveFontSize.md,
     fontFamily: "Inter-Regular",
     paddingVertical: verticalScale(10),
     color: "#333",
@@ -699,10 +703,11 @@ const styles = StyleSheet.create({
     borderRadius: scale(15),
     alignItems: "center",
     marginTop: verticalScale(10),
+    minHeight: verticalScale(50), // Ensure minimum touch target
   },
   searchButtonText: {
     color: "#fff",
-    fontSize: moderateScale(16),
+    fontSize: responsiveFontSize.md,
     fontFamily: "Inter-Bold",
   },
   calendarIcon: {
@@ -718,7 +723,7 @@ const styles = StyleSheet.create({
     borderRadius: scale(8),
     borderWidth: 1,
     borderColor: "#ddd",
-    maxHeight: verticalScale(200),
+    maxHeight: isShortScreen ? verticalScale(150) : verticalScale(200),
     zIndex: 999,
     elevation: 5,
     shadowColor: "#000",
@@ -729,7 +734,7 @@ const styles = StyleSheet.create({
   },
   suggestionItem: {
     paddingVertical: verticalScale(10),
-    paddingHorizontal: scale(15),
+    paddingHorizontal: responsivePadding.medium,
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
     width: "100%",
@@ -737,12 +742,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   suggestionText: {
-    fontSize: moderateScale(15),
+    fontSize: responsiveFontSize.sm,
     fontFamily: "Inter-Regular",
     color: "#333",
   },
   suggestionsFooter: {
-    fontSize: moderateScale(12),
+    fontSize: responsiveFontSize.xs,
     color: "#888",
     textAlign: "center",
     paddingVertical: verticalScale(5),
@@ -754,8 +759,8 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   inputText: {
-    fontSize: moderateScale(16),
-    color: '#000'
+    fontSize: responsiveFontSize.md,
+    color: "#000"
   },
   notificationBadge: {
     position: "absolute",
@@ -771,7 +776,59 @@ const styles = StyleSheet.create({
   },
   notificationBadgeText: {
     color: "#000",
-    fontSize: moderateScale(12),
+    fontSize: responsiveFontSize.xs,
     fontWeight: "bold",
+  },
+  // Modal Styles
+  modalContainer: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: scale(20),
+    borderTopRightRadius: scale(20),
+    padding: responsivePadding.horizontal,
+    height: height * 0.3,
+  },
+  modalTitle: {
+    fontSize: responsiveFontSize.lg,
+    fontWeight: 'bold',
+    marginBottom: verticalScale(10),
+    color: "#000"
+  },
+  addNewAddressButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: verticalScale(15),
+  },
+  addNewAddressText: {
+    color: '#D83F3F',
+    fontWeight: 'bold',
+    fontSize: responsiveFontSize.md,
+  },
+  errorText: {
+    color: 'red',
+    marginTop: verticalScale(20),
+    fontSize: responsiveFontSize.sm,
+  },
+  noAddressText: {
+    color: 'grey',
+    marginTop: verticalScale(20),
+    fontSize: responsiveFontSize.sm,
+  },
+  addressItem: {
+    paddingVertical: verticalScale(12),
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  addressName: {
+    fontWeight: 'bold',
+    fontSize: responsiveFontSize.sm,
+    color: "#000"
+  },
+  addressDetails: {
+    color: '#333',
+    fontSize: responsiveFontSize.xs,
+  },
+  addressLocation: {
+    color: 'grey',
+    fontSize: responsiveFontSize.xs,
   },
 });

@@ -244,10 +244,25 @@ const SearchRide = ({ navigation, route }) => {
     }
   };
 
-  const getTravelIcon = (travelMode) => {
+  const getTravelIcon = (travelMode, vehicleType) => {
     switch (travelMode) {
-      case "car":
-        return <Icon name="car" size={30} color="#D83F3F" />;
+      case "roadways":
+        // Use different icons based on vehicle type
+        switch (vehicleType?.toLowerCase()) {
+          case "car":
+          case "hatchback":
+            return <Icon name="car" size={30} color="#D83F3F" />;
+          case "suv":
+            return <Icon name="car" size={30} color="#D83F3F" />;
+          case "bike":
+          case "motorcycle":
+            return <Icon name="motorcycle" size={30} color="#D83F3F" />;
+          case "auto":
+          case "autorickshaw":
+            return <Icon name="car" size={30} color="#D83F3F" />;
+          default:
+            return <Icon name="car" size={30} color="#D83F3F" />;
+        }
       case "airplane":
         return <Ionicons name="airplane" size={30} color="#D83F3F" />;
       case "train":
@@ -257,7 +272,12 @@ const SearchRide = ({ navigation, route }) => {
     }
   };
 
-  const getTravelModeText = (travelMode) => {
+  const getTravelModeText = (travelMode, vehicleType) => {
+    // If travel mode is roadways, use vehicle type instead
+    if (travelMode === "roadways") {
+      return vehicleType ? vehicleType.toUpperCase() : "ROADWAYS";
+    }
+    
     switch (travelMode) {
       case "car":
         return "Hatchback Car";
@@ -349,9 +369,9 @@ const SearchRide = ({ navigation, route }) => {
         <View style={styles.modeContainer}>
           <Text style={styles.modeText}>Mode of Travel</Text>
           <View style={styles.modeIconContainer}>
-            {getTravelIcon(item.travelMode)}
+            {getTravelIcon(item.travelMode, item.vehicleType)}
             <Text style={styles.modeDetailText}>
-              {getTravelModeText(item.travelMode)}
+              {getTravelModeText(item.travelMode, item.vehicleType)}
             </Text>
           </View>
         </View>

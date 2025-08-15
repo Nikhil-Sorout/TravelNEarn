@@ -9,6 +9,9 @@ import {
   Switch,
   Alert,
   Image,
+  StatusBar,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -17,6 +20,17 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import Icon from "react-native-vector-icons/FontAwesome";
 import RNPickerSelect from "react-native-picker-select";
 import * as ImagePicker from 'expo-image-picker';
+import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  scale,
+  verticalScale,
+  moderateScale,
+  moderateVerticalScale,
+  fontScale,
+  responsivePadding,
+  responsiveFontSize,
+  responsiveDimensions,
+} from "../../Utils/responsive";
 
 
 const ParcelDetails = ({ navigation, route }) => {
@@ -155,15 +169,27 @@ const ParcelDetails = ({ navigation, route }) => {
 
 
 
-  return (
-    <View style={styles.container}>
+    return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar backgroundColor="#D83F3F" barStyle="light-content" />
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton}>
-          <Ionicons name="chevron-back" size={24} color="white" />
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="chevron-back" size={responsiveDimensions.icon.medium} color="white" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Consignment Details</Text>
       </View>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }} 
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <ScrollView 
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
 
         <Text style={styles.label}>Category</Text>
 
@@ -176,7 +202,7 @@ const ParcelDetails = ({ navigation, route }) => {
             ]}
           >
             {/* <Text></Text> */}
-            <Text style={{ color: '#000' }}>{category ? category : "Please Select Category"}</Text>
+            <Text style={{ color: '#000', fontSize: responsiveFontSize.sm }}>{category ? category : "Please Select Category"}</Text>
           </RNPickerSelect>
 
           {/* <Picker selectedValue={selectedMode} onValueChange={setSelectedMode} style={styles.picker}>
@@ -210,7 +236,7 @@ const ParcelDetails = ({ navigation, route }) => {
                   { label: "Other", value: "Other" },
                 ]}
               >
-                {category === "Document" ? <Text style={{ color: '#000' }}>{""}</Text> : <Text style={{ color: '#000' }}>{subCategory ? subCategory : "Please Select Sub Category"}</Text>}
+                {category === "Document" ? <Text style={{ color: '#000', fontSize: responsiveFontSize.sm }}>{""}</Text> : <Text style={{ color: '#000', fontSize: responsiveFontSize.sm }}>{subCategory ? subCategory : "Please Select Sub Category"}</Text>}
               </RNPickerSelect>
             </View></>)
         }
@@ -220,6 +246,8 @@ const ParcelDetails = ({ navigation, route }) => {
           style={[styles.input, { height: 100 }]}
           value={description}
           onChangeText={setDescription}
+          placeholder="Enter Description"
+          placeholderTextColor={"grey"}
         />
 
         <Text style={styles.label}>Weight (Kg)</Text>
@@ -228,6 +256,7 @@ const ParcelDetails = ({ navigation, route }) => {
           keyboardType="numeric"
           value={weight}
           placeholder="0.00"
+          placeholderTextColor={"grey"}
           onChangeText={setWeight}
         />
 
@@ -256,7 +285,7 @@ const ParcelDetails = ({ navigation, route }) => {
               ios_backgroundColor="#ccc"
               onValueChange={() => setIsInch(!isInch)}
               value={isInch}
-              style={{ transform: [{ scale: 0.6 }] }}
+              style={{ transform: [{ scale: moderateScale(0.6) }] }}
             />
             <Text style={[styles.unitText, isInch && styles.activeText]}>
               INCH
@@ -268,6 +297,7 @@ const ParcelDetails = ({ navigation, route }) => {
           <TextInput
             style={styles.dimensionInput}
             placeholder="Length"
+            placeholderTextColor={"grey"}
             keyboardType="numeric"
             onChangeText={(val) => {
               const sanitized = val.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1');
@@ -280,6 +310,7 @@ const ParcelDetails = ({ navigation, route }) => {
           <TextInput
             style={styles.dimensionInput}
             placeholder="Breadth"
+            placeholderTextColor={"grey"}
             keyboardType="numeric"
             onChangeText={(val) => {
               const sanitized = val.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1');
@@ -292,6 +323,7 @@ const ParcelDetails = ({ navigation, route }) => {
           <TextInput
             style={styles.dimensionInput}
             placeholder="Height"
+            placeholderTextColor={"grey"}
             keyboardType="numeric"
             onChangeText={(val) => {
               const sanitized = val.replace(/[^0-9.]/g, '').replace(/(\..*?)\..*/g, '$1');
@@ -301,7 +333,7 @@ const ParcelDetails = ({ navigation, route }) => {
           />
         </View>
 
-        <Text style={[styles.label, { marginTop: 20 }]}>Handle with care?</Text>
+        <Text style={[styles.label, { marginTop: verticalScale(20) }]}>Handle with care?</Text>
         {/* <TouchableOpacity style={handleWithCare ? styles.buttonActive : styles.button} onPress={() => setHandleWithCare(!handleWithCare)}>
                       <Text style={{ color: '#000' }}>{handleWithCare ? 'Yes' : 'No'}</Text>
         </TouchableOpacity> */}
@@ -342,7 +374,7 @@ const ParcelDetails = ({ navigation, route }) => {
           </TouchableOpacity>
         </View>
 
-        <Text style={[styles.label, { marginTop: 20 }]}>
+        <Text style={[styles.label, { marginTop: verticalScale(20) }]}>
           Special request (If any)
         </Text>
         <TextInput
@@ -390,13 +422,13 @@ const ParcelDetails = ({ navigation, route }) => {
 
         <Text style={styles.label}>Upload photos of Consignment if any</Text>
         <TouchableOpacity style={styles.uploadButton} onPress={pickImage}>
-          <Text style={{ color: '#000' }}>+ Choose from device</Text>
+          <Text style={{ color: '#000', fontSize: responsiveFontSize.sm }}>+ Choose from device</Text>
         </TouchableOpacity>
 
         {/* Display selected images */}
         {selectedImages.length > 0 && (
           <View style={styles.imageContainer}>
-            <Text style={styles.label}>Selected Images ({selectedImages.length})</Text>
+            <Text style={[styles.label, { marginBottom: verticalScale(10) }]}>Selected Images ({selectedImages.length})</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {selectedImages.map((image, index) => (
                 <View key={index} style={styles.imageWrapper}>
@@ -416,8 +448,9 @@ const ParcelDetails = ({ navigation, route }) => {
         <TouchableOpacity style={styles.nextButton} onPress={saveData}>
           <Text style={styles.nextButtonText}>Next</Text>
         </TouchableOpacity>
-      </ScrollView>
-    </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
@@ -425,93 +458,119 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
-    //  marginTop: 40
   },
-  scrollContainer: { padding: 16 },
+  scrollContainer: { 
+    padding: responsivePadding.medium,
+    paddingBottom: verticalScale(100), // Extra padding at bottom for better scrolling
+  },
   header: {
     backgroundColor: "#D83F3F",
     flexDirection: "row",
     alignItems: "center",
-    padding: 15,
+    padding: responsivePadding.medium,
+    paddingTop: verticalScale(10),
+    paddingBottom: verticalScale(10),
+  },
+  backButton: {
+    padding: scale(5),
+    marginRight: scale(10),
   },
   headerTitle: {
     color: "white",
-    fontSize: 18,
+    fontSize: responsiveFontSize.lg,
     fontWeight: "bold",
     textAlign: "center",
     flex: 1,
   },
   label: {
-    fontSize: 16,
+    fontSize: responsiveFontSize.md,
     fontWeight: "bold",
-    marginBottom: 8,
+    marginBottom: verticalScale(8),
     color: "#000",
   },
   input: {
     borderWidth: 1,
     borderColor: "#ddd",
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-    color: "#000",
+    padding: responsivePadding.medium,
+    borderRadius: scale(8),
+    marginBottom: verticalScale(16),
+    color: "black",
+    fontSize: responsiveFontSize.sm,
   },
-  dimensionContainer: { flexDirection: "row", justifyContent: "space-between" },
+  dimensionContainer: { 
+    flexDirection: "row", 
+    justifyContent: "space-between",
+    marginBottom: verticalScale(16),
+  },
   dimensionInput: {
     borderWidth: 1,
     borderColor: "#ddd",
-    padding: 10,
+    padding: responsivePadding.small,
     flex: 1,
-    marginRight: 5,
-    borderRadius: 8,
-    color: 'black'
+    marginRight: scale(5),
+    borderRadius: scale(8),
+    color: 'black',
+    fontSize: responsiveFontSize.sm,
   },
-  dimensionCross: { padding: 10, color: "#000" },
+  dimensionCross: { 
+    padding: responsivePadding.small, 
+    color: "#000",
+    fontSize: responsiveFontSize.md,
+  },
   button: {
-    padding: 12,
-    borderRadius: 8,
+    padding: responsivePadding.medium,
+    borderRadius: scale(8),
     borderWidth: 1,
     borderColor: "#ddd",
     alignItems: "center",
   },
   buttonActive: {
     backgroundColor: "#D83F3F",
-    padding: 12,
-    borderRadius: 8,
+    padding: responsivePadding.medium,
+    borderRadius: scale(8),
     alignItems: "center",
   },
   uploadButton: {
     borderWidth: 1,
     borderColor: "#ddd",
-    padding: 16,
+    padding: responsivePadding.medium,
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: verticalScale(16),
+    borderRadius: scale(8),
   },
   nextButton: {
     backgroundColor: "#D83F3F",
-    padding: 16,
-    borderRadius: 8,
+    padding: responsivePadding.medium,
+    borderRadius: scale(8),
     alignItems: "center",
+    marginTop: verticalScale(20),
+    marginBottom: verticalScale(20),
   },
-  nextButtonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
+  nextButtonText: { 
+    color: "#fff", 
+    fontSize: responsiveFontSize.md, 
+    fontWeight: "bold" 
+  },
   buttonContainer: {
     flexDirection: "row",
-    marginTop: 10,
+    marginTop: verticalScale(10),
+    marginBottom: verticalScale(16),
   },
   button: {
     flex: 1,
-    padding: 10,
+    padding: responsivePadding.small,
     borderWidth: 1,
     borderColor: "#ccc",
     alignItems: "center",
-    borderRadius: 5,
-    marginHorizontal: 5,
+    borderRadius: scale(5),
+    marginHorizontal: scale(5),
   },
   buttonActive: {
     borderColor: "green",
     backgroundColor: "#e0ffe0",
   },
   text: {
-    fontSize: 16,
+    fontSize: responsiveFontSize.md,
     color: "black",
   },
   textActive: {
@@ -523,46 +582,46 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderColor: "#ccc",
-    borderRadius: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    marginBottom: 20,
+    borderRadius: scale(5),
+    paddingHorizontal: responsivePadding.small,
+    paddingVertical: verticalScale(8),
+    marginBottom: verticalScale(20),
   },
   weightinput: {
-    borderRadius: 8,
-    flex: 1, // Takes up remaining space
-    fontSize: 25,
-    height: 25,
+    borderRadius: scale(8),
+    flex: 1,
+    fontSize: responsiveFontSize.xxl,
+    height: verticalScale(25),
   },
   unitText: {
-    fontSize: 12,
+    fontSize: responsiveFontSize.xs,
     color: "#555",
   },
   rowContainer: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between", // Moves toggle to the right
-    marginBottom: 10,
+    justifyContent: "space-between",
+    marginBottom: verticalScale(10),
   },
   switchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 0, // Adds spacing between CM, Switch, and INCH
+    gap: 0,
   },
   activeText: {
     color: "green",
     fontWeight: "bold",
   },
   toggleButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 15,
+    paddingVertical: verticalScale(8),
+    paddingHorizontal: scale(15),
     backgroundColor: "#f0f0f0",
   },
   selectedButton: {
     backgroundColor: "green",
   },
   toggleText: {
-    fontSize: 10,
+    fontSize: responsiveFontSize.xs,
     color: "#000",
   },
   selectedText: {
@@ -570,26 +629,26 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   imageContainer: {
-    marginTop: 10,
-    marginBottom: 16,
+    marginTop: verticalScale(10),
+    marginBottom: verticalScale(16),
   },
   imageWrapper: {
     position: 'relative',
-    marginRight: 10,
+    marginRight: scale(10),
   },
   selectedImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
+    width: scale(80),
+    height: scale(80),
+    borderRadius: scale(8),
     borderWidth: 1,
     borderColor: '#ddd',
   },
   removeImageButton: {
     position: 'absolute',
-    top: -5,
-    right: -5,
+    top: -scale(5),
+    right: -scale(5),
     backgroundColor: 'white',
-    borderRadius: 12,
+    borderRadius: scale(12),
   },
 });
 

@@ -21,7 +21,9 @@ import {
   verticalScale, 
   moderateScale, 
   responsiveFontSize,
-  responsiveDimensions 
+  responsiveDimensions,
+  screenWidth,
+  screenHeight
 } from "../../Utils/responsive";
 
 const { width, height } = Dimensions.get("window");
@@ -136,7 +138,7 @@ const Account = ({ navigation, route }) => {
       screen: "About Us",
     },
     {
-      logo: require("../../Images/Help & Support.png"),
+      logo: require("../../Images/Help_Support.png"),
       name: "Help & Support",
       screen: "Help",
     },
@@ -151,7 +153,7 @@ const Account = ({ navigation, route }) => {
       screen: "PrivacyPolicy",
     },
     {
-      logo: require("../../Images/Terms & Conditions.png"),
+      logo: require("../../Images/Terms_Conditions.png"),
       name: "Terms & Conditions",
       screen: "TermsCondition",
     },
@@ -189,7 +191,9 @@ const Account = ({ navigation, route }) => {
           }
         }}
       >
-        <Image source={item.logo} style={styles.menuLogo} />
+        <View style={styles.logoContainer}>
+          <Image source={item.logo} style={styles.menuLogo} resizeMode="contain" />
+        </View>
         <Text
           style={[
             styles.menuText,
@@ -208,7 +212,11 @@ const Account = ({ navigation, route }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar backgroundColor="#D83F3F" barStyle="light-content" />
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        contentContainerStyle={styles.container} 
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.greetingContainer}>
@@ -236,16 +244,19 @@ const Account = ({ navigation, route }) => {
         <View style={styles.menuGroupCard}>
           {menuItems.map((item, idx) => renderItem({ item, index: idx }))}
         </View>
-        <View style={styles.sectionSeparator} />
+        
         {/* Menu Items Group 2 */}
         <View style={styles.menuGroupCard}>
           {otherItems.map((item, idx) => renderItem({ item, index: idx }))}
         </View>
-        <View style={styles.sectionSeparator} />
+        
         {/* Menu Items Group 3 (special) */}
         <View style={styles.menuGroupCard}>
           {specialItems.map((item, idx) => renderItem({ item, index: idx }))}
         </View>
+        
+        {/* Bottom padding for better scrolling */}
+        <View style={styles.bottomPadding} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -259,15 +270,17 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     backgroundColor: "#f5f5f5",
+    paddingBottom: verticalScale(20),
   },
   header: {
     flexDirection: "row",
-    paddingTop: Platform.OS === "ios" ? verticalScale(10) : verticalScale(10),
-    padding: scale(20),
+    paddingTop: Platform.OS === "ios" ? verticalScale(15) : verticalScale(20),
+    paddingBottom: verticalScale(20),
+    paddingHorizontal: scale(20),
     backgroundColor: "#D83F3F",
     justifyContent: "space-between",
     alignItems: "center",
-    minHeight: verticalScale(80),
+    minHeight: verticalScale(100),
     elevation: 5,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -276,89 +289,94 @@ const styles = StyleSheet.create({
   },
   greetingContainer: { 
     flex: 1,
-    paddingRight: scale(10),
+    paddingRight: scale(15),
   },
   greeting: { 
     fontSize: responsiveFontSize.xl, 
     color: "#fff", 
     fontFamily: "Inter-Bold",
-    marginBottom: verticalScale(5),
+    marginBottom: verticalScale(8),
+    lineHeight: responsiveFontSize.xl * 1.2,
   },
   profilePic: {
-    width: scale(50),
-    height: scale(50),
-    borderRadius: scale(25),
-    borderWidth: 2,
+    width: scale(60),
+    height: scale(60),
+    borderRadius: scale(30),
+    borderWidth: 3,
     borderColor: "#fff",
     backgroundColor: "#f0f0f0",
   },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
-    padding: scale(15),
-    minHeight: verticalScale(60),
+    paddingVertical: verticalScale(18),
+    paddingHorizontal: scale(20),
+    minHeight: verticalScale(70),
     backgroundColor: "#fff",
     marginHorizontal: 0,
-    elevation: 2,
+    elevation: 1,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#f0f0f0",
+  },
+  logoContainer: {
+    width: scale(32),
+    height: scale(32),
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: scale(18),
+    backgroundColor: "#f8f9fa",
+    borderRadius: scale(8),
+    padding: scale(4),
   },
   menuLogo: { 
-    width: scale(20), 
-    height: scale(20), 
-    marginRight: scale(15), 
-    resizeMode: "contain" 
+    width: scale(24), 
+    height: scale(24), 
+    resizeMode: "contain",
+    tintColor: "#D83F3F",
   },
   menuText: { 
     flex: 1, 
     fontSize: responsiveFontSize.md, 
     color: "#333", 
-    fontFamily: "Inter-Bold" 
-  },
-  // sectionSeparator: {
-  //   height: verticalScale(16),
-  //   backgroundColor: "#E5E5E5",
-  //   width: "100%",
-  //   marginVertical: verticalScale(8),
-  // },
-  separator: { 
-    height: 1, 
-    backgroundColor: "transparent" 
-  },
-  menuList: { 
-    marginTop: verticalScale(20),
-    paddingHorizontal: width < 375 ? scale(10) : scale(20),
+    fontFamily: "Inter-Medium",
+    lineHeight: responsiveFontSize.md * 1.3,
   },
   editProfileContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: verticalScale(10),
+    marginTop: verticalScale(8),
   },
   editProfileText: {
     color: "#fff",
-    fontSize: responsiveFontSize.md,
+    fontSize: responsiveFontSize.sm,
     marginRight: scale(5),
     fontFamily: "Inter-Regular",
+    opacity: 0.9,
   },
   specialSpacing: {
-    marginTop: verticalScale(18),
+    marginTop: verticalScale(5),
   },
   logoutSpacing: {
-    marginTop: verticalScale(10),
+    marginTop: verticalScale(5),
   },
   menuGroupCard: {
     backgroundColor: "#fff",
-    borderRadius: scale(10),
-    marginHorizontal: scale(2),
-    marginBottom: verticalScale(8),
-    elevation: 2,
+    borderRadius: scale(12),
+    marginHorizontal: scale(16),
+    marginVertical: verticalScale(8),
+    elevation: 3,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
     overflow: 'hidden',
+  },
+  bottomPadding: {
+    height: verticalScale(20),
   },
 });
 

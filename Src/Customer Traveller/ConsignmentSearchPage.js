@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import SearchDeliveryScreen from "./SearchDeliveryScreen";
 
 const SearchRide = ({ navigation, route }) => {
@@ -225,7 +226,7 @@ const SearchRide = ({ navigation, route }) => {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Modal visible={isModalVisible} transparent animationType="slide">
         <View style={styles.modalContainer}>
           <SearchDeliveryScreen
@@ -309,7 +310,7 @@ const SearchRide = ({ navigation, route }) => {
           </>
         }
       />
-    </View>
+    </SafeAreaView>
   );
 };
 

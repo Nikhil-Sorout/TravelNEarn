@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons'; // Make sure to install 'expo/vec
 import React, { useEffect } from 'react';
 import { Dimensions, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Header from '../../header';
+import { SafeAreaView } from 'react-native-safe-area-context';
 // Get screen width and height
 const { width, height } = Dimensions.get('window');
 
@@ -13,7 +14,7 @@ const TermsCondition = ({navigation}) => {
   }, []);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <Header title="Terms & Conditions" navigation={navigation} />
 
@@ -29,7 +30,7 @@ const TermsCondition = ({navigation}) => {
           ...
         </Text>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 

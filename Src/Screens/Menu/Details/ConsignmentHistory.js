@@ -13,6 +13,18 @@ import {
 } from "react-native";
 import Header from "../../../header";
 import commonStyles from "../../../styles";
+import { 
+  scale, 
+  verticalScale, 
+  moderateScale, 
+  fontScale, 
+  responsiveFontSize,
+  responsivePadding 
+} from "../../../Utils/responsive";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+const DEFAULT_PROFILE_PHOTO =
+  "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
 
 const ConsignmentHistory = () => {
   const [searchText, setSearchText] = useState("");
@@ -20,6 +32,19 @@ const ConsignmentHistory = () => {
   const [loading, setLoading] = useState(true);
 
   const navigation = useNavigation();
+
+  // Function to extract city from address
+  const extractCity = (address) => {
+    if (!address) return "N/A";
+    
+    // Split address by commas and get the last part (usually city)
+    const parts = address.split(',').map(part => part.trim());
+    if (parts.length > 1) {
+      // Return the second last part as city (last part is often country/state)
+      return parts[parts.length - 2] || parts[parts.length - 1] || "N/A";
+    }
+    return parts[0] || "N/A";
+  };
 
   useEffect(() => {
     const fetchTravelData = async () => {
@@ -61,6 +86,8 @@ const ConsignmentHistory = () => {
             images: consignment.images || [],
             fullFrom: consignment?.senderFullAddress,
             fullTo: consignment?.receiverFullAddress,
+            fromCity: extractCity(consignment?.senderFullAddress || consignment?.senderAddress),
+            toCity: extractCity(consignment?.receiverFullAddress || consignment?.receiverAddress),
           }));
           // console.log("formattedData", formattedData)
           setTravelData(formattedData);
@@ -107,11 +134,10 @@ const ConsignmentHistory = () => {
         ]}
       >
         <Text
-          style={{
-            color: textColors[displayStatus] || "#A18800",
-            fontWeight: "600",
-            fontSize: 12,
-          }}
+          style={[
+            styles.badgeText,
+            { color: textColors[displayStatus] || "#A18800" }
+          ]}
         >
           {displayStatus}
         </Text>
@@ -133,60 +159,74 @@ const ConsignmentHistory = () => {
     >
       <View style={styles.card}>
         {renderStatusBadge(item.status)}
-        <View>
-          <View style={styles.locationRow}>
-            <Image
-              source={require("../../../Images/locon.png")}
-              style={styles.locationIcon}
-            />
-            <View>
-              <Text style={styles.locationText}>
-                {item.username} : {item.phoneNumber}
-              </Text>
-              <Text style={styles.callNowText}>{item.fullFrom}</Text>
-            </View>
+        
+        {/* City Route Display */}
+        <View style={styles.cityRouteContainer}>
+          <View style={styles.cityRoute}>
+            <Text style={styles.cityLabel}>From:</Text>
+            <Text style={styles.cityText}>{item.fromCity}</Text>
           </View>
-
-          <View
-            style={[
-              commonStyles.verticalseparator,
-              { marginTop: -4, marginBottom: 4 },
-            ]}
-          />
-          <View style={commonStyles.separator} />
-
-          <View style={styles.locationRow}>
-            <Image
-              source={require("../../../Images/locend.png")}
-              style={styles.locationIcon}
-            />
-            <View>
-              <Text style={styles.locationText}>
-                {item.recievername}: {item.recieverphone}
-              </Text>
-              <Text style={styles.callNowText}>{item.fullTo}</Text>
-            </View>
+          <View style={styles.routeArrow}>
+            <Text style={styles.arrowText}>→</Text>
           </View>
-
-          <View style={[commonStyles.staraightSeparator, { marginTop: 20 }]} />
+          <View style={styles.cityRoute}>
+            <Text style={styles.cityLabel}>To:</Text>
+            <Text style={styles.cityText}>{item.toCity}</Text>
+          </View>
         </View>
 
+        <View style={styles.locationRow}>
+          <Image
+            source={require("../../../Images/locon.png")}
+            style={styles.locationIcon}
+          />
+          <View style={styles.locationDetails}>
+            <Text style={styles.locationText}>
+              {item.username} : {item.phoneNumber}
+            </Text>
+            <Text style={styles.callNowText}>{item.fullFrom}</Text>
+          </View>
+        </View>
+
+        <View
+          style={[
+            commonStyles.verticalseparator,
+            { marginTop: -4, marginBottom: 4, position: 'relative', top: -30, height: verticalScale(50), left: scale(-5) },
+          ]}
+        />
+        <View style={commonStyles.separator} />
+
+        <View style={styles.locationRow}>
+          <Image
+            source={require("../../../Images/locend.png")}
+            style={styles.locationIcon}
+          />
+          <View style={styles.locationDetails}>
+            <Text style={styles.locationText}>
+              {item.recievername}: {item.recieverphone}
+            </Text>
+            <Text style={styles.callNowText}>{item.fullTo}</Text>
+          </View>
+        </View>
+
+        <View style={[commonStyles.staraightSeparator, { marginTop: 20 }]} />
+        
         {/* Only show traveler section if there are valid travel details with a username */}
         {item.traveldetails &&
         item.traveldetails.length > 0 &&
         item.traveldetails[0].username &&
         item.traveldetails[0].username !== "N/A" ? (
           <>
-            <Text style={{ marginLeft: 10, fontWeight: "bold", fontSize: 14 }}>
+            <Text style={styles.travelerSectionTitle}>
               Traveller Details
             </Text>
-            <View style={styles.driverSection}>
-              <Image
-                source={{
-                  uri:item.traveldetails[0].profilePicture,
-                }}
-                style={styles.driverPhoto}
-              />
+                         <View style={styles.driverSection}>
+               <Image
+                 source={{
+                   uri: item.traveldetails[0].profilePicture || DEFAULT_PROFILE_PHOTO,
+                 }}
+                 style={styles.driverPhoto}
+               />
               <View style={styles.driverDetails}>
                 <Text style={styles.driverName}>
                   {item.traveldetails[0].username}
@@ -205,7 +245,7 @@ const ConsignmentHistory = () => {
 }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Header title="Consignments History" navigation={navigation} />
 
       <View style={styles.searchBarContainer}>
@@ -239,7 +279,9 @@ const ConsignmentHistory = () => {
               (item) =>
                 item._id.toLowerCase().includes(searchText.toLowerCase()) ||
                 item.startinglocation.toLowerCase().includes(searchText.toLowerCase()) ||
-                item.goinglocation.toLowerCase().includes(searchText.toLowerCase())
+                item.goinglocation.toLowerCase().includes(searchText.toLowerCase()) ||
+                item.fromCity.toLowerCase().includes(searchText.toLowerCase()) ||
+                item.toCity.toLowerCase().includes(searchText.toLowerCase())
             ).length
           }{" "}
           results found
@@ -247,7 +289,9 @@ const ConsignmentHistory = () => {
       )}
 
       {loading ? (
-        <ActivityIndicator size="large" color="#0000ff" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#0000ff" />
+        </View>
       ) : travelData.length === 0 ? (
         <View style={styles.noRidesContainer}>
           <Text style={styles.noRidesText}>No Consignment found</Text>
@@ -258,14 +302,17 @@ const ConsignmentHistory = () => {
             (item) =>
               item._id.toLowerCase().includes(searchText.toLowerCase()) ||
               item.startinglocation.toLowerCase().includes(searchText.toLowerCase()) ||
-              item.goinglocation.toLowerCase().includes(searchText.toLowerCase())
+              item.goinglocation.toLowerCase().includes(searchText.toLowerCase()) ||
+              item.fromCity.toLowerCase().includes(searchText.toLowerCase()) ||
+              item.toCity.toLowerCase().includes(searchText.toLowerCase())
           )}
           renderItem={renderItem}
           keyExtractor={(item) => item._id}
           contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -281,114 +328,165 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#d32f2f",
-    height: 60,
+    height: verticalScale(60),
     paddingHorizontal: 0,
   },
   backButton: {
     position: "absolute",
-    left: 15,
+    left: scale(15),
   },
   headerTitle: {
     color: "#fff",
-    fontSize: 18,
+    fontSize: fontScale(18),
     fontWeight: "bold",
   },
   searchBarContainer: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    marginTop: 10,
+    paddingHorizontal: responsivePadding.medium,
+    paddingVertical: verticalScale(10),
+    marginTop: verticalScale(10),
   },
   searchInput: {
     flex: 1,
     borderColor: "#ddd",
     borderWidth: 1,
     borderRadius: 5,
-    paddingLeft: 40,
-    paddingRight: 30, // Add space for the clear button
-    paddingVertical: 8,
-    fontSize: 14,
+    paddingLeft: scale(40),
+    paddingRight: scale(30),
+    paddingVertical: verticalScale(8),
+    fontSize: fontScale(14),
     backgroundColor: "#f1f1f1",
+    color: "#000"
   },
   searchIcon: {
     position: "absolute",
-    left: 10,
-    marginLeft: 18,
+    left: scale(10),
+    marginLeft: scale(18),
   },
   clearButton: {
     position: "absolute",
-    right: 15,
-    padding: 5,
+    right: scale(15),
+    padding: scale(5),
   },
   clearButtonText: {
     color: "#888",
-    fontSize: 16,
+    fontSize: fontScale(16),
     fontWeight: "bold",
   },
   resultsCount: {
-    paddingHorizontal: 15,
-    paddingTop: 5,
-    fontSize: 12,
+    paddingHorizontal: responsivePadding.medium,
+    paddingTop: verticalScale(5),
+    fontSize: fontScale(12),
     color: "#666",
     fontStyle: "italic",
   },
   listContainer: {
-    padding: 15,
+    padding: responsivePadding.medium,
   },
   card: {
     backgroundColor: "#ffffff",
     borderRadius: 8,
-    padding: 15,
-    marginBottom: 12,
+    padding: responsivePadding.medium,
+    marginBottom: verticalScale(12),
     borderWidth: 1,
     borderColor: "#e0e0e0",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  cityRouteContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#f8f9fa",
+    padding: scale(10),
+    borderRadius: 6,
+    marginBottom: verticalScale(10),
+  },
+  cityRoute: {
+    flex: 1,
+    alignItems: "center",
+  },
+  cityLabel: {
+    fontSize: fontScale(12),
+    color: "#666",
+    fontWeight: "500",
+    marginBottom: verticalScale(2),
+  },
+  cityText: {
+    fontSize: fontScale(14),
+    color: "#333",
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  routeArrow: {
+    paddingHorizontal: scale(10),
+  },
+  arrowText: {
+    fontSize: fontScale(18),
+    color: "#007BFF",
+    fontWeight: "bold",
   },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: verticalScale(10),
   },
   boldText: {
     fontWeight: "bold",
-    fontSize: 16,
+    fontSize: fontScale(16),
     color: "#333",
   },
   badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: scale(10),
+    paddingVertical: verticalScale(8),
     borderRadius: 2,
-    width: 150,
-    marginBottom: 10,
+    width: scale(150),
+    marginBottom: verticalScale(10),
     justifyContent: "center",
     alignItems: "center",
   },
+  badgeText: {
+    fontWeight: "600",
+    fontSize: fontScale(12),
+  },
   dateText: {
-    fontSize: 14,
+    fontSize: fontScale(14),
     color: "#666",
-    marginBottom: 8,
+    marginBottom: verticalScale(8),
   },
   locationRow: {
     flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 5,
+    alignItems: "flex-start",
+    marginBottom: verticalScale(5),
+  },
+  locationDetails: {
+    flex: 1,
+    marginLeft: scale(10),
   },
   locationText: {
-    fontSize: 16,
+    fontSize: fontScale(16),
     color: "#333",
-    marginLeft: 10,
     fontWeight: "bold",
+  },
+  locationIcon: {
+    width: scale(20),
+    height: scale(20),
+    marginTop: verticalScale(2),
   },
   carRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 10,
+    marginVertical: verticalScale(10),
   },
   carText: {
-    marginLeft: 8,
-    fontSize: 14,
+    marginLeft: scale(8),
+    fontSize: fontScale(14),
     color: "#444",
   },
   buttonRow: {
@@ -400,94 +498,84 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   buttonText: {
-    marginLeft: 8,
+    marginLeft: scale(8),
     color: "#007BFF",
     fontWeight: "500",
-    fontSize: 14,
+    fontSize: fontScale(14),
   },
   icon: {
-    width: 16,
-    height: 16,
-  },
-  verticalseparator: {
-    width: 1,
-    backgroundColor: "#ddd",
-    borderStyle: "dashed",
-    borderLeftWidth: 1,
-    borderLeftColor: "#ddd",
-    height: "40",
-    marginHorizontal: 11,
-  },
-  separator: {
-    borderStyle: "dashed",
-    borderWidth: 1,
-    borderColor: "#ddd",
-    marginVertical: 10,
-    marginLeft: 40,
-    marginTop: -20,
+    width: scale(16),
+    height: scale(16),
   },
   callNowText: {
     color: "black",
-    fontSize: 16,
-    marginLeft: 10,
-    marginTop: 5,
-    fontWeight: "light",
-    width: '60%'
+    fontSize: fontScale(16),
+    marginTop: verticalScale(5),
+    fontWeight: "300",
+    flex: 1,
   },
   separator1: {
     height: 1,
     backgroundColor: "#ddd",
-    marginVertical: 10,
-    marginLeft: 5,
+    marginVertical: verticalScale(10),
+    marginLeft: scale(5),
   },
   infoRow: {
     flexDirection: "row",
-    marginVertical: 10,
+    marginVertical: verticalScale(10),
   },
   infoText: {
-    fontSize: 15,
+    fontSize: fontScale(15),
     color: "black",
-    marginLeft: 10,
-    marginTop: -2,
+    marginLeft: scale(10),
+    marginTop: verticalScale(-2),
   },
   infoText1: {
-    fontSize: 15,
+    fontSize: fontScale(15),
     color: "#555",
-    marginLeft: 32,
-    marginTop: -10,
+    marginLeft: scale(32),
+    marginTop: verticalScale(-10),
   },
   infoText2: {
-    fontSize: 15,
+    fontSize: fontScale(15),
     color: "#555",
-    marginLeft: -30,
-    marginTop: -10,
+    marginLeft: scale(-30),
+    marginTop: verticalScale(-10),
   },
   driverSection: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 10,
+    padding: responsivePadding.small,
   },
   driverPhoto: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: scale(40),
+    height: scale(40),
+    borderRadius: scale(20),
     objectFit: "fill",
   },
   driverDetails: {
     flex: 1,
-    marginLeft: 10,
+    marginLeft: scale(10),
   },
   driverName: {
-    fontSize: 16,
+    fontSize: fontScale(16),
     color: "#000",
+    fontWeight: "600",
   },
-  driverRating: {
-    fontSize: 12,
+  rating: {
+    fontSize: fontScale(12),
     color: "#888",
+    marginTop: verticalScale(2),
+  },
+  travelerSectionTitle: {
+    marginLeft: scale(10),
+    fontWeight: "bold",
+    fontSize: fontScale(14),
+    marginBottom: verticalScale(5),
   },
   price: {
-    fontSize: 18,
+    fontSize: fontScale(18),
     fontWeight: "bold",
     color: "green",
   },
@@ -495,20 +583,20 @@ const styles = StyleSheet.create({
     backgroundColor: "#D83F3F",
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 15,
-    paddingHorizontal: 10,
+    paddingVertical: verticalScale(15),
+    paddingHorizontal: responsivePadding.small,
     justifyContent: "space-between",
     marginTop: 0,
   },
   headerText: {
     color: "#fff",
-    fontSize: 18,
+    fontSize: fontScale(18),
     fontWeight: "bold",
-    marginLeft: 20,
+    marginLeft: scale(20),
   },
   headerTitle: {
     color: "white",
-    fontSize: 18,
+    fontSize: fontScale(18),
     fontWeight: "bold",
     flex: 1,
     textAlign: "center",
@@ -517,17 +605,22 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 50,
+    marginTop: verticalScale(50),
   },
   noRidesImage: {
-    width: 150,
-    height: 150,
-    marginBottom: 10,
+    width: scale(150),
+    height: scale(150),
+    marginBottom: verticalScale(10),
     resizeMode: "contain",
   },
   noRidesText: {
-    fontSize: 16,
+    fontSize: fontScale(16),
     fontWeight: "bold",
     color: "#666",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

@@ -471,6 +471,7 @@ const PayNowScreen = ({ navigation, route }) => {
           keyId: "rzp_test_HYwz1gfxytH2ci",
           verificationPhoneNumber,
           notificationType,
+          notification: route.params?.notification, // Pass the notification object
         });
       } else {
         throw new Error(json.message || "Failed to create payment order.");

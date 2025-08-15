@@ -19,27 +19,17 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import Header from "../../../header";
 import commonStyles from "../../../styles";
 import {SafeAreaView} from "react-native-safe-area-context";
+import { 
+  scale, 
+  verticalScale, 
+  moderateScale, 
+  responsiveFontSize,
+  responsiveDimensions,
+  screenWidth,
+  screenHeight
+} from "../../../Utils/responsive";
 
 const { width, height } = Dimensions.get("window");
-
-// Responsive scaling functions
-const scale = (size) => {
-  const baseWidth = 393; // iPhone 14 Pro width
-  const scaleFactor = width / baseWidth;
-  return Math.round(size * scaleFactor);
-};
-
-const verticalScale = (size) => {
-  const baseHeight = 852; // iPhone 14 Pro height
-  const scaleFactor = height / baseHeight;
-  return Math.round(size * scaleFactor);
-};
-
-const moderateScale = (size, factor = 0.5) => {
-  return size + (scale(size) - size) * factor;
-};
-
-const API_URL = "https://travel.timestringssystem.com/t/travelhistory";
 
 const TravelHistory = () => {
   const [searchText, setSearchText] = useState("");
@@ -58,6 +48,12 @@ const TravelHistory = () => {
     return date.toLocaleDateString("en-GB", options);
   };
 
+  const extractCity = (fullLocation) => {
+    if (!fullLocation) return "N/A";
+    const parts = fullLocation.split(',').map(part => part.trim());
+    return parts[parts.length - 1] || parts[0] || "N/A";
+  };
+
   const fetchTravelHistory = async () => {
     try {
       const phoneNumber = await AsyncStorage.getItem("phoneNumber");
@@ -65,8 +61,8 @@ const TravelHistory = () => {
       if (!phoneNumber) {
         return;
       }
-
-      const response = await fetch(`${API_URL}/${phoneNumber}`, {
+      const API_URL = await AsyncStorage.getItem("apiBaseUrl");
+      const response = await fetch(`${API_URL}t/travelhistory/${phoneNumber}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -83,8 +79,11 @@ const TravelHistory = () => {
           fullLeavingLocation: travel.fullFrom,
           fullGoingLocation: travel.fullTo,
           Goinglocation: travel.drop,
+          fromCity: extractCity(travel.fullFrom || travel.pickup),
+          toCity: extractCity(travel.fullTo || travel.drop),
           consignments: travel.consignments || 0,
           travelMode: travel.travelMode || "car",
+          vehicleType: travel.vehicleType || "car",
           travelmode_number: travel.travelmode_number || "1234",
           status: travel.status || "UPCOMING",
           travelId: travel.travelId,
@@ -128,7 +127,7 @@ const TravelHistory = () => {
           style={{
             color: textColors[displayStatus] || "#A18800",
             fontWeight: "600",
-            fontSize: 12,
+            fontSize: responsiveFontSize.xs,
           }}
         >
           {displayStatus}
@@ -137,17 +136,40 @@ const TravelHistory = () => {
     );
   };
 
-  const getTravelIcon = (travelMode) => {
-    switch (travelMode) {
-      case "car":
-        return <Icon name="car" size={moderateScale(30)} color="#284268" />;
-      case "airplane":
-        return <Ionicons name="airplane" size={moderateScale(30)} color="#284268" />;
-      case "train":
-        return <Icon name="train" size={moderateScale(30)} color="#284268" />;
-      default:
-        return <Ionicons name="help-circle-outline" size={moderateScale(30)} color="gray" />;
+  const getTravelIcon = (travelMode, vehicleType) => {
+    // If travel mode is roadways, use vehicle type instead
+    if (travelMode === "roadways") {
+      switch (vehicleType) {
+        case "car":
+          return <Icon name="car" size={responsiveDimensions.icon.medium} color="#284268" />;
+        case "bike":
+          return <Icon name="motorcycle" size={responsiveDimensions.icon.medium} color="#284268" />;
+        case "truck":
+          return <Icon name="truck" size={responsiveDimensions.icon.medium} color="#284268" />;
+        case "bus":
+          return <Icon name="bus" size={responsiveDimensions.icon.medium} color="#284268" />;
+        default:
+          return <Icon name="car" size={responsiveDimensions.icon.medium} color="#284268" />;
+      }
+    } else {
+      switch (travelMode) {
+        case "car":
+          return <Icon name="car" size={responsiveDimensions.icon.medium} color="#284268" />;
+        case "airplane":
+          return <Ionicons name="airplane" size={responsiveDimensions.icon.medium} color="#284268" />;
+        case "train":
+          return <Icon name="train" size={responsiveDimensions.icon.medium} color="#284268" />;
+        default:
+          return <Ionicons name="help-circle-outline" size={responsiveDimensions.icon.medium} color="gray" />;
+      }
     }
+  };
+
+  const getTravelModeText = (travelMode, vehicleType) => {
+    if (travelMode === "roadways") {
+      return vehicleType ? vehicleType.toUpperCase() : "ROADWAYS";
+    }
+    return travelMode ? travelMode.toUpperCase() : "CAR";
   };
 
   const renderItem = ({ item }) => (
@@ -167,65 +189,77 @@ const TravelHistory = () => {
       <View style={styles.card}>
         <View style={styles.row}>
           <Text style={styles.boldText}>Travel ID: {item.travelId}</Text>
-          {/* {renderStatusBadge(item.status)} */}
+          {renderStatusBadge(item.status)}
         </View>
 
         <View style={styles.infoRow}>
           <Image
             source={require("../../../Images/clock.png")}
-            style={[styles.locationIcon, { marginLeft: 5 }]}
+            style={[styles.locationIcon, { marginLeft: scale(5) }]}
           />
           <Text style={styles.infoText}>
             {formatDate(item.travelDate)}{" "}
             {new Date(item.travelDate).toLocaleTimeString("en-US", {
               hour: "2-digit",
               minute: "2-digit",
-              hour12: true,
+              hour12: true
             })}
           </Text>
         </View>
 
-        <View>
-          <View style={commonStyles.staraightSeparator} />
+        <View style={styles.locationSection}>
+          <View style={[commonStyles.staraightSeparator, styles.separator]} />
 
           <View style={styles.locationRow}>
             <Image
               source={require("../../../Images/locon.png")}
               style={styles.locationIcon}
             />
-            <View style={commonStyles.iconContainer}></View>
-            <Text style={commonStyles.locationText}>
-              {item.fullLeavingLocation || "N/A"}
-            </Text>
+            <View style={[commonStyles.iconContainer, styles.iconContainer]}></View>
+            <View style={styles.locationTextContainer}>
+              <Text style={[commonStyles.locationText, styles.locationText, {marginLeft: 0}]}>
+                {item.fullLeavingLocation || "N/A"}
+              </Text>
+              <Text style={styles.cityText}>
+                {extractCity(item.fullLeavingLocation)}
+              </Text>
+            </View>
           </View>
 
-          <View style={commonStyles.verticalseparator}></View>
-          <View style={commonStyles.separator} />
+          <View style={styles.verticalSeparatorContainer}>
+            <View style={[commonStyles.verticalseparator, styles.verticalSeparator]}></View>
+          </View>
+          {/* <View style={[commonStyles.separator, styles.dashedSeparator]} /> */}
 
           <View style={styles.locationRow}>
             <Image
               source={require("../../../Images/locend.png")}
               style={styles.locationIcon}
             />
-            <View style={commonStyles.iconContainer}></View>
-            <Text style={commonStyles.locationText}>
-              {item.fullGoingLocation || "N/A"}
-            </Text>
+            <View style={[commonStyles.iconContainer, styles.iconContainer]}></View>
+            <View style={styles.locationTextContainer}>
+              <Text style={[commonStyles.locationText, styles.locationText, {marginLeft: 0}]}>
+                {item.fullGoingLocation || "N/A"}
+              </Text>
+              <Text style={styles.cityText}>
+                {extractCity(item.fullGoingLocation)}
+              </Text>
+            </View>
           </View>
 
-          <View style={commonStyles.staraightSeparator} />
+          <View style={[commonStyles.staraightSeparator, styles.separator]} />
         </View>
 
-        <View style={commonStyles.locationRow}>
-          <View style={commonStyles.iconContainer}>
-            {getTravelIcon(item.travelMode)}
+        <View style={[commonStyles.locationRow, styles.travelModeRow]}>
+          <View style={[commonStyles.iconContainer, styles.travelIconContainer]}>
+            {getTravelIcon(item.travelMode, item.vehicleType)}
           </View>
-          <Text style={commonStyles.infoText}>
-            {item.travelMode.toUpperCase()}
+          <Text style={[commonStyles.infoText, styles.travelModeText]}>
+            {getTravelModeText(item.travelMode, item.vehicleType)}
           </Text>
         </View>
 
-        <View style={commonStyles.staraightSeparator} />
+        <View style={[commonStyles.staraightSeparator, styles.separator]} />
 
         <View style={styles.buttonRow}>
           <TouchableOpacity style={styles.button}>
@@ -258,7 +292,7 @@ const TravelHistory = () => {
         <TextInput
           style={styles.searchInput}
           placeholder="Search by location (from/to)"
-          placeholderTextColor={"#000"}
+          placeholderTextColor={"#666"}
           value={searchText}
           onChangeText={setSearchText}
         />
@@ -286,7 +320,9 @@ const TravelHistory = () => {
                 item.Leavinglocation
                   .toLowerCase()
                   .includes(searchText.toLowerCase()) ||
-                item.Goinglocation.toLowerCase().includes(searchText.toLowerCase())
+                item.Goinglocation.toLowerCase().includes(searchText.toLowerCase()) ||
+                item.fromCity.toLowerCase().includes(searchText.toLowerCase()) ||
+                item.toCity.toLowerCase().includes(searchText.toLowerCase())
             ).length
           }{" "}
           results found
@@ -294,7 +330,9 @@ const TravelHistory = () => {
       )}
 
       {loading ? (
-        <ActivityIndicator size="large" color="#0000ff" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#D83F3F" />
+        </View>
       ) : travelData.length === 0 ? (
         <View style={styles.noRidesContainer}>
           <Text style={styles.noRidesText}>No rides found</Text>
@@ -307,6 +345,8 @@ const TravelHistory = () => {
                 .toLowerCase()
                 .includes(searchText.toLowerCase()) ||
               item.Goinglocation.toLowerCase().includes(searchText.toLowerCase()) ||
+              item.fromCity.toLowerCase().includes(searchText.toLowerCase()) ||
+              item.toCity.toLowerCase().includes(searchText.toLowerCase()) ||
               item.travelId.toLowerCase().includes(searchText.toLowerCase())
           )}
           renderItem={renderItem}
@@ -331,13 +371,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: scale(15),
     paddingVertical: verticalScale(10),
     marginTop: verticalScale(10),
-    // marginHorizontal: width < 375 ? scale(10) : scale(15),
+    marginHorizontal: scale(16),
     borderRadius: scale(8),
-    // elevation: 2,
-    // shadowColor: "#000",
-    // shadowOffset: { width: 0, height: 1 },
-    // shadowOpacity: 0.05,
-    // shadowRadius: 2,
   },
   searchInput: {
     flex: 1,
@@ -347,10 +382,10 @@ const styles = StyleSheet.create({
     paddingLeft: scale(40),
     paddingRight: scale(30),
     paddingVertical: verticalScale(8),
-    fontSize: moderateScale(14),
-    // backgroundColor: "#f1f1f1",
+    fontSize: responsiveFontSize.sm,
     backgroundColor: "#7676801A",
     minHeight: verticalScale(40),
+    color: '#000'
   },
   searchIcon: {
     position: "absolute",
@@ -364,19 +399,25 @@ const styles = StyleSheet.create({
   },
   clearButtonText: {
     color: "#888",
-    fontSize: moderateScale(16),
+    fontSize: responsiveFontSize.md,
     fontWeight: "bold",
   },
   resultsCount: {
     paddingHorizontal: scale(15),
     paddingTop: verticalScale(5),
-    fontSize: moderateScale(12),
+    fontSize: responsiveFontSize.xs,
     color: "#666",
     fontStyle: "italic",
+    marginLeft: scale(16),
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   listContainer: {
     padding: scale(15),
-    paddingHorizontal: width < 375 ? scale(10) : scale(15),
+    paddingHorizontal: scale(16),
   },
   card: {
     backgroundColor: "#ffffff",
@@ -399,8 +440,9 @@ const styles = StyleSheet.create({
   },
   boldText: {
     fontWeight: "bold",
-    fontSize: moderateScale(16),
+    fontSize: responsiveFontSize.md,
     color: "#333",
+    fontFamily: "Inter-Bold",
   },
   badge: {
     paddingHorizontal: scale(12),
@@ -410,10 +452,10 @@ const styles = StyleSheet.create({
   badgeText: {
     color: "#fff",
     fontWeight: "600",
-    fontSize: moderateScale(12),
+    fontSize: responsiveFontSize.xs,
   },
   dateText: {
-    fontSize: moderateScale(14),
+    fontSize: responsiveFontSize.sm,
     color: "#666",
     marginBottom: verticalScale(8),
   },
@@ -424,7 +466,7 @@ const styles = StyleSheet.create({
   },
   carText: {
     marginLeft: scale(8),
-    fontSize: moderateScale(14),
+    fontSize: responsiveFontSize.sm,
     color: "#444",
   },
   buttonRow: {
@@ -441,16 +483,86 @@ const styles = StyleSheet.create({
     marginLeft: scale(8),
     color: "#007AFF",
     fontWeight: "500",
-    fontSize: moderateScale(14),
+    fontSize: responsiveFontSize.sm,
+    fontFamily: "Inter-Medium",
   },
   icon: {
     width: scale(20),
     height: scale(20),
   },
+  locationSection: {
+    position: "relative",
+  },
   locationRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     marginTop: verticalScale(10),
+  },
+  locationTextContainer: {
+    flex: 1,
+    marginLeft: scale(10),
+  },
+  locationText: {
+    fontSize: responsiveFontSize.sm,
+    color: "#000000",
+    fontFamily: "Inter-Medium",
+    lineHeight: responsiveFontSize.sm * 1.3,
+  },
+  cityText: {
+    fontSize: responsiveFontSize.xs,
+    color: "#666",
+    fontFamily: "Inter-Regular",
+    marginTop: verticalScale(2),
+  },
+  locationIcon: {
+    width: scale(16),
+    height: scale(16),
+    marginTop: verticalScale(2),
+  },
+  iconContainer: {
+    marginRight: scale(10),
+  },
+  travelModeRow: {
+    marginVertical: verticalScale(10),
+  },
+  travelIconContainer: {
+    marginRight: scale(10),
+  },
+  travelModeText: {
+    fontSize: responsiveFontSize.sm,
+    color: "black",
+    fontWeight: "bold",
+    fontFamily: "Inter-Bold",
+  },
+  separator: {
+    height: 1,
+    backgroundColor: "#F0EFF2",
+    marginVertical: verticalScale(10),
+    marginLeft: scale(5),
+  },
+  verticalSeparatorContainer: {
+    position: "absolute",
+    left: scale(-4),
+    top: verticalScale(60),
+    // bottom: verticalScale(50),
+    alignItems: "center",
+    zIndex: 1,
+  },
+  verticalSeparator: {
+    width: 1,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: "#6C6C70",
+    height: verticalScale(50),
+    // marginHorizontal: scale(11),
+  },
+  dashedSeparator: {
+    borderStyle: "dashed",
+    borderWidth: 1,
+    borderColor: "#EBEBEB",
+    marginVertical: verticalScale(10),
+    marginLeft: scale(40),
+    marginTop: verticalScale(-20),
   },
   dot: {
     width: scale(10),
@@ -467,24 +579,27 @@ const styles = StyleSheet.create({
     marginRight: scale(10),
   },
   infoRow: {
+    display: 'flex',
     flexDirection: "row",
     marginVertical: verticalScale(10),
+    alignItems: "center"
   },
   infoText: {
-    fontSize: moderateScale(14),
+    fontSize: responsiveFontSize.sm,
     color: "black",
     fontWeight: "bold",
     marginLeft: scale(10),
     marginTop: verticalScale(-2),
+    fontFamily: "Inter-Bold",
   },
   infoText1: {
-    fontSize: moderateScale(15),
+    fontSize: responsiveFontSize.sm,
     color: "#555",
     marginLeft: scale(32),
     marginTop: verticalScale(-10),
   },
   infoText2: {
-    fontSize: moderateScale(15),
+    fontSize: responsiveFontSize.sm,
     color: "#555",
     marginLeft: scale(-30),
     marginTop: verticalScale(-10),
@@ -508,16 +623,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   infoTitle: {
-    fontSize: moderateScale(16),
+    fontSize: responsiveFontSize.md,
     fontWeight: "bold",
     color: "#000",
   },
   infoSubtitle: {
-    fontSize: moderateScale(14),
+    fontSize: responsiveFontSize.sm,
     color: "#555",
   },
   vehicleText: {
-    fontSize: moderateScale(16),
+    fontSize: responsiveFontSize.md,
     color: "#333",
     textAlign: "center",
     marginVertical: verticalScale(10),
@@ -543,12 +658,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   travelerName: {
-    fontSize: moderateScale(16),
+    fontSize: responsiveFontSize.md,
     fontWeight: "bold",
     color: "#000",
   },
   travelerRating: {
-    fontSize: moderateScale(14),
+    fontSize: responsiveFontSize.sm,
     color: "#555",
   },
   noRidesContainer: {
@@ -564,9 +679,10 @@ const styles = StyleSheet.create({
     resizeMode: "contain",
   },
   noRidesText: {
-    fontSize: moderateScale(16),
+    fontSize: responsiveFontSize.md,
     fontWeight: "bold",
     color: "#666",
+    fontFamily: "Inter-Bold",
   },
 });
 

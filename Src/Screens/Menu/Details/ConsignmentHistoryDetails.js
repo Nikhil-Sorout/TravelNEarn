@@ -12,8 +12,8 @@ import {
   Alert,
   TextInput,
   Animated,
-  Dimensions,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import MapView, { PROVIDER_GOOGLE, Marker, Polyline } from "react-native-maps";
 import RBSheet from "react-native-raw-bottom-sheet";
 import Icon from "react-native-vector-icons/FontAwesome";
@@ -22,10 +22,21 @@ import { useSocket } from "../../../Context/socketprovider";
 import RatingDetails from "../../../Customer Traveller/RatingDetails";
 import Header from "../../../header";
 import commonStyles from "../../../styles";
+import { getCurvedPolylinePoints } from "../../../Utils/getCurvedPolylinePonints";
+import {
+  scale,
+  verticalScale,
+  moderateScale,
+  moderateVerticalScale,
+  fontScale,
+  screenWidth,
+  screenHeight,
+  responsivePadding,
+  responsiveFontSize,
+  responsiveDimensions,
+} from "../../../Utils/responsive";
 
 import axios from "axios";
-
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 const TravelDetails = ({ route }) => {
   const { ride } = route.params;
@@ -45,12 +56,59 @@ const TravelDetails = ({ route }) => {
   const [originCoords, setOriginCoords] = useState(null);
   const [destinationCoords, setDestinationCoords] = useState(null);
   const [driverCoords, setDriverCoords] = useState(null);
-  const [status, setStatus] = useState(() => {
-    const statusStr = ride.status || "";
-    if (statusStr.toLowerCase() === "collected") return "on the way";
-    if (statusStr.toLowerCase() === "completed") return "Delivered";
-    return statusStr || "Yet To Start";
-  });
+  // Helper function to extract city from address
+  const extractCityFromAddress = (address) => {
+    if (!address) return null;
+    
+    // Split address by commas and look for city patterns
+    const parts = address.split(',').map(part => part.trim());
+    
+    // Look for common city indicators or state abbreviations
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const part = parts[i];
+      // Skip if it's a state abbreviation or PIN code
+      if (part.length <= 3 || /^\d{6}$/.test(part)) continue;
+      
+      // If it looks like a city name (not too short, not a number)
+      if (part.length > 2 && !/^\d+$/.test(part)) {
+        return part;
+      }
+    }
+    
+    return null;
+  };
+
+  // Helper function to determine display status
+  const getDisplayStatus = (statusStr) => {
+    const status = statusStr || "";
+    const lowerStatus = status.toLowerCase();
+    
+    // Check for pending/not accepted statuses
+    const pendingStatuses = ["pending", "not started", "in progress", "rejected", "expired"];
+    if (pendingStatuses.includes(lowerStatus)) {
+      return "Upcoming";
+    }
+    
+    // Check for accepted status
+    if (lowerStatus === "accepted") {
+      return "Accepted";
+    }
+    
+    // Check for completed status
+    if (lowerStatus === "completed") {
+      return "Delivered";
+    }
+    
+    // Check for collected status
+    if (lowerStatus === "collected") {
+      return "on the way";
+    }
+    
+    // Default fallback
+    return status || "Yet To Start";
+  };
+
+  const [status, setStatus] = useState(() => getDisplayStatus(ride.status));
   const [otp, setOtp] = useState(ride.otp || "N/A");
   const [rotp, setRotp] = useState(ride.rotp || "N/A");
   const [rideStatus, setRideStatus] = useState([]);
@@ -80,6 +138,12 @@ const TravelDetails = ({ route }) => {
   const locationUpdateHandlerRef = useRef(null);
   const trackingIntervalRef = useRef(null);
   const [driverToDestinationRoute, setDriverToDestinationRoute] = useState([]);
+
+  // Curved polyline points for flight-style path
+  const curvedLinePoints =
+    originCoords && destinationCoords
+      ? getCurvedPolylinePoints(originCoords, destinationCoords)
+      : [];
 
   // State for additional consignment details
   const [consignmentDetails, setConsignmentDetails] = useState(null);
@@ -125,7 +189,18 @@ const TravelDetails = ({ route }) => {
         } else if (isCollected) {
           setStatus("on the way");
         } else {
-          setStatus("Yet To Collect");
+          // Check if the original status is pending/not accepted
+          const originalStatus = ride.status || "";
+          const lowerOriginalStatus = originalStatus.toLowerCase();
+          const pendingStatuses = ["pending", "not started", "in progress", "rejected", "expired"];
+          
+          if (pendingStatuses.includes(lowerOriginalStatus)) {
+            setStatus("Upcoming");
+          } else if (lowerOriginalStatus === "accepted") {
+            setStatus("Accepted");
+          } else {
+            setStatus("Yet To Collect");
+          }
         } // Extract timestamps from the status updates
         const collectedItem = data.status.find(
           (item) => item.step === "Consignment Collected"
@@ -678,7 +753,7 @@ const TravelDetails = ({ route }) => {
 
   const getTravelIcon = (travelmode) => {
     switch (travelmode?.toLowerCase()) {
-      case "car":
+      case "roadways":
         return <Icon name="car" size={30} color="#D83F3F" />;
       case "airplane":
         return <Ionicons name="airplane" size={30} color="#D83F3F" />;
@@ -789,7 +864,26 @@ const TravelDetails = ({ route }) => {
   };
 
   const renderStatusBadge = (status) => {
-    const badgeColor = status === "Delivered" ? "#32CD32" : "#FFC107";
+    let badgeColor;
+    
+    switch (status) {
+      case "Delivered":
+        badgeColor = "#32CD32"; // Green
+        break;
+      case "Upcoming":
+        badgeColor = "#FF6B35"; // Orange
+        break;
+      case "Accepted":
+        badgeColor = "#4CAF50"; // Light Green
+        break;
+      case "on the way":
+        badgeColor = "#2196F3"; // Blue
+        break;
+      default:
+        badgeColor = "#FFC107"; // Yellow/Amber
+        break;
+    }
+    
     return (
       <View style={[styles.badge, { backgroundColor: badgeColor }]}>
         <Text style={styles.badgeText}>{status}</Text>
@@ -1334,7 +1428,7 @@ const TravelDetails = ({ route }) => {
   }, [status, driverCoords, destinationCoords]);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Rating Modal */}
       <Modal
         visible={ratingModalVisible}
@@ -1564,7 +1658,31 @@ const TravelDetails = ({ route }) => {
       <Header title="Track Your Consignment" navigation={navigation} />
 
       <ScrollView>
+        {status === "Upcoming" && (
+          <View style={styles.upcomingMessageContainer}>
+            <View style={styles.upcomingMessage}>
+              <Icon name="clock-o" size={24} color="#FF6B35" />
+              <Text style={styles.upcomingMessageText}>
+                Your consignment is pending acceptance. You'll be notified once a traveler accepts it.
+              </Text>
+            </View>
+          </View>
+        )}
+        
+        {status === "Accepted" && (
+          <View style={styles.acceptedMessageContainer}>
+            <View style={styles.acceptedMessage}>
+              <Icon name="check-circle" size={24} color="#4CAF50" />
+              <Text style={styles.acceptedMessageText}>
+                Your consignment has been accepted! The traveler will collect it soon.
+              </Text>
+            </View>
+          </View>
+        )}
+        
         <View style={styles.mapContainer}>
+          {/* Dashed line overlay background */}
+          <View style={styles.dashedLineOverlay} />
           <MapView
             ref={mapRef}
             provider={PROVIDER_GOOGLE}
@@ -1576,12 +1694,13 @@ const TravelDetails = ({ route }) => {
               longitudeDelta: 0.05,
             }}
           >
-            {/* Show original route only when journey hasn't started */}
-            {status !== "on the way" && coordinates.length > 0 && (
+            {/* Show curved flight-style route */}
+            {curvedLinePoints.length > 0 && (
               <Polyline
-                coordinates={coordinates}
-                strokeColor="blue"
-                strokeWidth={3}
+                coordinates={curvedLinePoints}
+                strokeColor="rgba(0,0,255,0.6)"
+                strokeWidth={2}
+                lineDashPattern={[5, 5]}
               />
             )}
 
@@ -1589,8 +1708,10 @@ const TravelDetails = ({ route }) => {
             {status === "on the way" && driverToDestinationRoute.length > 0 && (
               <Polyline
                 coordinates={driverToDestinationRoute}
-                strokeColor="#FF0000"
-                strokeWidth={3}
+                strokeColor="rgba(255, 0, 0, 0.3)"
+                strokeWidth={2}
+                lineDashPattern={[10, 5]}
+                zIndex={1}
               />
             )}
 
@@ -1660,10 +1781,10 @@ const TravelDetails = ({ route }) => {
           <View style={styles.infoRow1}>
             <Text
               style={{
-                fontSize: 20,
+                fontSize: responsiveFontSize.xl,
                 fontWeight: "bold",
-                marginRight: 10,
-                marginTop: 5,
+                marginRight: scale(10),
+                marginTop: verticalScale(5),
                 color: "#000"
               }}
             >
@@ -1673,14 +1794,17 @@ const TravelDetails = ({ route }) => {
             <View style={styles.greenBox}>
               <Text
                 style={{
-                  fontSize: 20,
+                  fontSize: responsiveFontSize.xl,
                   fontWeight: "bold",
                   color: "white",
-                  letterSpacing: 5,
+                  letterSpacing: scale(5),
                 }}
               >
-                {status !== "Delivered" &&
-                  (status === "on the way" ? rotp : otp)}
+                {status !== "Delivered" && status !== "Upcoming" &&
+                  (status === "on the way" ? 
+                    (rotp && rotp !== "N/A" ? rotp : "") : 
+                    (otp && otp !== "N/A" ? otp : "")
+                  )}
               </Text>
             </View>
           </View>
@@ -1691,13 +1815,14 @@ const TravelDetails = ({ route }) => {
               source={require("../../../Images/locon.png")}
               style={styles.locationIcon}
             />
-            <Text style={styles.locationText}>
-              {/* {ride.startinglocation} {"\n"} */}
-              {consignmentDetails?.fullstartinglocation}
-              {/* <Text style={styles.innerlocationText}>
-                (Pickup: {formatTime(pickupTime)})
-              </Text> */}
-            </Text>
+            <View style={styles.locationContent}>
+              <Text style={styles.locationCity}>
+                {ride.startCity || extractCityFromAddress(consignmentDetails?.fullstartinglocation) || "Starting City"}
+              </Text>
+              <Text style={styles.locationText}>
+                {consignmentDetails?.fullstartinglocation || ride.startinglocation || "Starting Location"}
+              </Text>
+            </View>
           </View>
 
           <View style={commonStyles.verticalseparator}></View>
@@ -1708,13 +1833,14 @@ const TravelDetails = ({ route }) => {
               source={require("../../../Images/locend.png")}
               style={styles.locationIcon}
             />
-            <Text style={styles.locationText}>
-              {/* {ride.goinglocation} {"\n"} */}
-              {consignmentDetails?.fullgoinglocation}
-              {/* <Text style={styles.innerlocationText}>
-                (Estimated Drop: {formatTime(dropTime)})
-              </Text> */}
-            </Text>
+            <View style={styles.locationContent}>
+              <Text style={styles.locationCity}>
+                {ride.destCity || extractCityFromAddress(consignmentDetails?.fullgoinglocation) || "Destination City"}
+              </Text>
+              <Text style={styles.locationText}>
+                {consignmentDetails?.fullgoinglocation || ride.goinglocation || "Destination Location"}
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -1872,7 +1998,7 @@ const TravelDetails = ({ route }) => {
             <View style={styles.traveler}>
               <Image
                 source={{
-                  uri: ride.traveldetails[0]?.profilePicture,
+                  uri: ride.traveldetails[0]?.profilePicture || "https://static.vecteezy.com/system/resources/previews/000/439/863/non_2x/vector-users-icon.jpg",
                 }}
                 style={styles.profileImage}
               />
@@ -1895,11 +2021,16 @@ const TravelDetails = ({ route }) => {
                     {getTravelIcon(ride.travelmode)}
                   </View>
                   <View style={styles.travelerDetails}>
-                    <Text style={[styles.travelerName, { marginLeft: 15 }]}>
-                      {ride.travelmode}
+                    <Text style={[styles.travelerName, { marginLeft: scale(15) }]}>
+                      {ride.travelmode === "roadways" ? (ride.vehicleType || "Car") : ride.travelmode}
                     </Text>
-                    {ride.travelmode_number && (
-                      <Text style={[styles.travelerName, { marginLeft: 15 }]}>
+                    {/* {ride.travelmode === "roadways" && ride.vehicleType && (
+                      <Text style={[styles.travelerName, { marginLeft: scale(15), fontSize: responsiveFontSize.sm, color: "#666" }]}>
+                        Vehicle Type
+                      </Text>
+                    )} */}
+                    {ride.travelmode !== "roadways" && ride.travelmode_number && (
+                      <Text style={[styles.travelerName, { marginLeft: scale(15) }]}>
                         {ride.travelmode_number}
                       </Text>
                     )}
@@ -1911,7 +2042,7 @@ const TravelDetails = ({ route }) => {
             <View style={commonStyles.staraightSeparator} />
             <View style={styles.otherInfo}>
               <View style={styles.infoBlock}>
-                <View style={[styles.infoRow, { marginTop: 20 }]}>
+                <View style={[styles.infoRow, { marginTop: verticalScale(20) }]}>
                   <View
                     style={[
                       styles.iconContainer,
@@ -1929,7 +2060,7 @@ const TravelDetails = ({ route }) => {
           </View>
         )}
 
-        {status !== "Yet To Collect" && (
+        {status !== "Yet To Collect" && status !== "Upcoming" && (
           <View style={styles.card}>
             {/* Step 1: Collected */}
             <View>
@@ -1961,7 +2092,7 @@ const TravelDetails = ({ route }) => {
                       <Text
                         style={[
                           styles.callNowText,
-                          { fontSize: 11, color: "#555", textAlign: "right" },
+                          { fontSize: fontScale(11), color: "#555", textAlign: "right" },
                         ]}
                       >
                         {pickupTime.date}
@@ -1996,21 +2127,21 @@ const TravelDetails = ({ route }) => {
                       right: 10,
                     }}
                   >
-                    <Text style={[styles.callNowText, { textAlign: "right" }]}>
-                      {onTheWayTime ? formatTime(onTheWayTime) : ""}
-                    </Text>
-                    {onTheWayTime &&
-                      typeof onTheWayTime === "object" &&
-                      onTheWayTime.date && (
-                        <Text
-                          style={[
-                            styles.callNowText,
-                            { fontSize: 11, color: "#555", textAlign: "right" },
-                          ]}
-                        >
-                          {onTheWayTime.date}
-                        </Text>
-                      )}
+                                      <Text style={[styles.callNowText, { textAlign: "right" }]}>
+                    {onTheWayTime ? formatTime(onTheWayTime) : ""}
+                  </Text>
+                  {onTheWayTime &&
+                    typeof onTheWayTime === "object" &&
+                    onTheWayTime.date && (
+                      <Text
+                        style={[
+                          styles.callNowText,
+                          { fontSize: fontScale(11), color: "#555", textAlign: "right" },
+                        ]}
+                      >
+                        {onTheWayTime.date}
+                      </Text>
+                    )}
                   </View>
                 </View>
                 <View
@@ -2059,7 +2190,7 @@ const TravelDetails = ({ route }) => {
                       <Text
                         style={[
                           styles.callNowText,
-                          { fontSize: 11, color: "#555", textAlign: "right" },
+                          { fontSize: fontScale(11), color: "#555", textAlign: "right" },
                         ]}
                       >
                         {dropTime.date}
@@ -2088,7 +2219,7 @@ const TravelDetails = ({ route }) => {
           />
         </RBSheet>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -2115,7 +2246,7 @@ const restoreActiveTracking = async () => {
   }
 };
 
-// Styles remain unchanged
+// Responsive styles using centralized responsive utilities
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -2127,17 +2258,17 @@ const styles = StyleSheet.create({
   },
   map: {
     width: "100%",
-    height: screenHeight * 0.35,
+    height: verticalScale(298), // 35% of base height (852 * 0.35)
     objectFit: "cover",
   },
   getDirectionButton: {
     position: "absolute",
-    bottom: 20,
-    right: 20,
+    bottom: verticalScale(20),
+    right: scale(20),
     backgroundColor: "#FFFFFF",
-    paddingVertical: screenWidth > 768 ? 12 : 10,
-    paddingHorizontal: screenWidth > 768 ? 24 : 20,
-    borderRadius: 12,
+    paddingVertical: moderateVerticalScale(10),
+    paddingHorizontal: moderateScale(20),
+    borderRadius: scale(12),
     elevation: 8,
     shadowColor: "#000",
     shadowOpacity: 0.2,
@@ -2146,14 +2277,14 @@ const styles = StyleSheet.create({
   },
   getDirectionText: {
     color: "#007AFF",
-    fontSize: screenWidth > 768 ? 18 : 16,
+    fontSize: responsiveFontSize.lg,
     fontWeight: "bold",
   },
   card: {
     backgroundColor: "#fff",
-    margin: screenWidth > 768 ? 20 : 15,
-    borderRadius: 16,
-    padding: screenWidth > 768 ? 24 : 20,
+    margin: moderateScale(15),
+    borderRadius: scale(16),
+    padding: moderateScale(20),
     shadowColor: "#000",
     shadowOpacity: 0.08,
     shadowRadius: 12,
@@ -2162,91 +2293,99 @@ const styles = StyleSheet.create({
   },
   card1: {
     backgroundColor: "#fff",
-    // borderRadius: 16,
-    borderTopLeftRadius:0,
-    borderTopRightRadius:0,
-    padding: screenWidth > 768 ? 20 : 15,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    padding: moderateScale(15),
     shadowColor: "#000",
     shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 4,
     shadowOffset: { width: 0, height: 4 },
-    // width: '90%'
   },
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 10,
-    paddingRight: 80,
+    marginTop: verticalScale(10),
+    paddingRight: scale(80),
     position: "relative",
   },
   locationText: {
-    fontSize: screenWidth > 768 ? 18 : 16,
-    color: "#333",
-    marginLeft: 10,
-    fontWeight: "600",
+    fontSize: responsiveFontSize.sm,
+    color: "#666",
+    marginLeft: scale(10),
+    fontWeight: "400",
     flex: 1,
-    lineHeight: 22,
+    lineHeight: verticalScale(18),
+  },
+  locationContent: {
+    flex: 1,
+  },
+  locationCity: {
+    fontSize: responsiveFontSize.md,
+    fontWeight: "600",
+    color: "#333",
+    marginLeft: scale(10),
+    marginBottom: verticalScale(2),
   },
   innerlocationText: {
-    fontSize: 16,
+    fontSize: responsiveFontSize.md,
     color: "#666",
-    marginLeft: 10,
+    marginLeft: scale(10),
     fontWeight: "400",
   },
   infoRow: {
     flexDirection: "row",
-    marginVertical: 10,
+    marginVertical: verticalScale(10),
     alignItems: "center",
   },
   infoRow1: {
     flexDirection: "row",
-    marginVertical: 10,
+    marginVertical: verticalScale(10),
     justifyContent: "space-between",
     alignItems: "center",
   },
   phoneNumber: {
-    fontSize: screenWidth > 768 ? 16 : 14,
+    fontSize: responsiveFontSize.md,
     color: "#333",
     fontWeight: "600",
-    marginLeft: 10,
-    marginTop: 5,
+    marginLeft: scale(10),
+    marginTop: verticalScale(5),
   },
   infoTitle: {
-    fontSize: screenWidth > 768 ? 20 : 18,
+    fontSize: responsiveFontSize.xl,
     fontWeight: "bold",
-    marginBottom: 20,
+    marginBottom: verticalScale(20),
     color: "#1a1a1a",
     letterSpacing: 0.5,
   },
   traveler: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 15,
+    marginVertical: verticalScale(15),
   },
   profileImage: {
-    width: screenWidth > 768 ? 60 : 50,
-    height: screenWidth > 768 ? 60 : 50,
-    borderRadius: screenWidth > 768 ? 30 : 25,
-    marginRight: 15,
+    width: moderateScale(50),
+    height: moderateScale(50),
+    borderRadius: moderateScale(25),
+    marginRight: scale(15),
   },
   travelerDetails: {
     flex: 1,
   },
   travelerName: {
-    fontSize: screenWidth > 768 ? 18 : 16,
+    fontSize: responsiveFontSize.lg,
     fontWeight: "bold",
     color: "#1a1a1a",
   },
   travelerRating: {
-    fontSize: screenWidth > 768 ? 16 : 14,
+    fontSize: responsiveFontSize.md,
     color: "#666",
-    marginTop: 4,
+    marginTop: verticalScale(4),
   },
   marker: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: scale(32),
+    height: scale(32),
+    borderRadius: scale(16),
     justifyContent: "center",
     alignItems: "center",
   },
@@ -2267,9 +2406,9 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
   },
   carIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: scale(36),
+    height: scale(36),
+    borderRadius: scale(18),
     backgroundColor: "#D83F3F",
     justifyContent: "center",
     alignItems: "center",
@@ -2283,31 +2422,31 @@ const styles = StyleSheet.create({
   },
   driverMarkerDot: {
     position: "absolute",
-    bottom: -4,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    bottom: -verticalScale(4),
+    width: scale(8),
+    height: scale(8),
+    borderRadius: scale(4),
     backgroundColor: "#D83F3F",
     borderWidth: 1,
     borderColor: "white",
   },
   badge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
+    paddingHorizontal: scale(12),
+    paddingVertical: verticalScale(6),
+    borderRadius: scale(6),
   },
   badgeText: {
     color: "#fff",
     fontWeight: "600",
-    fontSize: 12,
+    fontSize: responsiveFontSize.xs,
   },
   greenBox: {
     backgroundColor: "#53B175",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 12,
+    paddingVertical: verticalScale(8),
+    paddingHorizontal: scale(16),
+    borderRadius: scale(12),
     position: "absolute",
-    right: 10,
+    right: scale(10),
     top: 0,
     alignItems: "center",
     elevation: 4,
@@ -2318,30 +2457,30 @@ const styles = StyleSheet.create({
   },
   otpLabel: {
     color: "white",
-    fontSize: 12,
+    fontSize: responsiveFontSize.xs,
     fontWeight: "bold",
-    marginBottom: 2,
+    marginBottom: verticalScale(2),
   },
   iconContainer: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: scale(24),
+    height: scale(24),
+    borderRadius: scale(12),
     justifyContent: "center",
     alignItems: "center",
   },
   iconContainer1: {
-    width: 40,
-    height: 35,
-    borderRadius: 20,
+    width: scale(40),
+    height: verticalScale(35),
+    borderRadius: scale(20),
     justifyContent: "center",
     alignItems: "center",
   },
   callNowText: {
     color: "#333",
-    fontSize: screenWidth > 768 ? 14 : 13,
+    fontSize: responsiveFontSize.sm,
     fontWeight: "500",
     textAlign: "right",
-    maxWidth: 150,
+    maxWidth: scale(150),
   },
   modalContainer: {
     flex: 1,
@@ -2350,7 +2489,7 @@ const styles = StyleSheet.create({
   },
   modalScrollView: {
     flex: 1,
-    maxHeight: screenHeight * 0.8,
+    maxHeight: verticalScale(682), // 80% of base height (852 * 0.8)
   },
   modalScrollContent: {
     flexGrow: 1,
@@ -2358,48 +2497,48 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: "white",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: screenWidth > 768 ? 30 : 20,
-    paddingBottom: 40,
+    borderTopLeftRadius: scale(24),
+    borderTopRightRadius: scale(24),
+    padding: moderateScale(20),
+    paddingBottom: verticalScale(40),
     alignItems: "center",
   },
   closeButton: {
     alignSelf: "flex-end",
-    padding: 10,
+    padding: scale(10),
   },
   modalProfileImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginVertical: 20,
+    width: scale(80),
+    height: scale(80),
+    borderRadius: scale(40),
+    marginVertical: verticalScale(20),
   },
   ratingTitle: {
-    fontSize: screenWidth > 768 ? 22 : 20,
+    fontSize: responsiveFontSize.xl,
     fontWeight: "bold",
-    marginBottom: 25,
+    marginBottom: verticalScale(25),
     color: "#1a1a1a",
   },
   ratingContainer: {
     flexDirection: "row",
     justifyContent: "center",
     flexWrap: "wrap",
-    marginVertical: 15,
+    marginVertical: verticalScale(15),
     width: "90%",
   },
   ratingButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    marginHorizontal: 4,
-    marginVertical: 4,
+    width: scale(40),
+    height: scale(40),
+    borderRadius: scale(8),
+    marginHorizontal: scale(4),
+    marginVertical: verticalScale(4),
     backgroundColor: "#0C9D5C",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 0,
   },
   ratingButtonText: {
-    fontSize: 16,
+    fontSize: responsiveFontSize.md,
     color: "white",
     fontWeight: "600",
   },
@@ -2407,19 +2546,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     width: "80%",
-    marginTop: 15,
+    marginTop: verticalScale(15),
   },
   ratingLabel: {
     color: "#666",
-    fontSize: screenWidth > 768 ? 18 : 16,
+    fontSize: responsiveFontSize.lg,
     fontWeight: "500",
   },
   openModalButton: {
     backgroundColor: "#53B175",
-    padding: 18,
-    borderRadius: 12,
+    padding: scale(18),
+    borderRadius: scale(12),
     alignItems: "center",
-    margin: 20,
+    margin: scale(20),
     elevation: 4,
     shadowColor: "#000",
     shadowOpacity: 0.2,
@@ -2428,65 +2567,65 @@ const styles = StyleSheet.create({
   },
   openModalText: {
     color: "white",
-    fontSize: screenWidth > 768 ? 18 : 16,
+    fontSize: responsiveFontSize.lg,
     fontWeight: "bold",
   },
   feedbackTitle: {
-    fontSize: screenWidth > 768 ? 22 : 20,
+    fontSize: responsiveFontSize.xl,
     fontWeight: "bold",
     alignSelf: "flex-start",
-    marginBottom: 20,
+    marginBottom: verticalScale(20),
     color: "#1a1a1a",
   },
   feedbackOptionsContainer: {
     width: "100%",
-    marginBottom: 25,
+    marginBottom: verticalScale(25),
   },
   feedbackOption: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 18,
+    marginBottom: verticalScale(18),
   },
   radioButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: scale(28),
+    height: scale(28),
+    borderRadius: scale(14),
     borderWidth: 2,
     borderColor: "#ddd",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 18,
+    marginRight: scale(18),
   },
   radioButtonSelected: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: scale(20),
+    height: scale(20),
+    borderRadius: scale(10),
     backgroundColor: "#2B8DFF",
     justifyContent: "center",
     alignItems: "center",
   },
   feedbackOptionText: {
-    fontSize: screenWidth > 768 ? 18 : 16,
+    fontSize: responsiveFontSize.lg,
     color: "#333",
   },
   feedbackInput: {
     width: "100%",
-    height: 100,
+    height: verticalScale(100),
     borderWidth: 1,
     borderColor: "#e0e0e0",
-    borderRadius: 12,
-    marginTop: 15,
-    padding: 15,
+    borderRadius: scale(12),
+    marginTop: verticalScale(15),
+    padding: scale(15),
     textAlignVertical: "top",
-    fontSize: 16,
+    fontSize: responsiveFontSize.md,
     backgroundColor: "#f8f9fa",
   },
   submitButton: {
     backgroundColor: "#E94B4B",
     width: "100%",
-    paddingVertical: 18,
-    borderRadius: 12,
-    marginTop: 25,
+    paddingVertical: verticalScale(18),
+    borderRadius: scale(12),
+    marginTop: verticalScale(25),
     alignItems: "center",
     elevation: 4,
     shadowColor: "#000",
@@ -2496,28 +2635,28 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     color: "white",
-    fontSize: screenWidth > 768 ? 18 : 16,
+    fontSize: responsiveFontSize.lg,
     fontWeight: "bold",
   },
   bottomIndicator: {
-    width: 100,
-    height: 5,
+    width: scale(100),
+    height: verticalScale(5),
     backgroundColor: "#ddd",
-    borderRadius: 3,
-    marginTop: 30,
+    borderRadius: scale(3),
+    marginTop: verticalScale(30),
   },
   separator: {
     height: 1,
     backgroundColor: "#e0e0e0",
     width: "100%",
-    marginVertical: 20,
+    marginVertical: verticalScale(20),
   },
   ratingBox: {
-    width: 35,
-    height: 35,
-    borderRadius: 8,
-    marginHorizontal: 4,
-    marginVertical: 4,
+    width: scale(35),
+    height: scale(35),
+    borderRadius: scale(8),
+    marginHorizontal: scale(4),
+    marginVertical: verticalScale(4),
     backgroundColor: "white",
     justifyContent: "center",
     alignItems: "center",
@@ -2525,20 +2664,20 @@ const styles = StyleSheet.create({
     borderColor: "#0C9D5C",
   },
   ratingBoxText: {
-    fontSize: 16,
+    fontSize: responsiveFontSize.md,
     fontWeight: "600",
     color: "#333",
   },
   liveTrackingIndicator: {
     position: "absolute",
-    top: 15,
-    left: 15,
+    top: verticalScale(15),
+    left: scale(15),
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(0, 0, 0, 0.8)",
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    borderRadius: 25,
+    paddingVertical: verticalScale(8),
+    paddingHorizontal: scale(15),
+    borderRadius: scale(25),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
@@ -2546,32 +2685,32 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   pulsatingDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: scale(12),
+    height: scale(12),
+    borderRadius: scale(6),
     backgroundColor: "#00FF00",
-    marginRight: 8,
+    marginRight: scale(8),
   },
   liveTrackingText: {
     color: "white",
     fontWeight: "bold",
-    fontSize: screenWidth > 768 ? 14 : 12,
+    fontSize: responsiveFontSize.sm,
   },
   riderMarkerContainer: {
     backgroundColor: "white",
-    padding: 10,
-    borderRadius: 25,
+    padding: scale(10),
+    borderRadius: scale(25),
     borderWidth: 2,
     borderColor: "#2196F3",
   },
   trackingStatusContainer: {
     position: "absolute",
-    bottom: 15,
-    left: 15,
-    right: 15,
+    bottom: verticalScale(15),
+    left: scale(15),
+    right: scale(15),
     backgroundColor: "rgba(255, 255, 255, 0.95)",
-    padding: screenWidth > 768 ? 18 : 15,
-    borderRadius: 12,
+    padding: moderateScale(15),
+    borderRadius: scale(12),
     elevation: 6,
     shadowColor: "#000",
     shadowOpacity: 0.1,
@@ -2579,41 +2718,41 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
   },
   trackingStatusText: {
-    fontSize: screenWidth > 768 ? 16 : 14,
+    fontSize: responsiveFontSize.md,
     fontWeight: "bold",
     color: "#333",
   },
   lastUpdatedText: {
-    fontSize: screenWidth > 768 ? 14 : 12,
+    fontSize: responsiveFontSize.sm,
     color: "#666",
-    marginTop: 6,
+    marginTop: verticalScale(6),
   },
   errorText: {
     color: "#F44336",
-    fontSize: screenWidth > 768 ? 14 : 12,
-    marginTop: 6,
+    fontSize: responsiveFontSize.sm,
+    marginTop: verticalScale(6),
   },
   detailRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 16,
-    paddingVertical: 8,
+    marginBottom: verticalScale(16),
+    paddingVertical: verticalScale(8),
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
   },
   detailLabel: {
-    fontSize: screenWidth > 768 ? 16 : 14,
+    fontSize: responsiveFontSize.md,
     fontWeight: "600",
     color: "#333",
-    marginRight: 15,
+    marginRight: scale(15),
     flex: 1,
   },
   detailValue: {
-    fontSize: screenWidth > 768 ? 16 : 14,
+    fontSize: responsiveFontSize.md,
     color: "#666",
     flex: 2,
     textAlign: "right",
-    lineHeight: 20,
+    lineHeight: verticalScale(20),
   },
   detailIconRow: {
     flexDirection: "row",
@@ -2621,22 +2760,22 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   detailIcon: {
-    width: screenWidth > 768 ? 24 : 20,
-    height: screenWidth > 768 ? 24 : 20,
-    marginRight: 8,
+    width: moderateScale(20),
+    height: moderateScale(20),
+    marginRight: scale(8),
   },
   imageSection: {
-    marginBottom: 25,
+    marginBottom: verticalScale(25),
   },
   imageScroll: {
-    height: screenWidth > 768 ? 120 : 100,
-    marginTop: 10,
+    height: verticalScale(100),
+    marginTop: verticalScale(10),
   },
   imageScrollContent: {
-    paddingHorizontal: 5,
+    paddingHorizontal: scale(5),
   },
   imageContainer: {
-    marginRight: 12,
+    marginRight: scale(12),
     position: "relative",
   },
   imageOverlay: {
@@ -2648,23 +2787,23 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.3)",
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 8,
+    borderRadius: scale(8),
     opacity: 0,
   },
   consignmentImage: {
-    width: screenWidth > 768 ? 120 : 100,
-    height: screenWidth > 768 ? 120 : 100,
-    borderRadius: 8,
+    width: moderateScale(100),
+    height: moderateScale(100),
+    borderRadius: scale(8),
     borderWidth: 1,
     borderColor: "#e0e0e0",
   },
   loadingText: {
-    fontSize: screenWidth > 768 ? 18 : 16,
+    fontSize: responsiveFontSize.lg,
     fontWeight: "600",
     color: "#666",
     textAlign: "center",
-    marginTop: 20,
-    marginBottom: 20,
+    marginTop: verticalScale(20),
+    marginBottom: verticalScale(20),
   },
   imageModalContainer: {
     flex: 1,
@@ -2674,27 +2813,27 @@ const styles = StyleSheet.create({
   },
   imageModalCloseButton: {
     position: "absolute",
-    top: screenWidth > 768 ? 60 : 50,
-    right: 20,
+    top: verticalScale(50),
+    right: scale(20),
     zIndex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.6)",
-    borderRadius: 25,
-    padding: 12,
-    width: 50,
-    height: 50,
+    borderRadius: scale(25),
+    padding: scale(12),
+    width: scale(50),
+    height: scale(50),
     justifyContent: "center",
     alignItems: "center",
   },
   fullScreenImage: {
     width: screenWidth,
-    height: screenHeight * 0.8,
+    height: verticalScale(682), // 80% of base height (852 * 0.8)
   },
   imageNavigation: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 30,
-    paddingVertical: 20,
+    paddingHorizontal: scale(30),
+    paddingVertical: verticalScale(20),
     backgroundColor: "rgba(0, 0, 0, 0.7)",
     position: "absolute",
     bottom: 0,
@@ -2702,17 +2841,68 @@ const styles = StyleSheet.create({
     right: 0,
   },
   navButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: scale(50),
+    height: scale(50),
+    borderRadius: scale(25),
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
   },
   imageCounter: {
     color: "white",
-    fontSize: screenWidth > 768 ? 18 : 16,
+    fontSize: responsiveFontSize.lg,
     fontWeight: "bold",
+  },
+  upcomingMessageContainer: {
+    backgroundColor: "#FFF3E0",
+    marginHorizontal: moderateScale(15),
+    marginTop: verticalScale(15),
+    borderRadius: scale(12),
+    borderLeftWidth: 4,
+    borderLeftColor: "#FF6B35",
+  },
+  upcomingMessage: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: moderateScale(15),
+  },
+  upcomingMessageText: {
+    fontSize: responsiveFontSize.md,
+    color: "#E65100",
+    marginLeft: scale(12),
+    flex: 1,
+    lineHeight: verticalScale(20),
+  },
+  acceptedMessageContainer: {
+    backgroundColor: "#E8F5E8",
+    marginHorizontal: moderateScale(15),
+    marginTop: verticalScale(15),
+    borderRadius: scale(12),
+    borderLeftWidth: 4,
+    borderLeftColor: "#4CAF50",
+  },
+  acceptedMessage: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: moderateScale(15),
+  },
+  acceptedMessageText: {
+    fontSize: responsiveFontSize.md,
+    color: "#2E7D32",
+    marginLeft: scale(12),
+    flex: 1,
+    lineHeight: verticalScale(20),
+  },
+
+  dashedLineOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    zIndex: 0,
+    pointerEvents: "none",
   },
 });
 

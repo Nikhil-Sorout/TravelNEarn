@@ -11,11 +11,15 @@ import {
   TouchableOpacity,
   View,
   ActivityIndicator,
+  StatusBar,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { default as FontAwesome } from 'react-native-vector-icons/FontAwesome';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Icon from "react-native-vector-icons/FontAwesome6"
+import { SafeAreaView } from "react-native-safe-area-context";
 import ReviewDetails from '../../Customer Traveller/ReviewDetails';
 import { getCurvedPolylinePoints } from '../../Utils/getCurvedPolylinePonints';
 import {
@@ -27,6 +31,18 @@ import {
   getDefaultRegion,
   isValidCoordinate
 } from "../../Utils/routeUtils";
+import {
+  scale,
+  verticalScale,
+  moderateScale,
+  moderateVerticalScale,
+  fontScale,
+  responsivePadding,
+  responsiveFontSize,
+  responsiveDimensions,
+  screenWidth,
+  screenHeight
+} from '../../Utils/responsive';
 
 const TravelDetails = ({ route }) => {
   const navigation = useNavigation();
@@ -59,7 +75,7 @@ const TravelDetails = ({ route }) => {
 
   console.log(route?.params)
   const { fullFrom, fullTo, from, to, selectedDate, endDate, stayDays, stayHours, vehicleType, startCity, destCity } = route.params;
-
+  console.log(travelNumber)
   useEffect(() => {
     const fetchTravelData = async () => {
       try {
@@ -323,7 +339,7 @@ const TravelDetails = ({ route }) => {
     setLoading(true);
     console.log("clicked")
     const requestData = {
-      travelMode: travelMode === "roadways" ? "car" : travelMode?.toLowerCase(),
+      travelMode: travelMode.toLowerCase(),
       vehicleType: travelMode === "roadways" ? vehicleType ?? "" : "",
       travelmode_number: travelNumber,
       expectedStartTime: startTime,
@@ -398,25 +414,38 @@ const TravelDetails = ({ route }) => {
   }, [coordinates, originCoords, destinationCoords]);
 
   return (
-    <View style={styles.container}>
-      <ScrollView scrollEnabled={true}>
-        <Modal
-          visible={isModalVisible}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={() => setModalVisible(false)}
-        >
-          <View style={styles.modalContainer}>
-            <ReviewDetails onClose={handleCloseModal} onSearch={handleSearch} />
-          </View>
-        </Modal>
-
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="chevron-back" size={24} color="white" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Travel Details</Text>
+    <SafeAreaView style={styles.container}>
+      <StatusBar backgroundColor="#D83F3F" barStyle="light-content" />
+      <Modal
+        visible={isModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <ReviewDetails onClose={handleCloseModal} onSearch={handleSearch} />
         </View>
+      </Modal>
+
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="chevron-back" size={responsiveDimensions.icon.medium} color="white" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Travel Details</Text>
+      </View>
+
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }} 
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <ScrollView 
+          scrollEnabled={true}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
 
         {/* <View style={styles.card}>
           <View style={styles.locationBlock}>
@@ -443,41 +472,37 @@ const TravelDetails = ({ route }) => {
         </View> */}
 
 
-        <View style={styles.card}>
-          <View style={styles.locationRow}>
-            <Image source={require('../../Images/locon.png')} style={styles.locationIcon} />
-            <View>
-              <Text style={{ color: '#000' }}>{selectedDate ? formatDate(selectedDate) : ''}</Text>
-              <Text style={{ color: '#000' }}>{startTime}</Text>
-            </View>
-            <View>
-              <Text style={[styles.locationText, { fontWeight: 'bold' }]}>{startCity}</Text>
-              <Text style={styles.locationText}>{startLocation}</Text>
-            </View>
-          </View>
-          <View style={styles.verticalseparator}></View>
-          {/* <View style={styles.separator} /> */}
-          <View style={styles.locationRow}>
-            <Image source={require('../../Images/locend.png')} style={styles.locationIcon} />
-            <View>
-              <Text style={{ color: '#000' }}>{endDate ? formatDate(endDate) : ''}</Text>
-              <Text style={{ color: '#000' }}>{endTime}</Text>
-            </View>
-            <View>
-              <Text style={[styles.locationText, { fontWeight: 'bold' }]}>{destCity}</Text>
-              <Text style={styles.locationText}>{endLocation}</Text>
+        {/* Route Section with Dots and Circles */}
+        <View style={styles.routeSection}>
+          {/* <Text style={styles.selectedDateText}>
+            Travel Date: {selectedDate ? formatDate(selectedDate) : ''}
+          </Text> */}
+          
+          <View style={styles.routeItem}>
+            <View style={styles.routeDot} />
+            <View style={styles.routeContent}>
+              <Text style={styles.routeCity}>{startCity || "Starting City"}</Text>
+              <Text style={styles.routeAddress}>{startLocation || "Starting Address"}</Text>
+              <Text style={styles.routeDate}>{selectedDate ? formatDate(selectedDate) : ''}</Text>
+              <Text style={styles.routeTime}>{startTime}</Text>
             </View>
           </View>
-          {/* <View style={styles.separator1} />
-          <View style={styles.infoRow}>
-            <Image source={require('../../Images/clock.png')} style={[styles.locationIcon, { marginLeft: 5 }]} />
-            <Text style={styles.infoText}>{duration}</Text>
+          
+          <View style={styles.routeItem}>
+            <View style={styles.routeDot} />
+            <View style={styles.routeContent}>
+              <Text style={styles.routeCity}>{destCity || "Destination City"}</Text>
+              <Text style={styles.routeAddress}>{endLocation || "Destination Address"}</Text>
+              <Text style={styles.routeDate}>{endDate ? formatDate(endDate) : ''}</Text>
+              <Text style={styles.routeTime}>{endTime}</Text>
+            </View>
           </View>
-          <Text style={styles.infoText1}>{distance}</Text> */}
+          
+          <View style={styles.routeLine} />
         </View>
 
         <View style={styles.mapContainer}>
-          <Text style={[styles.infoTitle, { marginBottom: 20 }]}>Track on map</Text>
+          <Text style={[styles.infoTitle, { marginBottom: verticalScale(20) }]}>Track on map</Text>
           {(originCoords && destinationCoords) ? (
             <MapView
               ref={mapRef}
@@ -505,14 +530,14 @@ const TravelDetails = ({ route }) => {
               {isValidCoordinate(originCoords) && (
                 <Marker coordinate={originCoords} title={startLocation}>
                   <View style={[styles.marker, styles.startMarker]}>
-                    <Icon name="user" size={20} color="#fff" />
+                    <Icon name="user" size={responsiveDimensions.icon.small} color="#fff" />
                   </View>
                 </Marker>
               )}
               {isValidCoordinate(destinationCoords) && (
                 <Marker coordinate={destinationCoords} title={endLocation}>
                   <View style={[styles.marker, styles.endMarker]}>
-                    <Icon name="location-dot" size={20} color="#fff" />
+                    <Icon name="location-dot" size={responsiveDimensions.icon.small} color="#fff" />
                   </View>
                 </Marker>
               )}
@@ -551,77 +576,31 @@ const TravelDetails = ({ route }) => {
         </View>
 
         <View style={styles.card}>
-          {/* <View style={styles.otherInfo}>
-            <View style={styles.infoBlock}>
-              <Text style={styles.infoTitle}>Other Information</Text>
-              <View style={[styles.infoRow, { marginTop: 10 }]}>
-                <Image source={require('../../Images/clock.png')} style={[styles.locationIcon, { marginLeft: 0 }]} />
-                <Text style={styles.infoText}>{searchingDate ? formatDate(searchingDate) : ''}</Text>
-              </View>
-            </View>
-          </View> */}
-          {/* <View style={{ marginLeft: 40 }}>
-            <Text style={styles.infoText2}>
-              {startTime} - {endTime}
-            </Text>
-          </View> */}
-          {/* <View style={styles.separator1} /> */}
           <Text style={styles.infoTitle}>Mode Of Travel</Text>
           <View style={styles.traveler}>
-            {/* {selectedMode === "roadways"} */}
             <View style={styles.iconContainer}>{getTravelIcon()}</View>
             <View style={styles.travelerDetails}>
-              <Text style={[styles.travelerName, { marginLeft: 15 }]}>{travelMode === 'roadways' ? vehicleType : travelMode.toUpperCase()}</Text>
+              <Text style={[styles.travelerName, { marginLeft: scale(15) }]}>{travelMode === 'roadways' ? vehicleType : travelMode.toUpperCase() + " (" +travelNumber +")"}</Text>
             </View>
           </View>
           <View style={styles.separator1} />
-          <Text style={[styles.infoTitle, { marginBottom: 5, marginLeft: 2 }]}>Staying at Destination Location</Text>
+          <Text style={[styles.infoTitle, { marginBottom: verticalScale(5), marginLeft: scale(2) }]}>Staying at Destination Location</Text>
           <View style={styles.traveler}>
-            {/* {selectedMode === "roadways"} */}
-            {/* <View style={styles.iconContainer}>{getTravelIcon()}</View> */}
-            <Icon name="hourglass-half" size={30} color="#D83F3F" />
+            <Icon name="hourglass-half" size={responsiveDimensions.icon.medium} color="#D83F3F" />
             <View style={styles.travelerDetails}>
-              <Text style={[styles.travelerName, { marginLeft: 15 }]}>{`For ${stayDays} days ${stayHours} hours`}</Text>
+              <Text style={[styles.travelerName, { marginLeft: scale(15) }]}>{`For ${stayDays} days ${stayHours} hours`}</Text>
             </View>
           </View>
-
-          {/* <View style={styles.separator1} />
-          <Text style={[styles.infoTitle, { marginBottom: 5, marginLeft: 2 }]}>Traveller Details</Text>
-          <View style={styles.traveler}>
-            <Image
-              source={{
-                uri:
-                  profilePic ||
-                  'https://static.vecteezy.com/system/resources/previews/000/439/863/non_2x/vector-users-icon.jpg',
-              }}
-              style={styles.profileImage}
-            />
-            <View style={styles.travelerDetails}>
-              <Text style={styles.travelerName}>
-                {firstName} {lastName}
-              </Text>
-              {ratingLoading ? (
-                <Text style={styles.travelerRating}>Loading rating...</Text>
-              ) : ratingError ? (
-                <Text style={styles.travelerRating}>Rating unavailable</Text>
-              ) : (
-                <Text style={styles.travelerRating}>
-                  ⭐ {ratingData?.average != undefined ? ratingData?.average.toFixed(1) : 'N/A'} (
-                  {ratingData?.rating != undefined ? ratingData?.rating : 0} ratings)
-                </Text>
-              )}
-            </View>
-          </View> */}
-
         </View>
 
-        <View style={{ margin: 20, marginBottom: 20 }}>
+        <View style={{ margin: responsivePadding.medium, marginBottom: verticalScale(20) }}>
           <TouchableOpacity style={styles.button} onPress={handlePublishTravel} >
             <Text style={styles.buttonText}>Publish My Travel</Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
-    </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
@@ -630,13 +609,14 @@ export default TravelDetails;
 const styles = StyleSheet.create({
   headerTitle: {
     color: 'white',
-    fontSize: 18,
+    fontSize: responsiveFontSize.lg,
     fontWeight: 'bold',
     flex: 1,
     textAlign: 'center',
   },
   backButton: {
-    marginRight: 10,
+    marginRight: scale(10),
+    padding: scale(5),
   },
   container: {
     flex: 1,
@@ -648,85 +628,99 @@ const styles = StyleSheet.create({
     backgroundColor: '#D83F3F',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 15,
-    paddingHorizontal: 10,
+    paddingVertical: verticalScale(15),
+    paddingHorizontal: responsivePadding.small,
     justifyContent: 'space-between',
     marginTop: 0,
   },
   card: {
     backgroundColor: '#fff',
-    margin: 20,
-    borderRadius: 4,
-    padding: 15,
+    margin: responsivePadding.medium,
+    borderRadius: scale(8),
+    padding: responsivePadding.medium,
     shadowColor: '#000',
     shadowOpacity: 0.1,
-    shadowRadius: 5,
+    shadowRadius: scale(5),
     elevation: 3,
   },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 10,
-    width: '65%',
-    gap: 7
+  routeSection: {
+    paddingHorizontal: responsivePadding.horizontal,
+    paddingVertical: responsivePadding.medium,
+    backgroundColor: '#fff',
+    position: 'relative',
   },
-  locationText: {
-    fontSize: 16,
+  routeItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: verticalScale(10),
+  },
+  routeDot: {
+    width: scale(12),
+    height: scale(12),
+    borderRadius: scale(6),
+    backgroundColor: '#D32F2F',
+    marginTop: scale(4),
+    marginRight: scale(12),
+  },
+  routeContent: {
+    flex: 1,
+  },
+  routeCity: {
+    fontSize: responsiveFontSize.md,
+    fontWeight: '600',
     color: '#333',
-    marginLeft: 10,
+    marginBottom: scale(2),
+  },
+  routeAddress: {
+    fontSize: responsiveFontSize.sm,
+    color: '#666',
+    lineHeight: verticalScale(18),
+  },
+  routeTime: {
+    fontSize: responsiveFontSize.sm,
+    color: '#888',
+    marginTop: scale(2),
+  },
+  routeDate: {
+    fontSize: responsiveFontSize.sm,
+    color: '#D83F3F',
+    fontWeight: '500',
+    marginTop: scale(2),
+  },
+  routeLine: {
+    position: 'absolute',
+    width: scale(2),
+    height: verticalScale(50),
+    backgroundColor: '#D32F2F',
+    left: scale(25),
+    top: verticalScale(55),
+    zIndex: 1,
+  },
+  selectedDateText: {
+    fontSize: responsiveFontSize.lg,
+    fontWeight: 'bold',
+    color: '#D83F3F',
+    textAlign: 'center',
+    marginBottom: verticalScale(10),
+    paddingVertical: verticalScale(8),
+    backgroundColor: '#FFEAEA',
+    borderRadius: scale(8),
+    marginHorizontal: scale(10),
   },
   separator1: {
     height: 1,
     backgroundColor: '#ddd',
-    marginVertical: 10,
-    marginLeft: 5,
-  },
-  separator: {
-    borderStyle: 'dashed',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    marginVertical: 10,
-    marginLeft: 40,
-    marginTop: -20,
-  },
-  verticalseparator: {
-    width: 1,
-    backgroundColor: '#ddd',
-    borderStyle: 'dashed',
-    borderLeftWidth: 1,
-    borderLeftColor: '#ddd',
-    height: 40,
-    marginHorizontal: 11,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    marginVertical: 10,
-  },
-  infoText: {
-    fontSize: 14,
-    color: 'black',
-    fontWeight: 'bold',
-    marginLeft: 10,
-    marginTop: -2,
-  },
-  infoText1: {
-    fontSize: 15,
-    color: '#555',
-    marginLeft: 32,
-    marginTop: -10,
-  },
-  infoText2: {
-    fontSize: 15,
-    color: '#555',
+    marginVertical: verticalScale(10),
+    marginLeft: scale(5),
   },
   mapContainer: {
     marginVertical: 0,
-    margin: 20,
+    margin: responsivePadding.medium,
   },
   map: {
     width: '100%',
-    height: 200,
-    borderRadius: 10,
+    height: verticalScale(200),
+    borderRadius: scale(10),
     objectFit: 'cover',
   },
   otherInfo: {
@@ -738,48 +732,48 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   infoTitle: {
-    fontSize: 16,
+    fontSize: responsiveFontSize.md,
     fontWeight: 'bold',
     color: '#000',
   },
   traveler: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 10,
+    marginVertical: verticalScale(10),
   },
   profileImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 10,
+    width: scale(50),
+    height: scale(50),
+    borderRadius: scale(25),
+    marginRight: scale(10),
   },
   travelerDetails: {
     flex: 1,
   },
   travelerName: {
-    fontSize: 16,
+    fontSize: responsiveFontSize.md,
     fontWeight: 'bold',
     color: '#000',
   },
   travelerRating: {
-    fontSize: 14,
+    fontSize: responsiveFontSize.sm,
     color: '#555',
   },
   button: {
     backgroundColor: '#D83F3F',
-    paddingVertical: 15,
-    borderRadius: 5,
+    paddingVertical: verticalScale(15),
+    borderRadius: scale(8),
     alignItems: 'center',
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: responsiveFontSize.md,
     fontWeight: 'bold',
   },
   marker: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: scale(32),
+    height: scale(32),
+    borderRadius: scale(16),
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -806,9 +800,9 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   loadingText: {
-    marginTop: 10,
+    marginTop: verticalScale(10),
     color: '#D83F3F',
-    fontSize: 16,
+    fontSize: responsiveFontSize.md,
   },
   errorOverlay: {
     position: 'absolute',
@@ -823,19 +817,19 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: '#D83F3F',
-    fontSize: 18,
+    fontSize: responsiveFontSize.lg,
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: verticalScale(20),
   },
   retryButton: {
     backgroundColor: '#D83F3F',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
+    paddingVertical: verticalScale(10),
+    paddingHorizontal: scale(20),
+    borderRadius: scale(8),
   },
   retryButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: responsiveFontSize.md,
     fontWeight: 'bold',
   },
 });

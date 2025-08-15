@@ -22,22 +22,16 @@ import Header from "../../../header";
 import commonStyles from "../../../styles";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-// Responsive scaling functions
-const { width, height } = Dimensions.get("window");
-const scale = (size) => {
-  const baseWidth = 393; // iPhone 14 Pro width
-  const scaleFactor = width / baseWidth;
-  return Math.round(size * scaleFactor);
-};
-const verticalScale = (size) => {
-  const baseHeight = 852; // iPhone 14 Pro height
-  const scaleFactor = height / baseHeight;
-  return Math.round(size * scaleFactor);
-};
-const moderateScale = (size, factor = 0.5) => {
-  return size + (scale(size) - size) * factor;
-};
+import { 
+  scale, 
+  verticalScale, 
+  moderateScale, 
+  responsiveFontSize,
+  responsiveDimensions,
+  screenWidth,
+  screenHeight
+} from "../../../Utils/responsive";
+import { getCurvedPolylinePoints } from "../../../Utils/getCurvedPolylinePonints";
 
 const TravelStartEndDetails = ({ route }) => {
   const { ride, consignmentId } = route.params;
@@ -61,6 +55,19 @@ const TravelStartEndDetails = ({ route }) => {
   const [travelId, setTravelId] = useState(null);
   const [routeInfo, setRouteInfo] = useState({ distance: "", duration: "" });
   const [rideStatusSteps, setRideStatusSteps] = useState([]);
+
+  // Curved line for map (like receiver screen)
+  const curvedLinePoints =
+    originCoords && destinationCoords
+      ? getCurvedPolylinePoints(originCoords, destinationCoords)
+      : [];
+
+  // Extract city from full location
+  const extractCity = (fullLocation) => {
+    if (!fullLocation) return "N/A";
+    const parts = fullLocation.split(',').map(part => part.trim());
+    return parts[parts.length - 1] || parts[0] || "N/A";
+  };
 
   useEffect(() => {
     const fetchLocations = async () => {
@@ -204,14 +211,14 @@ const TravelStartEndDetails = ({ route }) => {
 
   const getTravelIcon = (travelMode) => {
     switch (travelMode) {
-      case "car":
-        return <Icon name="car" size={scale(30)} color="#D83F3F" />;
+      case "roadways":
+        return <Icon name="car" size={responsiveDimensions.icon.medium} color="#284268" />;
       case "airplane":
-        return <Ionicons name="airplane" size={scale(30)} color="#D83F3F" />;
+        return <Ionicons name="airplane" size={responsiveDimensions.icon.medium} color="#284268" />;
       case "train":
-        return <Icon name="train" size={scale(30)} color="#D83F3F" />;
+        return <Icon name="train" size={responsiveDimensions.icon.medium} color="#284268" />;
       default:
-        return <Ionicons name="help-circle-outline" size={scale(30)} color="gray" />;
+        return <Ionicons name="help-circle-outline" size={responsiveDimensions.icon.medium} color="gray" />;
     }
   };
 
@@ -373,14 +380,14 @@ const TravelStartEndDetails = ({ route }) => {
                               {step.completed && step.step !== 'Ride In Progress' && (
                                 <MaterialCommunityIcons
                                   name="check"
-                                  size={scale(20)}
+                                  size={responsiveDimensions.icon.small}
                                   color="white"
                                 />
                               )}
                               {(step.completed === null || (step.completed && step.step === 'Ride In Progress')) && (
                                 <MaterialCommunityIcons
                                   name="clock-outline"
-                                  size={scale(20)}
+                                  size={responsiveDimensions.icon.small}
                                   color="white"
                                 />
                               )}
@@ -408,11 +415,11 @@ const TravelStartEndDetails = ({ route }) => {
                         <>
                           <View style={styles.timelineItem}>
                             <View style={styles.timelineIconInProgress}>
-                              <MaterialCommunityIcons
-                                name="clock-outline"
-                                size={scale(20)}
-                                color="white"
-                              />
+                                                      <MaterialCommunityIcons
+                          name="clock-outline"
+                          size={responsiveDimensions.icon.small}
+                          color="white"
+                        />
                             </View>
                             <View style={styles.timelineContent}>
                               <Text style={styles.timelineTitle}>
@@ -433,11 +440,11 @@ const TravelStartEndDetails = ({ route }) => {
                             : styles.timelineIconPending
                         }>
                           {(status === 'completed' || status === 'ended') && (
-                            <MaterialCommunityIcons
-                              name="check"
-                              size={scale(20)}
-                              color="white"
-                            />
+                                                          <MaterialCommunityIcons
+                                name="check"
+                                size={responsiveDimensions.icon.small}
+                                color="white"
+                              />
                           )}
                         </View>
                         <View style={styles.timelineContent}>
@@ -459,7 +466,7 @@ const TravelStartEndDetails = ({ route }) => {
                         <View style={styles.timelineIconInProgress}>
                           <MaterialCommunityIcons
                             name="clock-outline"
-                            size={scale(20)}
+                            size={responsiveDimensions.icon.small}
                             color="white"
                           />
                         </View>
@@ -622,7 +629,7 @@ const TravelStartEndDetails = ({ route }) => {
         </View>
         <View style={styles.card}>
           <View style={styles.infoRow1}>
-            <Text style={{ fontSize: scale(16), fontWeight: "bold", color: "#000" }}>
+            <Text style={{ fontSize: responsiveFontSize.md, fontWeight: "bold", color: "#000" }}>
               Travel ID : {ride.travelId}
             </Text>
             <View>{renderStatusBadge(status)}</View>
@@ -649,7 +656,7 @@ const TravelStartEndDetails = ({ route }) => {
               <Image source={require("../../../Images/package.png")} />
               <Text
                 style={{
-                  fontSize: scale(14),
+                  fontSize: responsiveFontSize.sm,
                   fontWeight: "bold",
                   marginRight: scale(10),
                   marginTop: scale(5),
@@ -661,7 +668,7 @@ const TravelStartEndDetails = ({ route }) => {
               </Text>
               <Ionicons
                 name="arrow-forward"
-                size={scale(24)}
+                size={responsiveDimensions.icon.medium}
                 color="black"
                 style={{ position: "absolute", right: 0 }}
               />
@@ -685,7 +692,7 @@ const TravelStartEndDetails = ({ route }) => {
               <Image source={require("../../../Images/package.png")} />
               <Text
                 style={{
-                  fontSize: scale(14),
+                  fontSize: responsiveFontSize.sm,
                   fontWeight: "bold",
                   marginRight: scale(10),
                   marginTop: scale(5),
@@ -697,7 +704,7 @@ const TravelStartEndDetails = ({ route }) => {
               </Text>
               <Ionicons
                 name="arrow-forward"
-                size={scale(24)}
+                size={responsiveDimensions.icon.medium}
                 color="black"
                 style={{ position: "absolute", right: 0 }}
               />
@@ -706,26 +713,47 @@ const TravelStartEndDetails = ({ route }) => {
         </TouchableOpacity>
 
         <View style={styles.card}>
-          <View style={styles.locationRow}>
-            <Image
-              source={require("../../../Images/locon.png")}
-              style={styles.locationIcon}
-            />
-            <Text style={styles.locationText}>{ride.fullLeavingLocation}</Text>
+          <View style={styles.locationSection}>
+            {/* <View style={[commonStyles.staraightSeparator, styles.separator]} /> */}
+
+            <View style={styles.locationRow}>
+              <Image
+                source={require("../../../Images/locon.png")}
+                style={styles.locationIcon}
+              />
+              <View style={[commonStyles.iconContainer, styles.iconContainer]}></View>
+              <View style={styles.locationTextContainer}>
+                <Text style={[commonStyles.locationText, styles.locationText, {marginLeft: 0}]}>
+                  {ride.fullLeavingLocation || "N/A"}
+                </Text>
+                <Text style={styles.cityText}>
+                  {extractCity(ride.fullLeavingLocation)}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.verticalSeparatorContainer}>
+              <View style={[commonStyles.verticalseparator, styles.verticalSeparator]}></View>
+            </View>
+
+            <View style={styles.locationRow}>
+              <Image
+                source={require("../../../Images/locend.png")}
+                style={styles.locationIcon}
+              />
+              <View style={[commonStyles.iconContainer, styles.iconContainer]}></View>
+              <View style={styles.locationTextContainer}>
+                <Text style={[commonStyles.locationText, styles.locationText, {marginLeft: 0}]}>
+                  {ride.fullGoingLocation || "N/A"}
+                </Text>
+                <Text style={styles.cityText}>
+                  {extractCity(ride.fullGoingLocation)}
+                </Text>
+              </View>
+            </View>
+
+            {/* <View style={[commonStyles.staraightSeparator, styles.separator]} /> */}
           </View>
-
-          <View style={commonStyles.verticalseparator}></View>
-          <View style={commonStyles.separator} />
-
-          <View style={styles.locationRow}>
-            <Image
-              source={require("../../../Images/locend.png")}
-              style={styles.locationIcon}
-            />
-            <Text style={styles.locationText}>{ride.fullGoingLocation}</Text>
-          </View>
-
-          <View style={commonStyles.staraightSeparator} />
 
           <View style={styles.infoRow}>
             <Image
@@ -743,37 +771,40 @@ const TravelStartEndDetails = ({ route }) => {
           </Text>
           <MapView
             provider={PROVIDER_GOOGLE}
-            key={coordinates.length}
+            key={curvedLinePoints.length}
             style={styles.map}
             initialRegion={{
               latitude:
-                originCoords && coordinates.length > 1
+                originCoords && curvedLinePoints.length > 1
                   ? originCoords.latitude
                   : 28,
               longitude:
-                originCoords && coordinates.length > 1
+                originCoords && curvedLinePoints.length > 1
                   ? originCoords.longitude
                   : 77,
               latitudeDelta: 5,
               longitudeDelta: 5,
             }}
           >
-            <Polyline
-              coordinates={coordinates}
-              strokeColor="blue"
-              strokeWidth={5}
-            />
+            {curvedLinePoints.length > 0 && (
+              <Polyline
+                coordinates={curvedLinePoints}
+                strokeColor="#D32F2F"
+                strokeWidth={3}
+                lineDashPattern={[5, 5]}
+              />
+            )}
             {originCoords && (
               <Marker coordinate={originCoords} title={startLocation}>
-                <View style={[styles.marker, styles.startMarker]}>
-                  <Icon name="user" size={scale(25)} color="#fff" />
+                <View style={styles.originMarker}>
+                  <Icon name="user" size={responsiveDimensions.icon.medium} color="#fff" />
                 </View>
               </Marker>
             )}
             {destinationCoords && (
               <Marker coordinate={destinationCoords} title={endLocation}>
-                <View style={[styles.marker, styles.endMarker]}>
-                  <Icon name="map-marker" size={scale(25)} color="#fff" />
+                <View style={styles.destinationMarker}>
+                  <Icon name="map-marker" size={responsiveDimensions.icon.medium} color="#fff" />
                 </View>
               </Marker>
             )}
@@ -805,18 +836,13 @@ const TravelStartEndDetails = ({ route }) => {
 
           <View style={commonStyles.staraightSeparator} />
 
-          <View style={styles.traveler}>
-            <View style={styles.iconContainer}>
+          <View style={[commonStyles.locationRow, styles.travelModeRow]}>
+            <View style={[commonStyles.iconContainer, styles.travelIconContainer]}>
               {getTravelIcon(ride.travelMode)}
             </View>
-            <View style={styles.travelerDetails}>
-              <Text style={[styles.travelerName, { marginLeft: scale(15), color :"#000" }]}>
-                {ride.travelMode}
-              </Text>
-              {/* <Text style={[styles.travelerName, { marginLeft: scale(15) }]}> */}
-                {/* {ride.travelmode_number} */}
-              {/* </Text> */}
-            </View>
+            <Text style={[commonStyles.infoText, styles.travelModeText]}>
+              {ride.travelMode === "roadways" ? ride.vehicleType : "Car"}
+            </Text>
           </View>
         </View>
 
@@ -849,40 +875,82 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   card: {
-    backgroundColor: "#fff",
-    marginHorizontal: scale(20),
-    marginVertical: scale(10),
-    borderRadius: scale(4),
+    backgroundColor: "#ffffff",
+    borderRadius: scale(8),
     padding: scale(15),
+    marginBottom: verticalScale(12),
+    marginHorizontal: scale(16),
+    borderWidth: 1,
+    borderColor: "#fff",
+    elevation: 2,
     shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: scale(5),
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  locationSection: {
+    position: "relative",
   },
   locationRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     marginTop: verticalScale(10),
   },
-  dot: {
-    width: scale(10),
-    height: scale(10),
-    borderRadius: scale(5),
-    backgroundColor: "green",
-    marginRight: scale(10),
-  },
-  circle: {
-    width: scale(10),
-    height: scale(10),
-    borderRadius: scale(5),
-    backgroundColor: "red",
-    marginRight: scale(10),
+  locationTextContainer: {
+    flex: 1,
+    marginLeft: scale(10),
   },
   locationText: {
-    fontSize: moderateScale(16),
-    color: "#333",
-    marginLeft: scale(10),
-    width: '90%'
+    fontSize: responsiveFontSize.sm,
+    color: "#000000",
+    fontFamily: "Inter-Medium",
+    lineHeight: responsiveFontSize.sm * 1.3,
+  },
+  cityText: {
+    fontSize: responsiveFontSize.xs,
+    color: "#666",
+    fontFamily: "Inter-Regular",
+    marginTop: verticalScale(2),
+  },
+  locationIcon: {
+    width: scale(16),
+    height: scale(16),
+    marginTop: verticalScale(2),
+  },
+  iconContainer: {
+    marginRight: scale(10),
+  },
+  travelModeRow: {
+    marginVertical: verticalScale(10),
+  },
+  travelIconContainer: {
+    marginRight: scale(10),
+  },
+  travelModeText: {
+    fontSize: responsiveFontSize.sm,
+    color: "black",
+    fontWeight: "bold",
+    fontFamily: "Inter-Bold",
+  },
+  separator: {
+    height: 1,
+    backgroundColor: "#F0EFF2",
+    marginVertical: verticalScale(10),
+    marginLeft: scale(5),
+  },
+  verticalSeparatorContainer: {
+    position: "absolute",
+    left: scale(-5),
+    top: verticalScale(40),
+    alignItems: "center",
+    zIndex: 1,
+  },
+  verticalSeparator: {
+    width: 1,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: "#6C6C70",
+    height: verticalScale(50),
   },
   separator1: {
     height: scale(1),
@@ -918,33 +986,54 @@ const styles = StyleSheet.create({
     marginVertical: verticalScale(10),
   },
   infoText: {
-    fontSize: moderateScale(14),
+    fontSize: responsiveFontSize.sm,
     color: "black",
     fontWeight: "bold",
     marginLeft: scale(10),
     marginTop: verticalScale(-2),
+    fontFamily: "Inter-Bold",
   },
   infoText1: {
-    fontSize: moderateScale(15),
+    fontSize: responsiveFontSize.sm,
     color: "#555",
     marginLeft: scale(32),
     marginTop: verticalScale(-10),
   },
   infoText2: {
-    fontSize: moderateScale(15),
+    fontSize: responsiveFontSize.sm,
     color: "#555",
     marginLeft: scale(0),
     marginTop: verticalScale(-10),
   },
   mapContainer: {
-    marginVertical: 0,
-    margin: scale(20),
+    height: verticalScale(300),
+    marginHorizontal: scale(16),
+    marginVertical: verticalScale(15),
+    borderRadius: scale(12),
+    overflow: 'hidden',
   },
   map: {
-    width: "100%",
-    height: verticalScale(200),
-    borderRadius: scale(10),
-    objectFit: "cover",
+    flex: 1,
+  },
+  originMarker: {
+    width: scale(32),
+    height: scale(32),
+    borderRadius: scale(16),
+    backgroundColor: '#4CAF50',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: scale(2),
+    borderColor: '#fff',
+  },
+  destinationMarker: {
+    width: scale(32),
+    height: scale(32),
+    borderRadius: scale(16),
+    backgroundColor: '#D32F2F',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: scale(2),
+    borderColor: '#fff',
   },
   otherInfo: {
     flexDirection: "row",
@@ -955,47 +1044,19 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   infoTitle: {
-    fontSize: moderateScale(16),
+    fontSize: responsiveFontSize.md,
     fontWeight: "bold",
     color : "#000"
   },
   infoSubtitle: {
-    fontSize: moderateScale(14),
+    fontSize: responsiveFontSize.sm,
     color: "#555",
   },
   vehicleText: {
-    fontSize: moderateScale(16),
+    fontSize: responsiveFontSize.md,
     color: "#333",
     textAlign: "center",
     marginVertical: verticalScale(10),
-  },
-  traveler: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: verticalScale(10),
-  },
-  profileImage: {
-    width: scale(50),
-    height: scale(50),
-    borderRadius: scale(25),
-    marginRight: scale(10),
-  },
-  driverPhoto: {
-    width: scale(50),
-    height: scale(50),
-    borderRadius: scale(20),
-    objectFit: "contain",
-  },
-  travelerDetails: {
-    flex: 1,
-  },
-  travelerName: {
-    fontSize: moderateScale(16),
-    fontWeight: "bold",
-  },
-  travelerRating: {
-    fontSize: moderateScale(14),
-    color: "#555",
   },
   button: {
     backgroundColor: "transparent",
@@ -1008,22 +1069,10 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: "#D83F3F",
-    fontSize: moderateScale(16),
+    fontSize: responsiveFontSize.md,
     fontWeight: "bold",
   },
-  marker: {
-    width: scale(32),
-    height: scale(32),
-    borderRadius: scale(16),
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  startMarker: {
-    backgroundColor: "green",
-  },
-  endMarker: {
-    backgroundColor: "red",
-  },
+
   badge: {
     paddingHorizontal: scale(12),
     paddingVertical: verticalScale(6),
@@ -1032,7 +1081,7 @@ const styles = StyleSheet.create({
   badgeText: {
     color: "#fff",
     fontWeight: "600",
-    fontSize: moderateScale(12),
+    fontSize: responsiveFontSize.xs,
   },
   buttonContainer: {
     flexDirection: "row",
@@ -1080,7 +1129,7 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(15),
   },
   modalTitle: {
-    fontSize: moderateScale(18),
+    fontSize: responsiveFontSize.lg,
     fontWeight: "bold",
     color: "#333",
   },
@@ -1130,12 +1179,12 @@ const styles = StyleSheet.create({
     paddingTop: scale(3),
   },
   timelineTitle: {
-    fontSize: moderateScale(16),
+    fontSize: responsiveFontSize.md,
     color: "#333",
     fontWeight: "500",
   },
   timelineDate: {
-    fontSize: moderateScale(14),
+    fontSize: responsiveFontSize.sm,
     color: "#777",
     marginTop: verticalScale(5),
   },
@@ -1147,7 +1196,7 @@ const styles = StyleSheet.create({
   },
   closeButtonText: {
     color: "#fff",
-    fontSize: moderateScale(16),
+    fontSize: responsiveFontSize.md,
     fontWeight: "bold",
   },
 });

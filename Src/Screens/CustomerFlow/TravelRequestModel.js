@@ -36,7 +36,7 @@ const TravelRequestModel = ({
 
   const getIconName = (mode) => {
     switch (mode.toLowerCase()) {
-      case "car":
+      case "roadways":
         return "car";
       case "train":
         return "train";
@@ -51,7 +51,7 @@ const TravelRequestModel = ({
   const getTravelIcon = () => {
     const mode = rideDetails?.travelMode?.toLowerCase() || "car";
     switch (mode) {
-      case "car":
+      case "roadways":
         return <Ionicons name="car" size={24} color="#D83F3F" />;
       case "airplane":
         return <Ionicons name="airplane" size={24} color="#D83F3F" />;
@@ -337,7 +337,9 @@ const TravelRequestModel = ({
             <Text style={styles.cardTitle}>Traveler Details</Text>
             <View style={styles.traveler}>
               <Image 
-                source={{ uri: rideDetails.profilePicture }} 
+                source={
+                  rideDetails.profilePicture ? { uri: rideDetails.profilePicture } : require("../../Images/kyc.png")
+                }
                 style={styles.profileImage}
                 onError={() => {
                   console.log("Error loading profile image, falling back to default");
@@ -540,7 +542,9 @@ const TravelRequestModel = ({
 
           <View style={styles.profileSection}>
             <Image
-              source={{ uri: rideDetails.profilePicture }}
+              source={
+                rideDetails.profilePicture ? { uri: rideDetails.profilePicture } : require("../../Images/kyc.png")
+              }
               style={styles.profilePic}
               onError={() => {
                 console.log(

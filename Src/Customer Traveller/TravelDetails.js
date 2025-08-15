@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
 import RBSheet from "react-native-raw-bottom-sheet";
 import Icon from "react-native-vector-icons/FontAwesome";
@@ -17,6 +18,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import * as Location from "expo-location";
 import { useSocket } from "../Context/socketprovider";
 import ReviewDetails from "./ReviewDetails";
+import { getCurvedPolylinePoints } from "../Utils/getCurvedPolylinePonints";
 
 const TravelDetails = ({ route }) => {
   const { ride, fareDetails, calculatedPrice } = route.params;
@@ -42,6 +44,14 @@ const TravelDetails = ({ route }) => {
   const [isTracking, setIsTracking] = useState(false);
 
   const navigation = useNavigation();
+  
+  // Calculate curved line points for hover path (exactly like ReceiverScreen)
+  const curvedLinePoints =
+    originCoords && destinationCoords
+      ? getCurvedPolylinePoints(originCoords, destinationCoords)
+      : [];
+  
+  const mapRef = useRef(null);
   const bottomSheetRef = useRef();
   const [isModalVisible, setModalVisible] = useState(false);
   const locationSubscriptionRef = useRef(null);
@@ -121,13 +131,15 @@ const TravelDetails = ({ route }) => {
   useEffect(() => {
     const fetchLocations = async () => {
       try {
-        const startingLocation = await AsyncStorage.getItem("startingLocation");
-        const goingLocation = await AsyncStorage.getItem("goingLocation");
+        // Use ride data directly instead of AsyncStorage
+        const startingLocation = ride.Leavinglocation;
+        const goingLocation = ride.Goinglocation;
 
         if (startingLocation && goingLocation) {
           setStartLocation(startingLocation);
           setEndLocation(goingLocation);
 
+          console.log("Fetching coordinates for:", startingLocation, "to", goingLocation);
           await Promise.all([
             fetchCoordinates(startingLocation, goingLocation),
             fetchRoute(startingLocation, goingLocation),
@@ -139,7 +151,7 @@ const TravelDetails = ({ route }) => {
     };
 
     fetchLocations();
-  }, []);
+  }, [ride]);
 
   const fetchRoute = async (origin, destination) => {
     try {
@@ -217,14 +229,20 @@ const TravelDetails = ({ route }) => {
       const data = await response.json();
 
       if (data.originCoordinates && data.destinationCoordinates) {
-        setOriginCoords({
+        const origin = {
           latitude: data.originCoordinates.ltd,
           longitude: data.originCoordinates.lng,
-        });
-        setDestinationCoords({
+        };
+        const destination = {
           latitude: data.destinationCoordinates.ltd,
           longitude: data.destinationCoordinates.lng,
-        });
+        };
+        
+        console.log("Setting origin coordinates:", origin);
+        console.log("Setting destination coordinates:", destination);
+        
+        setOriginCoords(origin);
+        setDestinationCoords(destination);
         await AsyncStorage.setItem(
           "setOriginCoords",
           JSON.stringify({
@@ -268,9 +286,11 @@ const TravelDetails = ({ route }) => {
     }
   }, [coordinates]);
 
+
+
   const getTravelIcon = (travelMode) => {
     switch (travelMode) {
-      case "car":
+      case "roadways":
         return <Icon name="car" size={30} color="#D83F3F" />;
       case "airplane":
         return <Ionicons name="airplane" size={30} color="#D83F3F" />;
@@ -337,8 +357,31 @@ const TravelDetails = ({ route }) => {
     console.log("discount:", fareDetails.discount);
   }, [ride, fareDetails]);
 
+  // Fit map to coordinates (exactly like ReceiverScreen)
+  useEffect(() => {
+    if (
+      mapRef.current &&
+      originCoords &&
+      destinationCoords &&
+      coordinates.length > 0
+    ) {
+      setTimeout(() => {
+        try {
+          // Fit to all coordinates to show the complete route
+          const allCoordinates = [originCoords, ...coordinates, destinationCoords];
+          mapRef.current.fitToCoordinates(allCoordinates, {
+            edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+            animated: true,
+          });
+        } catch (error) {
+          console.error("Error fitting map to coordinates:", error);
+        }
+      }, 500);
+    }
+  }, [originCoords, destinationCoords, coordinates]);
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <ScrollView>
         <Modal
           visible={isModalVisible}
@@ -348,7 +391,7 @@ const TravelDetails = ({ route }) => {
         >
           <View style={styles.modalContainer}>
             <ReviewDetails
-              onClose={() => setModalVisible(false)}
+              onClose={() => setModalVisible(false)}  
               onSearch={handleSearch}
             />
           </View>
@@ -401,28 +444,27 @@ const TravelDetails = ({ route }) => {
             Track on map
           </Text>
           <MapView
+            ref={mapRef}
             provider={PROVIDER_GOOGLE}
             key={coordinates.length}
             style={styles.map}
             initialRegion={{
-              latitude:
-                originCoords && coordinates.length > 1
-                  ? originCoords.latitude
-                  : 28,
-              longitude:
-                originCoords && coordinates.length > 1
-                  ? originCoords.longitude
-                  : 77,
+              latitude: 28,
+              longitude: 77,
               latitudeDelta: 5,
               longitudeDelta: 5,
             }}
+            scrollEnabled={false}
+            zoomEnabled={false}
           >
-            <Polyline
-              coordinates={coordinates}
-              strokeColor="blue"
-              strokeWidth={5}
-            />
-
+            {curvedLinePoints.length > 0 && (
+              <Polyline
+                coordinates={curvedLinePoints}
+                strokeColor="rgba(0,0,255,0.6)"
+                strokeWidth={2}
+                lineDashPattern={[5, 5]}
+              />
+            )}
             {originCoords && (
               <Marker coordinate={originCoords} title={startLocation}>
                 <View style={[styles.marker, styles.startMarker]}>
@@ -574,7 +616,7 @@ const TravelDetails = ({ route }) => {
           />
         </RBSheet>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -691,6 +733,7 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: 16,
     fontWeight: "bold",
+    color: "#000"
   },
   infoSubtitle: {
     fontSize: 14,
@@ -713,6 +756,7 @@ const styles = StyleSheet.create({
   travelerName: {
     fontSize: 16,
     fontWeight: "bold",
+    color: "#000"
   },
   travelerRating: {
     fontSize: 14,

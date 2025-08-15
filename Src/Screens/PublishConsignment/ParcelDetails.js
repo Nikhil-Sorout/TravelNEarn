@@ -11,13 +11,29 @@ import {
   Text,
   TouchableOpacity,
   View,
+  StatusBar,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
 import RBSheet from "react-native-raw-bottom-sheet"; // Importing the Bottom Sheet library
 import Icon from "react-native-vector-icons/FontAwesome"; // Import FontAwesome Icon for calendar
 import Ionicons from "react-native-vector-icons/Ionicons"; // Import Ionicons
+import { SafeAreaView } from "react-native-safe-area-context";
 import ReviewDetails from "../../Customer Traveller/ReviewDetails";
 import { getCurvedPolylinePoints } from '../../Utils/getCurvedPolylinePonints';
+import {
+  scale,
+  verticalScale,
+  moderateScale,
+  moderateVerticalScale,
+  fontScale,
+  responsivePadding,
+  responsiveFontSize,
+  responsiveDimensions,
+  screenWidth,
+  screenHeight
+} from '../../Utils/responsive';
 
 const TravelDetails = ({ route }) => {
   const navigation = useNavigation();
@@ -265,7 +281,7 @@ const TravelDetails = ({ route }) => {
       console.log("phoneNumber:", number);
       console.log("dimensions:", dimensions);
       console.log("parcelDetails:", parcelDetails);
-
+      
       // Add images if they exist
       if (parcelDetails?.images && parcelDetails.images.length > 0) {
         parcelDetails.images.forEach((image, index) => {
@@ -393,67 +409,64 @@ const TravelDetails = ({ route }) => {
   }, [showImageModal]);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <StatusBar backgroundColor="#D83F3F" barStyle="light-content" />
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton}>
-          <Ionicons name="chevron-back" size={24} color="white" />
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="chevron-back" size={responsiveDimensions.icon.medium} color="white" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Consignment Details</Text>
       </View>
 
-      <ScrollView style={{ paddingBottom: 100 }}>
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }} 
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <ScrollView 
+          style={{ paddingBottom: verticalScale(100) }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
         {/* Travel Info */}
         <View style={styles.card}>
-          <View style={styles.locationRow}>
-            <Image
-              source={require("../../Images/locon.png")}
-              style={styles.locationIcon}
-            />
-
-            <Text style={styles.locationText}>
-              {name}: {number}
-              {"\n"}
-              <Text style={[styles.locationText, { fontWeight: 'bold' }]}>{startCity}</Text>
-              {"\n"}
-              <Text style={styles.callNowText}>{fullFrom}</Text>
-            </Text>
+          <View style={styles.routeSection}>
+            <View style={styles.routeItem}>
+              <View style={styles.routeDot} />
+              <View style={styles.routeContent}>
+                <Text style={styles.routeCity}>{startCity || "Starting City"}</Text>
+                <Text style={styles.routeAddress}>{fullFrom || "Starting Address"}</Text>
+                <Text style={styles.routeContact}>{name}: {number}</Text>
+              </View>
+            </View>
+            
+            <View style={styles.routeItem}>
+              <View style={styles.routeDot} />
+              <View style={styles.routeContent}>
+                <Text style={styles.routeCity}>{destCity || "Destination City"}</Text>
+                <Text style={styles.routeAddress}>{fullTo || "Destination Address"}</Text>
+                <Text style={styles.routeContact}>{receiverName}: {receiverNumber}</Text>
+              </View>
+            </View>
+            
+            <View style={styles.routeLine} />
           </View>
-
-          <View style={styles.verticalseparator}></View>
-          <View style={styles.separator} />
-
-          <View style={styles.locationRow}>
-            <Image
-              source={require("../../Images/locend.png")}
-              style={styles.locationIcon}
-            />
-
-            <Text style={styles.locationText}>
-              {receiverName}: {receiverNumber}
-              {"\n"}
-              <Text style={[styles.locationText, { fontWeight: 'bold' }]}>{destCity}</Text>
-              {"\n"}
-              <Text style={styles.callNowText}>{fullTo}</Text>
-            </Text>
-          </View>
-
-          <View style={[styles.separator1, { marginTop: 30 }]} />
 
           {/* Travel Time and Distance */}
-          <View style={styles.infoRow}>
+          <View style={[styles.infoRow, { paddingHorizontal: responsivePadding.medium}]}>
             <Image
               source={require("../../Images/clock.png")}
-              style={[styles.locationIcon, { marginLeft: 5 }]}
+              style={[styles.locationIcon, { marginLeft: scale(5) }]}
             />
             <Text style={styles.infoText}>{distance}</Text>
           </View>
-
-          {/* Distance */}
         </View>
 
         <View style={styles.mapContainer}>
-         <Text style={[styles.infoTitle, { marginBottom: 10, color: "#000" }]}>
+         <Text style={[styles.infoTitle, { marginBottom: verticalScale(10), color: "#000" }]}>
             Track on map
           </Text>
           <MapView
@@ -480,7 +493,7 @@ const TravelDetails = ({ route }) => {
             {originCoords && (
               <Marker coordinate={originCoords} title={startLocation}>
                 <View style={[styles.marker, styles.startMarker]}>
-                  <Icon name="user" size={25} color="#fff" />
+                  <Icon name="user" size={responsiveDimensions.icon.medium} color="#fff" />
                 </View>
               </Marker>
             )}
@@ -488,7 +501,7 @@ const TravelDetails = ({ route }) => {
             {destinationCoords && (
               <Marker coordinate={destinationCoords} title={endLocation}>
                 <View style={[styles.marker, styles.endMarker]}>
-                  <Icon name="map-marker" size={25} color="#fff" />
+                  <Icon name="map-marker" size={responsiveDimensions.icon.medium} color="#fff" />
                 </View>
               </Marker>
             )}
@@ -503,14 +516,21 @@ const TravelDetails = ({ route }) => {
 
           {/* Simple Image Gallery */}
           {parcelDetails?.images && parcelDetails.images.length > 0 && (
-            <View style={{ marginVertical: 10 }}>
-              <Text style={{ fontWeight: 'bold', marginBottom: 5, color: "#000" }}>Parcel Images</Text>
+            <View style={{ marginVertical: verticalScale(10) }}>
+              <Text style={{ fontWeight: 'bold', marginBottom: verticalScale(5), color: "#000", fontSize: responsiveFontSize.md }}>Parcel Images</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 {parcelDetails.images.map((img, idx) => (
                   <TouchableOpacity key={idx} onPress={() => handleImagePress(idx)}>
                     <Image
                       source={{ uri: img.uri }}
-                      style={{ width: 80, height: 80, borderRadius: 8, marginRight: 10, borderWidth: 1, borderColor: '#ccc' }}
+                      style={{ 
+                        width: scale(80), 
+                        height: scale(80), 
+                        borderRadius: scale(8), 
+                        marginRight: scale(10), 
+                        borderWidth: 1, 
+                        borderColor: '#ccc' 
+                      }}
                     />
                   </TouchableOpacity>
                 ))}
@@ -523,14 +543,18 @@ const TravelDetails = ({ route }) => {
             <View style={{
               position: 'absolute', left: 0, top: 0, right: 0, bottom: 0,
               backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', zIndex: 1000,
-              // width: 50,
             }}>
-              <TouchableOpacity style={{ position: 'absolute', top: 40, right: 20, zIndex: 1001 }} onPress={closeImageModal}>
-                <Text style={{ color: 'white', fontSize: 30 }}>×</Text>
+              <TouchableOpacity style={{ position: 'absolute', top: verticalScale(40), right: scale(20), zIndex: 1001 }} onPress={closeImageModal}>
+                <Text style={{ color: 'white', fontSize: responsiveFontSize.xl }}>×</Text>
               </TouchableOpacity>
               <Image
                 source={{ uri: parcelDetails.images[selectedImageIndex].uri }}
-                style={{ width: 300, height: 400, borderRadius: 10, resizeMode: 'contain' }}
+                style={{ 
+                  width: scale(300), 
+                  height: scale(400), 
+                  borderRadius: scale(10), 
+                  resizeMode: 'contain' 
+                }}
               />
             </View>
           )}
@@ -722,8 +746,9 @@ const TravelDetails = ({ route }) => {
           <ReviewDetails />
           {/* ReviewDetails component will be displayed inside the Bottom Sheet */}
         </RBSheet>
-      </ScrollView>
-    </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
@@ -732,44 +757,92 @@ export default TravelDetails;
 const styles = StyleSheet.create({
   headerTitle: {
     color: "white",
-    fontSize: 18,
+    fontSize: responsiveFontSize.lg,
     fontWeight: "bold",
-    flex: 1, // Makes the header title take up all available space
-    textAlign: "center", // Centers the title
-    marginTop: 20,
+    flex: 1,
+    textAlign: "center",
+    marginTop: verticalScale(20),
   },
   backButton: {
-    marginTop: 20,
+    marginTop: verticalScale(20),
+    padding: scale(5),
+    marginRight: scale(10),
   },
   container: {
     flex: 1,
     backgroundColor: "#FFFFFF",
-    // paddingBottom: 20,
   },
   header: {
     backgroundColor: "#D83F3F",
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 15,
-    paddingHorizontal: 10,
-    justifyContent: "space-between", // Adjusted to space between the items
+    paddingVertical: verticalScale(5),
+    paddingHorizontal: responsivePadding.small,
+    justifyContent: "space-between",
     marginTop: 0,
   },
   headerText: {
     color: "#fff",
-    fontSize: 18,
+    fontSize: responsiveFontSize.lg,
     fontWeight: "bold",
-    marginLeft: 20,
+    marginLeft: scale(20),
   },
   card: {
     backgroundColor: "#fff",
-    margin: 20,
-    borderRadius: 4,
-    padding: 6,
+    margin: responsivePadding.medium,
+    borderRadius: scale(8),
+    padding: responsivePadding.small,
     shadowColor: "#000",
     shadowOpacity: 0.1,
-    shadowRadius: 5,
+    shadowRadius: scale(5),
     elevation: 3,
+  },
+  routeSection: {
+    paddingHorizontal: responsivePadding.horizontal,
+    paddingVertical: responsivePadding.medium,
+    backgroundColor: '#fff',
+    position: 'relative',
+  },
+  routeItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: verticalScale(10),
+  },
+  routeDot: {
+    width: scale(12),
+    height: scale(12),
+    borderRadius: scale(6),
+    backgroundColor: '#D32F2F',
+    marginTop: scale(4),
+    marginRight: scale(12),
+  },
+  routeContent: {
+    flex: 1,
+  },
+  routeCity: {
+    fontSize: responsiveFontSize.md,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: scale(2),
+  },
+  routeAddress: {
+    fontSize: responsiveFontSize.sm,
+    color: '#666',
+    lineHeight: verticalScale(18),
+  },
+  routeContact: {
+    fontSize: responsiveFontSize.sm,
+    color: '#888',
+    marginTop: scale(2),
+  },
+  routeLine: {
+    position: 'absolute',
+    width: scale(2),
+    height: verticalScale(50),
+    backgroundColor: '#D32F2F',
+    left: scale(25),
+    top: verticalScale(55),
+    zIndex: 1,
   },
   locationRow: {
     flexDirection: "row",
@@ -821,14 +894,15 @@ const styles = StyleSheet.create({
   },
   infoRow: {
     flexDirection: "row",
-    // justifyContent: 'space-between',
-    marginVertical: 10,
+    marginVertical: verticalScale(10),
+    // marginLeft: scale(20)
+    // paddingHorizontal: responsivePadding.medium,
   },
   infoText: {
-    fontSize: 14,
+    fontSize: responsiveFontSize.sm,
     color: "black",
     fontWeight: "bold",
-    marginLeft: 10,
+    marginLeft: scale(10),
     marginTop: -2,
   },
   infoText1: {
@@ -847,28 +921,28 @@ const styles = StyleSheet.create({
   },
   mapContainer: {
     marginVertical: 0,
-    margin: 20,
+    margin: responsivePadding.medium,
   },
   map: {
     width: "100%",
-    height: 180,
-    borderRadius: 10,
+    height: verticalScale(180),
+    borderRadius: scale(10),
     objectFit: "cover",
   },
   otherInfo: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginVertical: 10,
+    marginVertical: verticalScale(10),
   },
   infoBlock: {
     alignItems: "center",
   },
   infoTitle: {
-    fontSize: 16,
+    fontSize: responsiveFontSize.md,
     fontWeight: "bold",
   },
   infoSubtitle: {
-    fontSize: 14,
+    fontSize: responsiveFontSize.sm,
     color: "black",
   },
   vehicleText: {
@@ -908,16 +982,16 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: "#D83F3F",
-    paddingVertical: 15,
-    borderRadius: 5,
+    paddingVertical: verticalScale(15),
+    borderRadius: scale(8),
     alignItems: "center",
-    marginTop: 15,
-    marginBottom: 20,
-    marginHorizontal: 20,
+    marginTop: verticalScale(15),
+    marginBottom: verticalScale(20),
+    marginHorizontal: responsivePadding.medium,
   },
   buttonText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: responsiveFontSize.md,
     fontWeight: "bold",
   },
   locationText: {
@@ -944,16 +1018,15 @@ const styles = StyleSheet.create({
 
   sectionTitle: {
     fontWeight: "bold",
-    fontSize: 18,
-    marginBottom: 8,
+    fontSize: responsiveFontSize.lg,
+    marginBottom: verticalScale(8),
     color: "#333",
   },
   parcelDescription: {
-    // width: 300,
-    fontSize: 16,
+    fontSize: responsiveFontSize.md,
     color: "black",
-    marginBottom: 12,
-    marginLeft: 6,
+    marginBottom: verticalScale(12),
+    marginLeft: scale(6),
   },
 
   infoColumn: {
@@ -977,7 +1050,7 @@ const styles = StyleSheet.create({
   },
   extraValue: {
     color: "black",
-    fontSize: 14,
+    fontSize: responsiveFontSize.sm,
   },
   rowBetween: {
     flexDirection: "row",
@@ -1042,75 +1115,47 @@ const styles = StyleSheet.create({
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
-    // marginBottom: 10,
-    marginTop: 10,
+    marginTop: verticalScale(10),
   },
   separator1: {
     height: 1,
     backgroundColor: "#ddd",
-    marginVertical: 10,
-    marginLeft: 5,
+    marginVertical: verticalScale(10),
+    marginLeft: scale(5),
   },
   separator: {
     borderStyle: "dashed",
     borderWidth: 1,
     borderColor: "#ddd",
-    marginVertical: 10,
-    marginLeft: 40,
-    marginTop: -20,
+    marginVertical: verticalScale(10),
+    marginLeft: scale(40),
+    marginTop: -verticalScale(20),
   },
   verticalseparator: {
-    width: 1, // Set width to 1 for a thin line
-    backgroundColor: "#ddd", // Make the background transparent
-    borderStyle: "dashed", // Dotted border style
-    borderLeftWidth: 1, // Add left border to simulate a vertical line
-    borderLeftColor: "#ddd", // Set the color for the dotted line
-    height: "40", // Set height to 100% or any specific height you need
-    marginHorizontal: 11, // Optional: add horizontal spacing if needed
-  },
-
-  infoText: {
-    fontSize: 15,
-    color: "black",
-    // fontWeight:'bold',
-    marginLeft: 10,
-    marginTop: -2,
-  },
-  infoText1: {
-    fontSize: 15,
-    color: "#555",
-    // fontWeight:'bold',
-    marginLeft: 32,
-    marginTop: -10,
-  },
-  infoText2: {
-    fontSize: 15,
-    color: "#555",
-    // fontWeight:'bold',
-    marginLeft: -30,
-    marginTop: -10,
-  },
-  infoRow: {
-    flexDirection: "row",
-    // justifyContent: 'space-between',
-    marginVertical: 10,
+    width: 1,
+    backgroundColor: "#ddd",
+    borderStyle: "dashed",
+    borderLeftWidth: 1,
+    borderLeftColor: "#ddd",
+    height: "40",
+    marginHorizontal: scale(11),
   },
   dottedLine: {
     borderStyle: "dotted",
     borderWidth: 0.5,
     borderColor: "#aaa",
-    marginVertical: 12,
+    marginVertical: verticalScale(12),
   },
   boldText: {
     fontWeight: "bold",
-    fontSize: 14,
+    fontSize: responsiveFontSize.sm,
     color: "#333",
-    marginBottom: 4,
+    marginBottom: verticalScale(4),
   },
   marker: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: scale(32),
+    height: scale(32),
+    borderRadius: scale(16),
     justifyContent: "center",
     alignItems: "center",
   },

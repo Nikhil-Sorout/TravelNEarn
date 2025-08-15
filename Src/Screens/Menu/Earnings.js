@@ -2,7 +2,6 @@ import { MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useState } from "react";
 import {
-  Dimensions,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,8 +10,16 @@ import {
 } from "react-native";
 import FontAwesome from "react-native-vector-icons/FontAwesome";
 import Ionicons from "react-native-vector-icons/Ionicons";
-
-const { width, height } = Dimensions.get("window");
+import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  scale,
+  verticalScale,
+  moderateScale,
+  fontScale,
+  responsivePadding,
+  responsiveFontSize,
+  responsiveDimensions,
+} from "../../Utils/responsive";
 
 const Earnings = ({ navigation }) => {
   const [transactions, setTransactions] = useState([]);
@@ -31,10 +38,10 @@ const Earnings = ({ navigation }) => {
           setLoading(false);
           return;
         }
-
+        const baseurl = await AsyncStorage.getItem("apiBaseUrl")
         // Fix: Construct URL with proper query parameter
         const response = await fetch(
-          `https://travel.timestringssystem.com/earn/earning?phoneNumber=${encodeURIComponent(
+          `${baseurl}earn/earning?phoneNumber=${encodeURIComponent(
             phoneNumber
           )}`
         );
@@ -64,7 +71,7 @@ const Earnings = ({ navigation }) => {
   }, [navigation]);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -134,7 +141,7 @@ const Earnings = ({ navigation }) => {
           </View>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -148,22 +155,22 @@ const styles = StyleSheet.create({
     backgroundColor: "#D83F3F",
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 15,
-    paddingHorizontal: 10,
+    paddingVertical: responsivePadding.medium,
+    paddingHorizontal: responsivePadding.small,
     justifyContent: "space-between",
   },
   backButton: {
-    marginRight: width * 0.03,
+    marginRight: scale(12),
   },
   headerTitle: {
     color: "white",
-    fontSize: 18,
+    fontSize: responsiveFontSize.lg,
     fontWeight: "bold",
     flex: 1,
     textAlign: "center",
   },
   content: {
-    marginTop: height * 0.03,
+    marginTop: verticalScale(25),
     width: "100%",
     flexDirection: "column",
     alignItems: "center",
@@ -172,36 +179,36 @@ const styles = StyleSheet.create({
   summary: {
     backgroundColor: "#A4CE39",
     borderRadius: 5,
-    paddingVertical: height * 0.02,
-    paddingHorizontal: width * 0.05,
+    paddingVertical: verticalScale(17),
+    paddingHorizontal: scale(20),
     width: "95%",
     alignItems: "center",
   },
   summaryText: {
-    fontSize: width * 0.04,
+    fontSize: fontScale(16),
     color: "#fff",
   },
   summaryValue: {
-    margin: height * 0.01,
-    fontSize: width * 0.1,
+    margin: verticalScale(8),
+    fontSize: fontScale(39),
     color: "#fff",
   },
   start: {
     textAlign: "center",
     alignItems: "center",
-    marginTop: height * 0.1,
+    marginTop: verticalScale(85),
   },
   circle: {
-    width: width * 0.3,
-    height: width * 0.3,
+    width: scale(118),
+    height: scale(118),
     backgroundColor: "#53B175",
-    borderRadius: width * 0.15,
+    borderRadius: scale(59),
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: height * 0.02,
+    marginBottom: verticalScale(17),
   },
   startText: {
-    fontSize: width * 0.05,
+    fontSize: fontScale(20),
     color: "#373737a",
     textAlign: "center",
   },
@@ -209,40 +216,41 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   addressTitle: {
-    fontSize: 16,
+    fontSize: responsiveFontSize.md,
+    color: '#000'
   },
   address: {
     color: "#7C7C7C",
     marginTop: 5,
   },
   iconContainer: {
-    width: 30,
-    height: 30,
-    borderRadius: 25,
+    width: scale(30),
+    height: scale(30),
+    borderRadius: scale(25),
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#53B175",
-    marginRight: 20,
-    marginLeft: 10,
+    marginRight: scale(20),
+    marginLeft: scale(10),
   },
   card: {
     backgroundColor: "#fff",
-    margin: 10,
+    margin: responsivePadding.small,
     borderRadius: 5,
     flexDirection: "row",
-    paddingVertical: 15,
+    paddingVertical: responsivePadding.medium,
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
     alignItems: "flex-start",
     elevation: 3,
   },
   moreIcon: {
-    marginLeft: 10,
+    marginLeft: scale(10),
   },
   errorText: {
     color: "red",
     textAlign: "center",
-    marginTop: 20,
+    marginTop: verticalScale(20),
   },
 });
 

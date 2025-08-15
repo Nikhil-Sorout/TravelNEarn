@@ -81,7 +81,7 @@ const Contact = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <Header title="Feedback Form" navigation={navigation} />
 
@@ -131,7 +131,7 @@ const Contact = ({ navigation }) => {
           <Text style={styles.sendButtonText}>Send</Text>
         </TouchableOpacity>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 

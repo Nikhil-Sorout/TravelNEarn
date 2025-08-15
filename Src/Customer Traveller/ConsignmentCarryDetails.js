@@ -11,11 +11,22 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import axios from "axios";
 import Icon from "react-native-vector-icons/FontAwesome";
 import UpdateStatus from "../Customer Traveller/UpdateStatusDetails";
 import Header from "../header";
 import commonStyles from "../styles";
+import {
+  scale,
+  verticalScale,
+  moderateScale,
+  moderateVerticalScale,
+  fontScale,
+  responsivePadding,
+  responsiveFontSize,
+  responsiveDimensions,
+} from "../Utils/responsive";
 
 const ConsignmentCarryDetails = ({ route }) => {
   const navigation = useNavigation();
@@ -37,6 +48,44 @@ const ConsignmentCarryDetails = ({ route }) => {
   const [showImageModal, setShowImageModal] = useState(false);
 
   const GOOGLE_API_KEY = "AIzaSyCJbXV5opQV7TQnfQ_d3UISYQhZegrqdec";
+
+  // Function to parse expected earning string and extract values
+  const parseExpectedEarning = (earning) => {
+    if (!earning) return null;
+    
+    // If it's already an object, return as is
+    if (typeof earning === 'object' && earning !== null) {
+      return earning;
+    }
+    
+    // If it's a string, try to parse it
+    if (typeof earning === 'string') {
+      try {
+        // Remove any extra quotes and parse the JSON-like string
+        const cleanString = earning.replace(/^"|"$/g, '').replace(/\\/g, '');
+        
+        // Extract senderTotalPay and totalFare using regex
+        const senderTotalPayMatch = cleanString.match(/senderTotalPay:\s*([\d.]+)/);
+        const totalFareMatch = cleanString.match(/totalFare:\s*([\d.]+)/);
+        
+        if (senderTotalPayMatch && totalFareMatch) {
+          return {
+            senderTotalPay: parseFloat(senderTotalPayMatch[1]),
+            totalFare: parseFloat(totalFareMatch[1])
+          };
+        }
+        
+        // Fallback: try to parse as JSON
+        const parsed = JSON.parse(cleanString);
+        return parsed;
+      } catch (error) {
+        console.error('Error parsing expected earning:', error);
+        return null;
+      }
+    }
+    
+    return null;
+  };
 
   const handleImagePress = (index) => {
     console.log(index)
@@ -510,17 +559,20 @@ const ConsignmentCarryDetails = ({ route }) => {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text style={{ color: '#000' }}>Loading...</Text>
-      </View>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.loadingContainer}>
+          <Text style={{ color: '#000', fontSize: fontScale(16) }}>Loading...</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={{ paddingBottom: 100 }}
-    >
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={{ paddingBottom: verticalScale(100) }}
+      >
       <Modal
         visible={isModalVisible}
         transparent={true}
@@ -528,14 +580,18 @@ const ConsignmentCarryDetails = ({ route }) => {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalContainer}>
-          <UpdateStatus
-            onClose={() => setModalVisible(false)}
-            onSearch={handleSearch}
-            earning={consignmentDetails.expectedEarning || 0}
-            consignmentId={consignmentId || ""}
-            travelId={travelId || ""}
-            currentStatus={status}
-          />
+                     <UpdateStatus
+             onClose={() => setModalVisible(false)}
+             onSearch={handleSearch}
+             earning={(() => {
+               const earning = consignmentDetails.expectedEarning || ride.expectedEarning;
+               const parsedEarning = parseExpectedEarning(earning);
+               return parsedEarning?.totalFare || 0;
+             })()}
+             consignmentId={consignmentId || ""}
+             travelId={travelId || ""}
+             currentStatus={status}
+           />
         </View>
       </Modal>
 
@@ -588,11 +644,11 @@ const ConsignmentCarryDetails = ({ route }) => {
             </Text>
           </Text>
         </View>
-        <View style={[commonStyles.staraightSeparator, { marginTop: 30 }]} />
+        <View style={[commonStyles.staraightSeparator, { marginTop: verticalScale(30) }]} />
         <View style={styles.infoRow}>
           <Image
             source={require("../Images/clock.png")}
-            style={[styles.locationIcon, { marginLeft: 5 }]}
+            style={[styles.locationIcon, { marginLeft: scale(5) }]}
           />
           <Text style={styles.infoText}>
             {consignmentDetails.distance || travelDistance || "Calculating..."}
@@ -636,12 +692,12 @@ const ConsignmentCarryDetails = ({ route }) => {
                 backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center', alignItems: 'center', zIndex: 1000,
                 // width: 50,
               }}>
-                <TouchableOpacity style={{ position: 'absolute', top: 40, right: 20, zIndex: 1001 }} onPress={closeImageModal}>
-                  <Text style={{ color: 'white', fontSize: 30 }}>×</Text>
+                <TouchableOpacity style={{ position: 'absolute', top: verticalScale(40), right: scale(20), zIndex: 1001 }} onPress={closeImageModal}>
+                  <Text style={{ color: 'white', fontSize: fontScale(30) }}>×</Text>
                 </TouchableOpacity>
                 <Image
                   source={{ uri: consignmentDetails.images[selectedImageIndex] }}
-                  style={{ width: 300, height: 400, borderRadius: 10, resizeMode: 'contain' }}
+                  style={{ width: scale(300), height: scale(400), borderRadius: scale(10), resizeMode: 'contain' }}
                 />
               </View>
             )}
@@ -730,18 +786,36 @@ const ConsignmentCarryDetails = ({ route }) => {
           </>
         )}
       </View>
-      <View style={styles.card}>
-        <View style={styles.rowBetween}>
-          <Text style={styles.boldText}>Expected Earning</Text>
-          <Text style={styles.earningText}>
-            {(consignmentDetails.expectedEarning || ride.expectedEarning) &&
-              (consignmentDetails.expectedEarning !== "0" || ride.expectedEarning !== "0") &&
-              (consignmentDetails.expectedEarning !== 0 || ride.expectedEarning !== 0)
-              ? `₹${parseFloat(consignmentDetails.expectedEarning || ride.expectedEarning).toFixed(2)}`
-              : ""}
-          </Text>
-        </View>
-      </View>
+             <View style={styles.card}>
+         <View style={styles.rowBetween}>
+           <Text style={styles.boldText}>Expected Earning</Text>
+           <Text style={styles.earningText}>
+             {(() => {
+               const earning = consignmentDetails.expectedEarning || ride.expectedEarning;
+               const parsedEarning = parseExpectedEarning(earning);
+               
+               if (parsedEarning && parsedEarning.totalFare) {
+                 return `₹${parseFloat(parsedEarning.totalFare).toFixed(2)}`;
+               }
+               
+               // Fallback for other formats
+               if (earning && earning !== "0" && earning !== 0) {
+                 if (typeof earning === 'object' && earning.totalFare) {
+                   return `₹${parseFloat(earning.totalFare).toFixed(2)}`;
+                 }
+                 if (typeof earning === 'string' && !isNaN(parseFloat(earning))) {
+                   return `₹${parseFloat(earning).toFixed(2)}`;
+                 }
+                 if (typeof earning === 'number') {
+                   return `₹${earning.toFixed(2)}`;
+                 }
+               }
+               
+               return "";
+             })()}
+           </Text>
+         </View>
+       </View>
 
       {ride.status !== "Delivered" &&
         ride.status !== "Completed" &&
@@ -751,7 +825,7 @@ const ConsignmentCarryDetails = ({ route }) => {
         status !== "Completed" &&
         status !== "Consignment Completed" &&
         status !== "Consignment Delivered" && (
-          <View style={{ marginBottom: 20 }}>
+          <View style={{ marginBottom: verticalScale(20) }}>
             <TouchableOpacity
               style={styles.updateStatusButton}
               onPress={() => setModalVisible(true)}
@@ -764,14 +838,19 @@ const ConsignmentCarryDetails = ({ route }) => {
                 <Text style={styles.arrowText}>{"  ›››››"}</Text>
               </View>
             </TouchableOpacity>
-          </View>
-        )}
-    </ScrollView>
-  );
-};
+                     </View>
+         )}
+       </ScrollView>
+     </SafeAreaView>
+   );
+ };
 
-// Styles remain unchanged
+// Responsive styles using responsive utilities
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#f5f5f5",
+  },
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",
@@ -783,60 +862,60 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: "#fff",
-    margin: 12,
-    padding: 16,
-    borderRadius: 8,
+    margin: scale(12),
+    padding: scale(16),
+    borderRadius: scale(8),
     elevation: 3,
   },
   locationText: {
     color: "black",
-    fontSize: 16,
-    marginLeft: 10,
+    fontSize: fontScale(16),
+    marginLeft: scale(10),
     fontWeight: "bold",
   },
   callNowText: {
     color: "black",
-    fontSize: 14,
-    marginLeft: 10,
-    marginTop: 5,
+    fontSize: fontScale(14),
+    marginLeft: scale(10),
+    marginTop: verticalScale(5),
     fontWeight: "normal",
   },
   dottedLine: {
     borderStyle: "dotted",
     borderWidth: 1,
     borderColor: "#aaa",
-    marginVertical: 10,
+    marginVertical: verticalScale(10),
   },
   infoText: {
-    fontSize: 14,
+    fontSize: fontScale(14),
     color: "#333",
-    marginLeft: 10,
+    marginLeft: scale(10),
     fontWeight: "bold",
   },
   sectionTitle: {
     fontWeight: "bold",
-    fontSize: 18,
-    marginBottom: 8,
+    fontSize: fontScale(18),
+    marginBottom: verticalScale(8),
     color: "#333",
   },
   parcelDescription: {
-    fontSize: 16,
+    fontSize: fontScale(16),
     color: "black",
-    marginBottom: 12,
+    marginBottom: verticalScale(12),
   },
   extraInfo: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginVertical: 5,
+    marginVertical: verticalScale(5),
   },
   boldText: {
     fontWeight: "bold",
-    fontSize: 14,
+    fontSize: fontScale(14),
     color: "#333",
   },
   extraValue: {
     color: "black",
-    fontSize: 14,
+    fontSize: fontScale(14),
   },
   rowBetween: {
     flexDirection: "row",
@@ -846,24 +925,24 @@ const styles = StyleSheet.create({
   earningText: {
     color: "green",
     fontWeight: "bold",
-    fontSize: 16,
+    fontSize: fontScale(16),
   },
   footerButton: {
     backgroundColor: "#53B175",
-    margin: 16,
-    padding: 14,
-    borderRadius: 8,
+    margin: scale(16),
+    padding: verticalScale(14),
+    borderRadius: scale(8),
     alignItems: "center",
   },
   buttonText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: fontScale(16),
     fontWeight: "bold",
   },
   otherInfo: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginVertical: 10,
+    marginVertical: verticalScale(10),
   },
   infoBlock: {
     flex: 1,
@@ -872,37 +951,37 @@ const styles = StyleSheet.create({
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 5,
+    marginBottom: verticalScale(5),
   },
   infoIcon: {
-    width: 24,
-    height: 24,
-    marginRight: 8,
+    width: scale(24),
+    height: scale(24),
+    marginRight: scale(8),
   },
   infoTitle: {
-    fontSize: 14,
+    fontSize: fontScale(14),
     fontWeight: "bold",
     color: "#444",
-    marginRight: 10,
+    marginRight: scale(10),
   },
   infoValue: {
-    fontSize: 15,
+    fontSize: fontScale(15),
     color: "#333",
-    marginLeft: 32,
+    marginLeft: scale(32),
   },
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 5,
+    marginVertical: verticalScale(5),
   },
   locationIcon: {
-    width: 24,
-    height: 24,
+    width: scale(24),
+    height: scale(24),
   },
   iconContainer: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: scale(20),
+    height: scale(20),
+    borderRadius: scale(10),
     justifyContent: "center",
     alignItems: "center",
   },
@@ -912,11 +991,11 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
   },
   statusTimelineCard: {
-    marginHorizontal: 16,
-    marginVertical: 10,
-    padding: 16,
+    marginHorizontal: scale(16),
+    marginVertical: verticalScale(10),
+    padding: scale(16),
     backgroundColor: "#FFFFFF",
-    borderRadius: 10,
+    borderRadius: scale(10),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -925,17 +1004,17 @@ const styles = StyleSheet.create({
   },
   statusTimelineItem: {
     flexDirection: "row",
-    marginBottom: 16,
+    marginBottom: verticalScale(16),
   },
   statusIconContainer: {
     alignItems: "center",
-    width: 24,
-    marginRight: 12,
+    width: scale(24),
+    marginRight: scale(12),
   },
   statusIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: scale(24),
+    height: scale(24),
+    borderRadius: scale(12),
     justifyContent: "center",
     alignItems: "center",
   },
@@ -943,61 +1022,61 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: 2,
     backgroundColor: "#E0E0E0",
-    top: 24,
-    bottom: -16,
-    left: 11,
+    top: scale(24),
+    bottom: -scale(16),
+    left: scale(11),
   },
   statusTextContainer: {
     flex: 1,
   },
   statusTitle: {
-    fontSize: 16,
+    fontSize: fontScale(16),
     fontWeight: "600",
     color: "#333333",
   },
   statusTime: {
-    fontSize: 14,
+    fontSize: fontScale(14),
     color: "#666666",
-    marginTop: 2,
+    marginTop: verticalScale(2),
   },
   updateStatusButton: {
     backgroundColor: "#4CAF50",
-    margin: 16,
-    padding: 12,
-    borderRadius: 8,
+    margin: scale(16),
+    padding: verticalScale(12),
+    borderRadius: scale(8),
     alignItems: "center",
     flexDirection: "row",
     justifyContent: "center",
   },
   updateStatusButtonText: {
     color: "#fff",
-    fontSize: 18,
+    fontSize: fontScale(18),
     fontWeight: "bold",
     textAlign: "center",
-    marginHorizontal: 10,
+    marginHorizontal: scale(10),
   },
   arrowContainer: {
     justifyContent: "center",
   },
   arrowText: {
     color: "white",
-    fontSize: 28,
+    fontSize: fontScale(28),
     fontWeight: "900",
     textShadowColor: "rgba(0, 0, 0, 0.2)",
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 1,
   },
   imageContainer: {
-    marginTop: 10,
-    marginBottom: 10,
+    marginTop: verticalScale(10),
+    marginBottom: verticalScale(10),
   },
   imageWrapper: {
-    marginRight: 10,
+    marginRight: scale(10),
   },
   parcelImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 5,
+    width: scale(100),
+    height: scale(100),
+    borderRadius: scale(5),
   },
 });
 
