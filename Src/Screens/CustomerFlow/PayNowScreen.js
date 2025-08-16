@@ -52,7 +52,7 @@ const PayNowScreen = ({ navigation, route }) => {
   const [loading, setLoading] = useState(false);
   const [travelDetails, setTravelDetails] = useState(null);
   const [fetchingTravelDetails, setFetchingTravelDetails] = useState(false);
-  const [travelModeNumber, setTravelModeNumber] = useState("4"); // Default to 4 seater
+  const [travelModeNumber, setTravelModeNumber] = useState(""); // Default to 4 seater
   const mapRef = useRef(null); // Reference to MapView
 
   console.log("Travel ID:", travelId);
@@ -497,7 +497,7 @@ const PayNowScreen = ({ navigation, route }) => {
 
   const getTravelIcon = () => {
     switch (travelMode.toLowerCase()) {
-      case "car":
+      case "roadways":
         return <Icon name="car" size={24} color="#D83F3F" />;
       case "airplane":
         return <Ionicons name="airplane" size={24} color="#D83F3F" />;
@@ -525,7 +525,7 @@ const PayNowScreen = ({ navigation, route }) => {
         >
           <Icon name="chevron-left" size={24} color="white" />
         </TouchableOpacity>
-        <Text style={styles.headerText}>Consignment Request Acceted</Text>
+        <Text style={styles.headerText}>Consignment Request Accepted</Text>
       </View>
 
       {/* Scrollable Content */}
@@ -581,7 +581,7 @@ const PayNowScreen = ({ navigation, route }) => {
           <View style={styles.infoRow}>
             {getTravelIcon()}
             <Text style={styles.infoText}>
-              {travelMode.charAt(0).toUpperCase() + travelMode.slice(1)} ({travelModeNumber})
+              {travelMode === "roadways" ? "Roadways" : travelMode.charAt(0).toUpperCase() + travelMode.slice(1) + ({travelModeNumber})} 
             </Text>
           </View>
         </View>

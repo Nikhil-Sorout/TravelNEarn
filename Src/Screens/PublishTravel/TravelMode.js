@@ -45,18 +45,32 @@ import {
   screenWidth,
   screenHeight
 } from '../../Utils/responsive';
+import { 
+  createTimezoneAwareDate, 
+  formatDateForAPI,
+  formatDateForDisplay,
+  getUserTimezone,
+  getUserTimezoneOffset 
+} from '../../Utils/dateUtils';
+import TimezoneDisplay from '../../Components/TimezoneDisplay';
 
 const TravelMode = ({ navigation, route }) => {
   const mapRef = useRef(null);
   const scrollViewRef = useRef(null);
   const [selectedMode, setSelectedMode] = useState("roadways");
   const [travelNumber, setTravelNumber] = useState("");
-  const [travelDate, setTravelDate] = useState(
-    route.params?.selectedDate ? new Date(route.params.selectedDate) : new Date()
-  );
-  const [endDate, setEndDate] = useState(
-    route.params?.selectedDate ? new Date(route.params.selectedDate) : new Date()
-  );
+  const [travelDate, setTravelDate] = useState(() => {
+    if (route.params?.selectedDate) {
+      return new Date(route.params.selectedDate);
+    }
+    return new Date();
+  });
+  const [endDate, setEndDate] = useState(() => {
+    if (route.params?.selectedDate) {
+      return new Date(route.params.selectedDate);
+    }
+    return new Date();
+  });
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -388,12 +402,19 @@ const TravelMode = ({ navigation, route }) => {
     try {
       console.log("Travel date : ", travelDate)
       console.log("Date from route parameter: ", selectedDate)
+      
+      // Create timezone-aware date objects
+      const travelDateData = createTimezoneAwareDate(travelDate, startTime);
+      const endDateData = createTimezoneAwareDate(endDate, endTime);
+      
       await AsyncStorage.setItem("travelMode", selectedMode);
       await AsyncStorage.setItem("travelNumber", travelNumber);
-      await AsyncStorage.setItem("searchingDate", travelDate.toISOString());
-      await AsyncStorage.setItem("endDate", endDate.toISOString());
+      await AsyncStorage.setItem("searchingDate", travelDateData.date);
+      await AsyncStorage.setItem("endDate", endDateData.date);
       await AsyncStorage.setItem("startTime", startTime);
       await AsyncStorage.setItem("endTime", endTime);
+      await AsyncStorage.setItem("userTimezone", travelDateData.timezone);
+      await AsyncStorage.setItem("timezoneOffset", travelDateData.timezoneOffset.toString());
 
       navigation.navigate("PublishTravelDetails", { fullFrom: fullFrom, fullTo: fullTo, from: from, to: to, selectedDate: travelDate, endDate: endDate, stayDays, stayHours, vehicleType: subCategoryOfTravel, startCity: startCity, destCity: destCity });
     } catch (error) {
@@ -411,7 +432,7 @@ const TravelMode = ({ navigation, route }) => {
         if (!route.params?.selectedDate) {
           const storedDate = await AsyncStorage.getItem("searchingDate");
           if (storedDate) {
-            const parsedDate = new Date(storedDate);
+            const parsedDate = utcToLocalDate(storedDate);
             setTravelDate(parsedDate);
             // Automatically set end date to the same as travel date on initial load
             setEndDate(parsedDate);
@@ -421,7 +442,10 @@ const TravelMode = ({ navigation, route }) => {
         // Load endDate from AsyncStorage only if no route parameter and no stored travel date
         if (!route.params?.selectedDate) {
           const storedEndDate = await AsyncStorage.getItem("endDate");
-          if (storedEndDate) setEndDate(new Date(storedEndDate));
+          if (storedEndDate) {
+            const parsedEndDate = utcToLocalDate(storedEndDate);
+            setEndDate(parsedEndDate);
+          }
         }
         
         if (storedStartTime) setStartTime(storedStartTime);
@@ -444,6 +468,9 @@ const TravelMode = ({ navigation, route }) => {
         <Text style={styles.selectedDateText}>
           Travel Date: {travelDate.toDateString()}
         </Text>
+        
+        {/* Timezone Display */}
+        {/* <TimezoneDisplay /> */}
         
         <View style={styles.routeItem}>
           <View style={styles.routeDot} />

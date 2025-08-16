@@ -43,6 +43,13 @@ import {
   screenWidth,
   screenHeight
 } from '../../Utils/responsive';
+import { 
+  formatDateForDisplay, 
+  createTimezoneAwareDate,
+  createTravelPublishData,
+  getUserTimezone,
+  getUserTimezoneOffset 
+} from '../../Utils/dateUtils';
 
 const TravelDetails = ({ route }) => {
   const navigation = useNavigation();
@@ -330,17 +337,20 @@ const TravelDetails = ({ route }) => {
   };
 
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const options = { day: 'numeric', month: 'long', year: 'numeric' };
-    return date.toLocaleDateString('en-GB', options);
+    return formatDateForDisplay(dateString, 'DD MMMM YYYY');
   };
 
   const handlePublishTravel = async () => {
     setLoading(true);
     console.log("clicked")
-    const requestData = {
-      travelMode: travelMode.toLowerCase(),
-      vehicleType: travelMode === "roadways" ? vehicleType ?? "" : "",
+    
+    // Get timezone information from AsyncStorage
+    const userTimezone = await AsyncStorage.getItem("userTimezone");
+    const timezoneOffset = await AsyncStorage.getItem("timezoneOffset");
+    
+    const requestData = createTravelPublishData({
+      travelMode,
+      vehicleType,
       travelmode_number: travelNumber,
       expectedStartTime: startTime,
       expectedEndTime: endTime,
@@ -351,7 +361,7 @@ const TravelDetails = ({ route }) => {
       fullTo,
       stayDays,
       stayHours
-    };
+    });
     console.log("hey i am here")
     console.log("requestData :", requestData)
     try {

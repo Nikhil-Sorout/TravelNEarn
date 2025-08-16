@@ -34,6 +34,12 @@ import {
   screenWidth,
   screenHeight
 } from '../../Utils/responsive';
+import { 
+  formatDateForAPI,
+  createConsignmentPublishData,
+  getUserTimezone,
+  getUserTimezoneOffset 
+} from '../../Utils/dateUtils';
 
 const TravelDetails = ({ route }) => {
   const navigation = useNavigation();
@@ -250,7 +256,11 @@ const TravelDetails = ({ route }) => {
       formData.append('weight', parcelDetails.weight);
       formData.append('category', category.trim().replace('-', '').toLowerCase());
       formData.append('subcategory', subCategory ? subCategory.trim().replace('-', '').toLowerCase() : '');
-      formData.append('dateOfSending', new Date(searchingDate).toISOString());
+      // Use unified date conversion
+      const dateToSend = formatDateForAPI(searchingDate);
+      formData.append('dateOfSending', dateToSend);
+      formData.append('userTimezone', getUserTimezone());
+      formData.append('timezoneOffset', getUserTimezoneOffset().toString());
       formData.append('durationAtEndPoint', parcelDetails.duration);
       formData.append('phoneNumber', number);
 
@@ -339,8 +349,8 @@ const TravelDetails = ({ route }) => {
   useEffect(() => {
     const fetchConsignmentData = async () => {
       try {
-        const startingLocation = await AsyncStorage.getItem("startingLocation");
-        const goingLocation = await AsyncStorage.getItem("goingLocation");
+        // const startingLocation = await AsyncStorage.getItem("startingLocation");
+        // const goingLocation = await AsyncStorage.getItem("goingLocation");
         const travelMode = await AsyncStorage.getItem("travelMode");
         const startTime = await AsyncStorage.getItem("startTime");
         const endTime = await AsyncStorage.getItem("endTime");
@@ -351,8 +361,8 @@ const TravelDetails = ({ route }) => {
         const name = await AsyncStorage.getItem("firstName");
         const number = await AsyncStorage.getItem("phoneNumber");
 
-        setStartLocation(startingLocation);
-        setEndLocation(goingLocation);
+        // setStartLocation(startingLocation);
+        // setEndLocation(goingLocation);
         setTravelMode(travelMode);
         setStartTime(startTime);
         setEndTime(endTime);

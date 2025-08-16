@@ -16,6 +16,13 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import SearchDeliveryScreen from "./SearchDeliveryScreen";
+import { 
+  formatDateForAPI, 
+  formatDateForDisplay, 
+  generateDateArray,
+  getUserTimezone,
+  getUserTimezoneOffset 
+} from "../Utils/dateUtils";
 
 const SearchRide = ({ navigation, route }) => {
   const [data, setData] = useState([]);
@@ -28,12 +35,7 @@ const SearchRide = ({ navigation, route }) => {
   const { from, to, date } = route.params;
   console.log("route.params :", route.params)
 
-  const formatDate = (dateString) => {
-    const [day, month, year] = dateString.split("/");
-    return `${year}-${month}-${day}`;
-  };
-
-  const [selectedDate, setSelectedDate] = useState(formatDate(date));
+  const [selectedDate, setSelectedDate] = useState(formatDateForAPI(date));
 
   useEffect(() => {
     const getPhoneNumber = async () => {
@@ -62,7 +64,7 @@ const SearchRide = ({ navigation, route }) => {
         await AsyncStorage.setItem("searchingDate", dateParam);
         const baseUrl = await AsyncStorage.getItem('apiBaseUrl');
         const response = await axios.get(
-          `${baseUrl}api/getdetails?leavingLocation=${from}&goingLocation=${to}&date=${dateParam}&phoneNumber=${phoneNumber}`,
+          `${baseUrl}api/getdetails?leavingLocation=${from}&goingLocation=${to}&date=${dateParam}&phoneNumber=${phoneNumber}&userTimezone=${getUserTimezone()}&timezoneOffset=${getUserTimezoneOffset()}`,
           { headers: { "Content-Type": "application/json" } }
         );
         console.log("Response:", response.data.consignments[0]?.earning);
@@ -96,37 +98,21 @@ const SearchRide = ({ navigation, route }) => {
 
   useEffect(() => {
     if (!date) return;
-    const generateDates = (startDate) => {
-      const nextFiveDays = [];
-      const start = new Date(startDate);
-      for (let i = 0; i < 5; i++) {
-        const futureDate = new Date(start);
-        futureDate.setDate(start.getDate() + i);
-        nextFiveDays.push(
-          `${futureDate.getDate().toString().padStart(2, "0")}/${(
-            futureDate.getMonth() + 1
-          )
-            .toString()
-            .padStart(2, "0")}/${futureDate.getFullYear()}`
-        );
-      }
-      return nextFiveDays;
-    };
-    const nextDates = generateDates(date);
+    const nextDates = generateDateArray(date);
     setDates(nextDates);
-    setSelectedDate(nextDates[0]);
+    setSelectedDate(formatDateForAPI(nextDates[0]));
   }, [date]);
 
   useEffect(() => {
     if (selectedDate) {
-      fetchData(formatDate(selectedDate));
+      fetchData(formatDateForAPI(selectedDate));
     }
   }, [selectedDate, fetchData]);
 
   const handleSearch = () => {
     console.log("Search button pressed, selectedDate:", selectedDate);
     setModalVisible(false);
-    fetchData(formatDate(selectedDate));
+    fetchData(formatDateForAPI(selectedDate));
   };
 
   const renderItem = ({ item }) => (

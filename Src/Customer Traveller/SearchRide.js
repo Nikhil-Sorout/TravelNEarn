@@ -20,6 +20,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/FontAwesome";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import ConsignmentSearchScreen from "./ConsignmentSearchScreen";
+import { 
+  formatDateForAPI, 
+  formatDateForDisplay, 
+  generateDateArray, 
+  createSearchQuery,
+  getUserTimezone,
+  getUserTimezoneOffset 
+} from "../Utils/dateUtils";
 
 const SearchRide = ({ navigation, route }) => {
   const [data, setData] = useState([]);
@@ -58,33 +66,8 @@ const SearchRide = ({ navigation, route }) => {
     }
   }, []);
 
-  const formatDate = (dateString) => {
-    if (!dateString) return "";
-    try {
-      if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-        return dateString;
-      }
-      if (dateString.includes("T")) {
-        const date = new Date(dateString);
-        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-      }
-      if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateString)) {
-        const [day, month, year] = dateString.split("/");
-        return `${year}-${month}-${day}`;
-      }
-      const date = new Date(dateString);
-      if (!isNaN(date.getTime())) {
-        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-      }
-      throw new Error("Invalid date format");
-    } catch (error) {
-      const today = new Date();
-      return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-    }
-  };
-
   const [selectedDate, setSelectedDate] = useState(
-    searchDate ? formatDate(searchDate) : ""
+    searchDate ? formatDateForAPI(searchDate) : ""
   );
 
   const fetchData = useCallback(
@@ -102,11 +85,7 @@ const SearchRide = ({ navigation, route }) => {
         await AsyncStorage.setItem("goingLocation", searchTo);
         await AsyncStorage.setItem("searchingDate", searchDate);
 
-        let formattedDate = dateParam;
-        if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateParam)) {
-          const [day, month, year] = dateParam.split("/");
-          formattedDate = `${year}-${month}-${day}`;
-        }
+        const formattedDate = formatDateForAPI(dateParam);
         const baseurl = await AsyncStorage.getItem("apiBaseUrl");
         const response = await axios.get(
           `${baseurl}t/search-rides`,
@@ -117,6 +96,8 @@ const SearchRide = ({ navigation, route }) => {
               date: formattedDate,
               travelMode: modeFilter,
               phoneNumber: phoneNumber,
+              userTimezone: getUserTimezone(),
+              timezoneOffset: getUserTimezoneOffset(),
             },
             headers: { "Content-Type": "application/json" },
           }
@@ -196,35 +177,16 @@ const SearchRide = ({ navigation, route }) => {
       return;
     }
 
-    const generateDates = (startDate) => {
-      const nextDays = [];
-      const start = new Date(formatDate(startDate));
-      if (isNaN(start.getTime())) return [];
-
-      for (let i = 0; i < 100; i++) {
-        const futureDate = new Date(start);
-        futureDate.setDate(start.getDate() + i);
-        const formattedDate = `${futureDate
-          .getDate()
-          .toString()
-          .padStart(2, "0")}/${(futureDate.getMonth() + 1)
-          .toString()
-          .padStart(2, "0")}/${futureDate.getFullYear()}`;
-        nextDays.push(formattedDate);
+          const nextDates = generateDateArray(searchDate);
+      setDates(nextDates);
+      if (nextDates.length > 0) {
+        setSelectedDate(formatDateForAPI(nextDates[0]));
       }
-      return nextDays;
-    };
-
-    const nextDates = generateDates(searchDate);
-    setDates(nextDates);
-    if (nextDates.length > 0) {
-      setSelectedDate(nextDates[0]);
-    }
   }, [searchDate, route.params?.date]);
 
   useEffect(() => {
     if (selectedDate && searchFrom && searchTo && selectedTravelMode) {
-      fetchData(formatDate(selectedDate), selectedTravelMode);
+      fetchData(formatDateForAPI(selectedDate), selectedTravelMode);
     }
   }, [selectedDate, selectedTravelMode, fetchData, searchFrom, searchTo]);
 
@@ -238,7 +200,7 @@ const SearchRide = ({ navigation, route }) => {
     setModalVisible(false);
     setWaitingForCorrectMode(false);
     if (date && from && to) {
-      const formattedDate = formatDate(date);
+      const formattedDate = formatDateForAPI(date);
       console.log(travelMode)
       fetchData(formattedDate, travelMode);
     }

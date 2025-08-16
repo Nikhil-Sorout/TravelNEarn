@@ -36,6 +36,12 @@ import {
   screenWidth,
   screenHeight 
 } from "../../Utils/responsive";
+import { 
+  createTimezoneAwareDate,
+  formatDateForAPI,
+  getUserTimezone,
+  getUserTimezoneOffset 
+} from "../../Utils/dateUtils";
 
 const { width, height } = Dimensions.get("window");
 
@@ -184,10 +190,12 @@ const Search = ({ route }) => {
       return;
     }
 
-    const formattedDate = date.toISOString();
     // Use full addresses if available, otherwise use the display values
     const fromAddress = from;
     const toAddress = to;
+
+    // Use unified date conversion
+    const localDateString = formatDateForAPI(date);
 
     // AsyncStorage.setItem("startingLocation", fromAddress.toString());
     // AsyncStorage.setItem("goingLocation", toAddress.toString());
@@ -201,7 +209,7 @@ const Search = ({ route }) => {
         to: toAddress,
         fullFrom: fullFrom,
         fullTo: fullTo,
-        selectedDate: date.toISOString(),
+        selectedDate: localDateString,
         startCity,
         destCity
       }

@@ -509,7 +509,7 @@ const TravelStartEndDetails = ({ route }) => {
         </TouchableWithoutFeedback>
       </Modal>
 
-      <Header title="Travel Details" navigation={navigation} />
+      <Header title="Travel Details +" navigation={navigation} />
 
       <ScrollView>
         <View style={styles.buttonContainer}>
@@ -841,7 +841,7 @@ const TravelStartEndDetails = ({ route }) => {
               {getTravelIcon(ride.travelMode)}
             </View>
             <Text style={[commonStyles.infoText, styles.travelModeText]}>
-              {ride.travelMode === "roadways" ? ride.vehicleType : "Car"}
+              {ride.travelMode === "roadways" ? ride.vehicleType : ride?.travelMode + " (" + ride?.travelmode_number + ")"}
             </Text>
           </View>
         </View>

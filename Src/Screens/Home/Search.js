@@ -30,6 +30,7 @@ import {
   screenWidth,
   screenHeight 
 } from "../../Utils/responsive";
+import { formatDateForAPI } from "../../Utils/dateUtils";
 
 const { width, height } = Dimensions.get("window");
 
@@ -147,7 +148,7 @@ const Search = () => {
     const fromAddress = fullFrom || from;
     const toAddress = fullTo || to;
 
-    const formatDate = date.toLocaleDateString("en-CA");
+    const formatDate = formatDateForAPI(date);
     AsyncStorage.setItem("startingLocation", fromAddress.toString());
     AsyncStorage.setItem("goingLocation", toAddress.toString());
     AsyncStorage.setItem("searchingDate", date.toString());

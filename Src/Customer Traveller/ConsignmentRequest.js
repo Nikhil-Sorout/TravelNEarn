@@ -11,6 +11,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { 
+  formatDateForAPI,
+  getUserTimezone,
+  getUserTimezoneOffset 
+} from "../Utils/dateUtils";
 
 const SearchRide = ({ navigation, route }) => {
   const [data, setData] = useState([]);
@@ -22,12 +27,7 @@ const SearchRide = ({ navigation, route }) => {
 
   const { from, to, date } = route.params;
 
-  const formatDate = (dateString) => {
-    const [day, month, year] = dateString.split("/");
-    return `${year}-${month}-${day}`;
-  };
-
-  const dateParam = formatDate(date);
+  const dateParam = formatDateForAPI(date);
 
   useEffect(() => {
     const getPhoneNumber = async () => {
@@ -55,7 +55,7 @@ const SearchRide = ({ navigation, route }) => {
       await AsyncStorage.setItem("searchingDate", dateParam);
 
       const response = await axios.get(
-        `https://travel.timestringssystem.com/api/getdetails?date=${dateParam}&leavingLocation=${from}&goingLocation=${to}&phoneNumber=${phoneNumber}`,
+        `https://travel.timestringssystem.com/api/getdetails?date=${dateParam}&leavingLocation=${from}&goingLocation=${to}&phoneNumber=${phoneNumber}&userTimezone=${getUserTimezone()}&timezoneOffset=${getUserTimezoneOffset()}`,
         { headers: { "Content-Type": "application/json" } }
       );
 
