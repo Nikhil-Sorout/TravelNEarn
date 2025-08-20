@@ -509,7 +509,7 @@ const TravelStartEndDetails = ({ route }) => {
         </TouchableWithoutFeedback>
       </Modal>
 
-      <Header title="Travel Details +" navigation={navigation} />
+      <Header title="Travel Details" navigation={navigation} />
 
       <ScrollView>
         <View style={styles.buttonContainer}>

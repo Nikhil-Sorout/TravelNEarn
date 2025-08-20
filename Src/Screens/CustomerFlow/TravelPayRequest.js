@@ -45,8 +45,8 @@ const TravelPayRequest = ({ route, navigation }) => {
       try {
         setLoading(true);
         setError(null);
-
-        const endpoint = `https://travel.timestringssystem.com/api/riderequest/${phoneNumber}`;
+        const baseurl = await AsyncStorage.getItem("apiBaseUrl")
+        const endpoint = `${baseurl}api/riderequest/${phoneNumber}`;
         // const endpoint = `http://192.168.31.158:5002/api/riderequest/${phoneNumber}`;
         const response = await fetch(endpoint, {
           headers: {
@@ -356,6 +356,7 @@ const TravelPayRequest = ({ route, navigation }) => {
                     size={30}
                     color="#D83F3F"
                   />
+                  <Text>{item.travelMode === "roadways" ? item.vehicleType : item.travelmode_number}</Text>
                 </View>
               </View>
             </View>

@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { formatDate, formatTime } from "../Utils/dateTimeUtils";
 
 const ConsignmentDetails = (ride) => {
   const navigation = useNavigation();
@@ -22,10 +23,9 @@ const ConsignmentDetails = (ride) => {
 
   console.log("ridedetails", item);
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const options = { day: "numeric", month: "long", year: "numeric" };
-    return date.toLocaleDateString("en-GB", options); // "1 Feb 2025"
+  // Using centralized date/time utilities
+  const formatDateLocal = (dateString) => {
+    return formatDate(dateString, 'DD MMMM YYYY');
   };
 
   useEffect(() => {
@@ -292,12 +292,8 @@ const ConsignmentDetails = (ride) => {
         </View>
         <View style={styles.extraInfo}>
           <Text style={styles.extraValue} numberOfLines={1}>
-            {formatDate(item.dateOfSending)}{" "}
-            {new Date(item.dateOfSending).toLocaleTimeString("en-US", {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: true, // Set to false for 24-hour format
-            })}
+                            {formatDateLocal(item.dateOfSending)}{" "}
+            {formatTime(item.dateOfSending, 'hh:mm A')}
           </Text>
         </View>
       </View>

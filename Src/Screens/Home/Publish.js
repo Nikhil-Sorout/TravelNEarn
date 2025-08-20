@@ -194,9 +194,6 @@ const Search = ({ route }) => {
     const fromAddress = from;
     const toAddress = to;
 
-    // Use unified date conversion
-    const localDateString = formatDateForAPI(date);
-
     // AsyncStorage.setItem("startingLocation", fromAddress.toString());
     // AsyncStorage.setItem("goingLocation", toAddress.toString());
     // AsyncStorage.setItem("searchingDate", date.toString());
@@ -209,7 +206,7 @@ const Search = ({ route }) => {
         to: toAddress,
         fullFrom: fullFrom,
         fullTo: fullTo,
-        selectedDate: localDateString,
+        selectedDate: date,
         startCity,
         destCity
       }

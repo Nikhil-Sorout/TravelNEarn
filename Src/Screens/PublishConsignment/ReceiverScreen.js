@@ -28,6 +28,7 @@ import {
   screenWidth,
   screenHeight
 } from '../../Utils/responsive';
+import { formatDate } from '../../Utils/dateTimeUtils';
 
 const ReceiverScreen = ({ navigation, route }) => {
   const mapRef = useRef(null);
@@ -47,22 +48,7 @@ const ReceiverScreen = ({ navigation, route }) => {
   const [isNameFocused, setIsNameFocused] = useState(false);
   const [isNumberFocused, setIsNumberFocused] = useState(false);
   const { from, to, fullFrom, fullTo, selectedDate, startCity, destCity } = route.params
-
-  // Function to format date from UTC to readable format
-  const formatDate = (dateString) => {
-    try {
-      const date = new Date(dateString);
-      const options = { 
-        day: '2-digit', 
-        month: 'short', 
-        year: '2-digit' 
-      };
-      return date.toLocaleDateString('en-US', options);
-    } catch (error) {
-      console.error('Error formatting date:', error);
-      return dateString;
-    }
-  };
+  console.log(selectedDate)
 
   const curvedLinePoints =
     originCoords && destinationCoords
@@ -288,7 +274,7 @@ const ReceiverScreen = ({ navigation, route }) => {
         {/* Date Section */}
         <View style={styles.dateSection}>
           <Text style={styles.dateText}>
-            {selectedDate ? formatDate(selectedDate) : "20 Jul 25"}
+            {selectedDate ? formatDate(selectedDate, 'DD MMM YY') : "20 Jul 25"}
           </Text>
         </View>
 

@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useRoute } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { formatDate } from "../Utils/dateTimeUtils";
 
 const ConsignmentDetails = () => {
   const navigation = useNavigation();
@@ -28,10 +29,9 @@ const ConsignmentDetails = () => {
 
   // console.log("ridedetails11", item.sotp);
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const options = { day: "numeric", month: "long", year: "numeric" };
-    return date.toLocaleDateString("en-GB", options); // "1 Feb 2025"
+  // Using centralized date/time utilities
+  const formatDateLocal = (dateString) => {
+    return formatDate(dateString, 'DD MMMM YYYY');
   };
 
   // useEffect(() => {
@@ -259,7 +259,7 @@ const ConsignmentDetails = () => {
               ]}
             >
               {item?.dimensions?.length}×{item?.dimensions?.breadth}×
-              {item?.dimensions?.height}
+              {item?.dimensions?.height} {item?.dimensions?.unit}
             </Text>
           </View>
         </View>
@@ -295,7 +295,7 @@ const ConsignmentDetails = () => {
         </View>
         <View style={styles.extraInfo}>
           <Text style={styles.extraValue} numberOfLines={1}>
-            {formatDate(item?.dateOfSending)}{" "}
+                            {formatDateLocal(item?.dateOfSending)}{" "}
             {/* {new Date(item?.dateOfSending).toLocaleTimeString("en-US", {
               hour: "2-digit",
               minute: "2-digit",

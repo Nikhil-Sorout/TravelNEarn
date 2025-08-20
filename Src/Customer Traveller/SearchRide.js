@@ -1,34 +1,34 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  Modal,
-  // SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
   View,
-  Platform,
-  StatusBar,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Image,
+  FlatList,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  TextInput,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
 import Icon from "react-native-vector-icons/FontAwesome";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
 import ConsignmentSearchScreen from "./ConsignmentSearchScreen";
-import { 
-  formatDateForAPI, 
-  formatDateForDisplay, 
-  generateDateArray, 
-  createSearchQuery,
+import {
+  generateDateArray,
+  formatDateForAPI,
   getUserTimezone,
-  getUserTimezoneOffset 
+  getUserTimezoneOffset,
 } from "../Utils/dateUtils";
-
+import { 
+  formatUTCTimeToLocal, 
+  calculateDurationFromUTC 
+} from "../Utils/dateTimeUtils";
+import { SafeAreaView } from "react-native-safe-area-context";
 const SearchRide = ({ navigation, route }) => {
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
@@ -257,24 +257,11 @@ const SearchRide = ({ navigation, route }) => {
   const renderItem = ({ item }) => {
     const getTimeFromDate = (dateTimeString) => {
       console.log("dateTimeString : ", dateTimeString)
-      if (!dateTimeString) return " ";
-      const date = new Date(dateTimeString);
-      return (`${date.getUTCHours()}:${String(date.getUTCMinutes()).padStart(2, '0')}`)
-      // return date.toLocaleTimeString([], {
-      //   hour: "2-digit",
-      //   minute: "2-digit",
-      // });
+      return formatUTCTimeToLocal(dateTimeString, "h:mm A");
     };
 
     const calculateDuration = () => {
-      if (!item.expectedStartTime || !item.expectedEndTime) return "N/A";
-      const start = new Date(item.expectedStartTime);
-      const end = new Date(item.expectedEndTime);
-      const diffMs = end - start;
-      const diffMins = Math.floor(diffMs / 60000);
-      const hours = Math.floor(diffMins / 60);
-      const minutes = diffMins % 60;
-      return `${hours}hr ${minutes > 0 ? minutes + "min" : ""}`.trim();
+      return calculateDurationFromUTC(item.expectedStartTime, item.expectedEndTime);
     };
 
     console.log("item : ", item)

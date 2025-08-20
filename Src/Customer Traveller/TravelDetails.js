@@ -19,6 +19,7 @@ import * as Location from "expo-location";
 import { useSocket } from "../Context/socketprovider";
 import ReviewDetails from "./ReviewDetails";
 import { getCurvedPolylinePoints } from "../Utils/getCurvedPolylinePonints";
+import { formatDate, formatTime } from "../Utils/dateTimeUtils";
 
 const TravelDetails = ({ route }) => {
   const { ride, fareDetails, calculatedPrice } = route.params;
@@ -213,11 +214,11 @@ const TravelDetails = ({ route }) => {
 
   const getTimeFromDate = (dateTimeString) => {
     const date = new Date(dateTimeString);
-    return (`(${date.getUTCHours()}:${String(date.getUTCMinutes()).padStart(2, '0')})`)
-    // return date.toLocaleTimeString([], {
-    //   hour: "2-digit",
-    //   minute: "2-digit",
-    // });
+    return date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
   };
 
   const fetchCoordinates = async (origin, destination) => {
@@ -329,10 +330,9 @@ const TravelDetails = ({ route }) => {
     fetchTravelData();
   }, []);
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const options = { day: "numeric", month: "long", year: "numeric" };
-    return date.toLocaleDateString("en-GB", options);
+  // Using centralized date/time utilities
+  const formatDateLocal = (dateString) => {
+    return formatDate(dateString, 'DD MMMM YYYY');
   };
 
   const handleCloseModal = () => {
@@ -502,7 +502,7 @@ const TravelDetails = ({ route }) => {
                   style={[styles.locationIcon, { marginLeft: 2 }]}
                 />
                 <Text style={styles.infoText}>
-                  {formatDate(ride.travelDate)}
+                  {formatDateLocal(ride.travelDate)}
                 </Text>
               </View>
               <Text style={styles.infoText2}>
@@ -555,9 +555,9 @@ const TravelDetails = ({ route }) => {
               <Text style={[styles.travelerName, { marginLeft: 15 }]}>
                 {ride.travelMode}
               </Text>
-              {/* <Text style={[styles.travelerName, { marginLeft: 15 }]}>
-                {ride.travelmode_number || "N/A"}
-              </Text> */}
+              <Text style={[styles.travelerName, { marginLeft: 15 }]}>
+                {ride?.travelmode_number || ""}
+              </Text>
             </View>
           </View>
 

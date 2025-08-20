@@ -28,6 +28,7 @@ import {
   screenHeight,
   responsivePadding
 } from "../../Utils/responsive";
+import { formatTime, formatCurrentTime } from "../../Utils/dateTimeUtils";
 
 const NotificationsScreen = ({ navigation, route }) => {
   const [notifications, setNotifications] = useState([]);
@@ -73,7 +74,7 @@ const NotificationsScreen = ({ navigation, route }) => {
             travelId: data.travelId || "N/A",
             notificationType: data.type === "booking_request" ? "consignment_request" : "general",
             createdAt: new Date(data.timestamp || Date.now()),
-            time: new Date(data.timestamp || Date.now()).toLocaleTimeString(),
+            time: formatTime(data.timestamp || Date.now(), 'hh:mm A'),
             isUnread: true,
             amount: data.amount || data.expectedEarning || "0.00",
           };
@@ -182,7 +183,7 @@ const NotificationsScreen = ({ navigation, route }) => {
             const paymentSuccessNotification = {
               title: "Payment Successful",
               subtitle: `You have successfully paid amount ₹${parseFloat(route.params?.amount || "0").toFixed(2)}`,
-              time: new Date().toLocaleTimeString(),
+              time: formatCurrentTime('hh:mm A'),
               notificationType: "payment_success",
               consignmentId: route.params?.consignmentId || "N/A",
               travelId: route.params?.travelId,
@@ -209,6 +210,14 @@ const NotificationsScreen = ({ navigation, route }) => {
             }
 
             processedNotifications.unshift(paymentSuccessNotification);
+            
+            // Navigate back to main screen after payment success
+            setTimeout(() => {
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Navigation' }],
+              });
+            }, 1000); // Small delay to show the success notification
           }
 
           // Append stored payment success notifications for Consignment tab
@@ -347,7 +356,7 @@ const NotificationsScreen = ({ navigation, route }) => {
         const paymentSuccessNotification = {
           title: "Payment Successful",
           subtitle: `Payment of ₹${amountNum.toFixed(2)} for ${title} completed.`,
-          time: new Date().toLocaleTimeString(),
+          time: formatCurrentTime('hh:mm A'),
           notificationType: "payment_success",
           consignmentId: travelId,
           travelId: travelId,
@@ -382,7 +391,11 @@ const NotificationsScreen = ({ navigation, route }) => {
           }
         }
 
-        navigation.navigate("NotificationsScreen", { refresh: true, travelId });
+        // Navigate back to main screen and clear navigation stack
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Navigation' }],
+        });
       } else {
         throw new Error(json.message || "Payment verification failed.");
       }
@@ -393,9 +406,9 @@ const NotificationsScreen = ({ navigation, route }) => {
   };
 
 
-  const formatTime = (date)=>{
-    const localTime = moment.utc(date).local().format("h:mm A");
-    return localTime;
+  // Using centralized date/time utilities
+  const formatTimeLocal = (date) => {
+    return formatTime(date, 'hh:mm A');
   }
 
   const handleDecline = async (consignmentId, travelId) => {
@@ -468,13 +481,29 @@ const NotificationsScreen = ({ navigation, route }) => {
   // Function to generate and save PDF
   const generateAndSavePDF = async (item) => {
     try {
+      // Extract amount properly based on notification type
+      let displayAmount = "N/A";
+      if (item.amount) {
+        if (typeof item.amount === 'object') {
+          if (item.title === "Consignment Accepted") {
+            displayAmount = item.amount.senderTotalPay || item.amount.totalFare || "N/A";
+          } else if (item.title === "Ride Request accept") {
+            displayAmount = item.amount.totalFare || item.amount || "N/A";
+          } else {
+            displayAmount = item.amount.totalFare || item.amount || "N/A";
+          }
+        } else {
+          displayAmount = item.amount;
+        }
+      }
+
       const receiptDetails = {
         pickup: escapeText(item.pickup),
         dropoff: escapeText(item.dropoff),
         travelmode: escapeText(item.travelmode),
         pickuptime: escapeText(item.pickuptime),
         dropofftime: escapeText(item.dropofftime),
-        amount: escapeText(item.amount),
+        amount: escapeText(displayAmount),
       };
 
       console.log("Generating PDF with details:", receiptDetails);
@@ -488,7 +517,7 @@ const NotificationsScreen = ({ navigation, route }) => {
             <p><strong>Travel Mode:</strong> ${receiptDetails.travelmode}</p>
             <p><strong>Estimated Start Time:</strong> ${receiptDetails.pickuptime}</p>
             <p><strong>Estimated End Time:</strong> ${receiptDetails.dropofftime}</p>
-            <p><strong>Amount:</strong> ${receiptDetails.amount}</p>
+            <p><strong>Amount:</strong> ₹${receiptDetails.amount}</p>
           </body>
         </html>
       `;
@@ -641,13 +670,13 @@ const NotificationsScreen = ({ navigation, route }) => {
                     </Text>
                   </View>
                   <Text style={styles.notificationTime}>
-                    {formatTime(item.createdAt)}
+                    {formatTimeLocal(item.createdAt)}
                   </Text>
                   {/* <Text style={styles.notificationTime}>
                     {item.time ||
                       (item.createdAt &&
-                        new Date(item.createdAt).toLocaleTimeString()) ||
-                      new Date().toLocaleTimeString()}
+                        formatTimeLocal(item.createdAt)) ||
+                      formatCurrentTime('hh:mm A')}
                   </Text> */}
 
                   {(item.title === "Consignment Accepted" ||
@@ -738,60 +767,60 @@ const NotificationsScreen = ({ navigation, route }) => {
                       <View style={styles.buttonContainer}>
                         <TouchableOpacity
                           style={styles.successButton}
-                          onPress={() => {
-                            const receiptDetails = {
-                              pickup: item.pickup || "N/A",
-                              dropoff: item.dropoff || "N/A",
-                              travelmode: item.travelmode || "N/A",
-                              pickuptime: item.pickuptime || "N/A",
-                              dropofftime: item.dropofftime || "N/A",
-                              amount: item.amount || "N/A",
-                            };
-
-                            // Extract specific amounts for consignment vs travel
-                            let consignmentOwnerAmount = "N/A";
-                            let travelerAmount = "N/A";
+                        //   onPress={() => {
+                        //     const receiptDetails = {
+                        //       pickup: item.pickup || "N/A",
+                        //       dropoff: item.dropoff || "N/A",
+                        //       travelmode: item.travelmode || "N/A",
+                        //       pickuptime: item.pickuptime || "N/A",
+                        //       dropofftime: item.dropofftime || "N/A",
+                        //       amount: item.amount || "N/A",
+                        //     };
+                        //     console.log(receiptDetails)
+                        //     // Extract specific amounts for consignment vs travel
+                        //     let consignmentOwnerAmount = "N/A";
+                        //     let travelerAmount = "N/A";
                             
-                            if (item.title === "Consignment Accepted" && item.amount) {
-                              if (typeof item.amount === 'object') {
-                                consignmentOwnerAmount = item.amount.senderTotalPay || "N/A";
-                                travelerAmount = item.amount.totalFare || "N/A";
-                              } else {
-                                // If amount is a simple value, use it for both
-                                consignmentOwnerAmount = item.amount;
-                                travelerAmount = item.amount;
-                              }
-                            } else if (item.title === "Ride Request accept" && item.amount) {
-                              if (typeof item.amount === 'object') {
-                                travelerAmount = item.amount.totalFare || item.amount || "N/A";
-                              } else {
-                                travelerAmount = item.amount;
-                              }
-                            }
+                        //     if (item.title === "Consignment Accepted" && item.amount) {
+                        //       if (typeof item.amount === 'object') {
+                        //         consignmentOwnerAmount = item.amount.senderTotalPay || "N/A";
+                        //         travelerAmount = item.amount.totalFare || "N/A";
+                        //       } else {
+                        //         // If amount is a simple value, use it for both
+                        //         consignmentOwnerAmount = item.amount;
+                        //         travelerAmount = item.amount;
+                        //       }
+                        //     } else if (item.title === "Ride Request accept" && item.amount) {
+                        //       if (typeof item.amount === 'object') {
+                        //         travelerAmount = item.amount.totalFare || item.amount || "N/A";
+                        //       } else {
+                        //         travelerAmount = item.amount;
+                        //       }
+                        //     }
 
-                            Alert.alert(
-                              "Payment Receipt",
-                              `Going Location: ${receiptDetails.pickup}\n` +
-                              `Leaving Location: ${receiptDetails.dropoff}\n` +
-                              `Travel Mode: ${receiptDetails.travelmode}\n` +
-                              `Estimated Start Time: ${receiptDetails.pickuptime}\n` +
-                              `Estimated End Time: ${receiptDetails.dropofftime}\n` +
-                              `${item.title === "Consignment Accepted" ? 
-                                `Total Amount: ₹${consignmentOwnerAmount}\n` :
-                                `Total Amount: ₹${travelerAmount}`
-                              }`,
-                              [
-                                { text: "OK", style: "cancel" },
-                                {
-                                  text: "Download PDF",
-                                  onPress: async () => {
+                        //     Alert.alert(
+                        //       "Payment Receipt",
+                        //       `Going Location: ${receiptDetails.pickup}\n` +
+                        //       `Leaving Location: ${receiptDetails.dropoff}\n` +
+                        //       `Travel Mode: ${receiptDetails.travelmode}\n` +
+                        //       `Estimated Start Time: ${receiptDetails.pickuptime}\n` +
+                        //       `Estimated End Time: ${receiptDetails.dropofftime}\n` +
+                        //       `${item.title === "Consignment Accepted" ? 
+                        //         `Total Amount: ₹${consignmentOwnerAmount}\n` :
+                        //         `Total Amount: ₹${travelerAmount}`
+                        //       }`,
+                        //       [
+                        //         { text: "OK", style: "cancel" },
+                        //         {
+                        //           text: "Download PDF",
+                        //           onPress: async () => {
 
-                                    await generateAndSavePDF(item);
-                                  },
-                                },
-                              ]
-                            );
-                          }}
+                        //             await generateAndSavePDF(item);
+                        //           },
+                        //         },
+                        //       ]
+                        //     );
+                        //   }}
                         >
                           <Text style={styles.buttonText}>payment has done Successfully</Text>
                         </TouchableOpacity>

@@ -360,7 +360,9 @@ const TravelDetails = ({ route }) => {
       fullFrom,
       fullTo,
       stayDays,
-      stayHours
+      stayHours, 
+      userTimezone, 
+      timezoneOffset
     });
     console.log("hey i am here")
     console.log("requestData :", requestData)

@@ -27,6 +27,7 @@ import {
   responsiveFontSize,
   responsiveDimensions,
 } from "../Utils/responsive";
+import { formatDate, formatTime } from "../Utils/dateTimeUtils";
 
 const ConsignmentCarryDetails = ({ route }) => {
   const navigation = useNavigation();
@@ -127,17 +128,19 @@ const ConsignmentCarryDetails = ({ route }) => {
     consignmentDetails.images?.length,
   ]);
 
-  const formatDate = (dateString) => {
+  // Using centralized date/time utilities
+  const formatDateLocal = (dateString) => {
     if (!dateString) return "N/A";
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return "N/A";
-    const options = { day: "numeric", month: "long", year: "numeric" };
-    return date.toLocaleDateString("en-GB", options);
+    return formatDate(dateString, 'DD MMMM YYYY');
   };
 
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return null;
 
+    console.log("formatTimestamp input:", JSON.stringify(timestamp, null, 2));
+
+    // If timestamp is already an object with date, time, and day properties,
+    // we need to check if it's already in local time or needs conversion
     if (
       typeof timestamp === "object" &&
       timestamp.date &&
@@ -151,6 +154,83 @@ const ConsignmentCarryDetails = ({ route }) => {
       ) {
         return null;
       }
+      
+      // If the timestamp object has a raw timestamp property, use that for conversion
+      if (timestamp.rawTimestamp) {
+        console.log("Using rawTimestamp for conversion:", timestamp.rawTimestamp);
+        return {
+          date: formatDate(timestamp.rawTimestamp, 'DD/MM/YYYY'),
+          time: formatTime(timestamp.rawTimestamp, 'hh:mm A'),
+          day: formatDate(timestamp.rawTimestamp, 'dddd'),
+        };
+      }
+      
+      // If the timestamp object has an ISO string or UTC timestamp, use that
+      if (timestamp.isoString || timestamp.utcTimestamp) {
+        const rawTimestamp = timestamp.isoString || timestamp.utcTimestamp;
+        console.log("Using ISO/UTC timestamp for conversion:", rawTimestamp);
+        return {
+          date: formatDate(rawTimestamp, 'DD/MM/YYYY'),
+          time: formatTime(rawTimestamp, 'hh:mm A'),
+          day: formatDate(rawTimestamp, 'dddd'),
+        };
+      }
+      
+      // Convert the formatted timestamp from UTC to local time
+      // Since you mentioned the time is made using UTC, we'll always convert
+      try {
+        const dateStr = timestamp.date; // e.g., "8/19/2025"
+        const timeStr = timestamp.time; // e.g., "11:38:59 PM"
+        
+        console.log("Attempting to convert UTC timestamp to local time");
+        console.log("Date string:", dateStr);
+        console.log("Time string:", timeStr);
+        
+        // Parse the date components
+        const [month, day, year] = dateStr.split('/').map(Number);
+        console.log("Parsed date components:", { month, day, year });
+        
+        // Parse the time components
+        const timeMatch = timeStr.match(/(\d+):(\d+):(\d+)\s*(AM|PM)/i);
+        if (timeMatch) {
+          let [_, hours, minutes, seconds, period] = timeMatch;
+          hours = parseInt(hours);
+          minutes = parseInt(minutes);
+          seconds = parseInt(seconds);
+          
+          // Convert to 24-hour format
+          if (period.toUpperCase() === 'PM' && hours !== 12) {
+            hours += 12;
+          } else if (period.toUpperCase() === 'AM' && hours === 12) {
+            hours = 0;
+          }
+          
+          console.log("Parsed time components:", { hours, minutes, seconds });
+          
+          // Create a Date object in UTC
+          const utcDate = new Date(Date.UTC(year, month - 1, day, hours, minutes, seconds));
+          console.log("Created UTC Date object:", utcDate.toISOString());
+          
+          if (!isNaN(utcDate.getTime())) {
+            console.log("Converting formatted UTC timestamp to local time");
+            console.log("Original UTC time:", `${dateStr} ${timeStr}`);
+            console.log("Converted to local time:", utcDate.toLocaleString());
+            
+            return {
+              date: formatDate(utcDate, 'DD/MM/YYYY'),
+              time: formatTime(utcDate, 'hh:mm A'),
+              day: formatDate(utcDate, 'dddd'),
+            };
+          }
+        } else {
+          console.warn("Could not parse time format:", timeStr);
+        }
+      } catch (error) {
+        console.warn("Error converting formatted timestamp:", error);
+      }
+      
+      // If conversion fails, return as-is
+      console.log("Conversion failed, returning formatted timestamp as-is");
       return {
         date: timestamp.date,
         time: timestamp.time,
@@ -158,19 +238,42 @@ const ConsignmentCarryDetails = ({ route }) => {
       };
     }
 
-    const date = new Date(timestamp);
-    if (isNaN(date.getTime())) return null;
+    // If it's a string, check if it's a UTC timestamp
+    if (typeof timestamp === "string") {
+      console.log("Processing string timestamp:", timestamp);
+      
+      // Check if it's an ISO string or UTC timestamp
+      if (timestamp.includes('T') || timestamp.includes('Z') || timestamp.includes('GMT')) {
+        console.log("Detected UTC timestamp, converting to local time");
+        return {
+          date: formatDate(timestamp, 'DD/MM/YYYY'),
+          time: formatTime(timestamp, 'hh:mm A'),
+          day: formatDate(timestamp, 'dddd'),
+        };
+      } else {
+        // Assume it's already in local time format
+        console.log("Assuming timestamp is already in local time");
+        try {
+          const dateObj = new Date(timestamp);
+          if (!isNaN(dateObj.getTime())) {
+            return {
+              date: formatDate(dateObj, 'DD/MM/YYYY'),
+              time: formatTime(dateObj, 'hh:mm A'),
+              day: formatDate(dateObj, 'dddd'),
+            };
+          }
+        } catch (error) {
+          console.warn("Error parsing string timestamp:", error);
+        }
+      }
+    }
+
+    // Using centralized date/time utilities to convert UTC to local time
+    console.log("Using default UTC to local conversion");
     return {
-      date: date.toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      }),
-      time: date.toLocaleTimeString("en-GB", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      day: date.toLocaleDateString("en-GB", { weekday: "long" }),
+      date: formatDate(timestamp, 'DD/MM/YYYY'),
+      time: formatTime(timestamp, 'hh:mm A'),
+      day: formatDate(timestamp, 'dddd'),
     };
   };
 
@@ -436,7 +539,7 @@ const ConsignmentCarryDetails = ({ route }) => {
                 ? "Consignment Collected"
                 : "Consignment Delivered";
           }
-
+          console.log(item)
           return (
             <View key={index} style={styles.statusTimelineItem}>
               <View style={styles.statusIconContainer}>
@@ -770,7 +873,7 @@ const ConsignmentCarryDetails = ({ route }) => {
           </Text>
           <Text style={styles.extraValue}>
             {consignmentDetails.dateOfSending
-              ? `${formatDate(consignmentDetails.dateOfSending)}`
+                              ? `${formatDateLocal(consignmentDetails.dateOfSending)}`
               : "N/A"}
           </Text>
         </View>

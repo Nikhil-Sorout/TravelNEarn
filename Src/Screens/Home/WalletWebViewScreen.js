@@ -91,13 +91,12 @@ const WebViewScreen = ({ route, navigation }) => {
           "paidNotifications",
           JSON.stringify(paidNotifications)
         );
-        Alert.alert("Success", "Payment verified successfully!");
-        navigation.navigate("Notification", {
-          refresh: true,
-          travelId,
-          paymentSuccess: true,
-          amount, // Pass amount for success notification
-        });
+                Alert.alert("Success", "Payment verified successfully!");
+        // Navigate back to main screen and clear navigation stack
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Navigation' }],
+        });
       } else {
         throw new Error(result.message || "Payment verification failed.");
       }

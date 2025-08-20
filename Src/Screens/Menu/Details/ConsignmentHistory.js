@@ -218,7 +218,7 @@ const ConsignmentHistory = () => {
         item.traveldetails[0].username !== "N/A" ? (
           <>
             <Text style={styles.travelerSectionTitle}>
-              Traveller Details
+              Traveler Details
             </Text>
                          <View style={styles.driverSection}>
                <Image
@@ -573,6 +573,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: fontScale(14),
     marginBottom: verticalScale(5),
+    color : "#000"
   },
   price: {
     fontSize: fontScale(18),

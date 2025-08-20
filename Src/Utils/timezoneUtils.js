@@ -90,6 +90,40 @@ export const formatDateForDisplay = (dateInput, format = 'DD MMMM YYYY') => {
 };
 
 /**
+ * Format a UTC date for display while preserving the original date
+ * This prevents timezone conversion from shifting the date
+ * @param {string|Date} dateInput - UTC date string or Date object
+ * @param {string} format - Moment.js format string (default: 'DD MMMM YYYY')
+ * @returns {string} Formatted date string
+ */
+export const formatUTCDateForDisplay = (dateInput, format = 'DD MMMM YYYY') => {
+  if (!dateInput) return '';
+  
+  let momentDate;
+  
+  if (typeof dateInput === 'string') {
+    if (dateInput.includes('T')) {
+      // Parse as UTC timestamp and convert to local timezone
+      momentDate = moment.utc(dateInput).local();
+    } else if (dateInput.includes('-')) {
+      // YYYY-MM-DD format - treat as local date
+      const [year, month, day] = dateInput.split('-').map(Number);
+      momentDate = moment([year, month - 1, day]);
+    } else {
+      // Other string format
+      momentDate = moment(dateInput);
+    }
+  } else if (dateInput instanceof Date) {
+    // Convert Date object to moment and handle as UTC
+    momentDate = moment.utc(dateInput).local();
+  } else {
+    return '';
+  }
+  
+  return momentDate.format(format);
+};
+
+/**
  * Create a timezone-aware date object for API requests
  * @param {Date} localDate - Local date object
  * @param {string} time - Time string (e.g., "2:30 PM")

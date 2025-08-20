@@ -14,6 +14,11 @@ import {
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import moment from "moment";
+import { 
+  formatDate, 
+  formatUTCTimeToLocal, 
+  formatUTCDateToLocal 
+} from "../../Utils/dateTimeUtils";
 
 const { width } = Dimensions.get("window");
 
@@ -73,8 +78,8 @@ const TravelRequestModel = ({
             route.params || {};
           const phoneNumber = await AsyncStorage.getItem("phoneNumber");
           if (!phoneNumber) throw new Error("Phone number not found");
-
-          const endpoint = `https://travel.timestringssystem.com/api/riderequest/${phoneNumber}`;
+          const baseurl = await AsyncStorage.getItem("apiBaseUrl")
+          const endpoint = `${baseurl}api/riderequest/${phoneNumber}`;
           const response = await fetch(endpoint, {
             headers: { "Content-Type": "application/json" },
             timeout: 10000,
@@ -378,7 +383,7 @@ const TravelRequestModel = ({
                 <Text style={styles.locationText}>{pickup}</Text>
                 <Text style={styles.timeText}>
                   Pick-up: {rideDetails.expectedStartTime ? 
-                    moment.utc(rideDetails.expectedStartTime).format("HH:mm") : "N/A"}
+                    formatUTCTimeToLocal(rideDetails.expectedStartTime, "HH:mm") : "N/A"}
                 </Text>
               </View>
             </View>
@@ -394,10 +399,10 @@ const TravelRequestModel = ({
               />
               <View style={styles.locationDetails}>
                 <Text style={styles.locationText}>{drop}</Text>
-                <Text style={styles.timeText}>
+                {/* <Text style={styles.timeText}>
                   Drop-off: {rideDetails.expectedEndTime ? 
-                    moment.utc(rideDetails.expectedEndTime).format("HH:mm") : "N/A"}
-                </Text>
+                    formatUTCTimeToLocal(rideDetails.expectedEndTime, "HH:mm") : "N/A"}
+                </Text> */}
               </View>
             </View>
           </View>
@@ -423,7 +428,7 @@ const TravelRequestModel = ({
               <View style={styles.travelDetailsRow}>
                 <Text style={styles.travelDetailsLabel}>Start Time:</Text>
                 <Text style={styles.travelDetailsValue}>
-                  {moment.utc(rideDetails.expectedStartTime).format("HH:mm")}
+                  {formatUTCTimeToLocal(rideDetails.expectedStartTime, "HH:mm")}
                 </Text>
               </View>
             )}
@@ -431,15 +436,15 @@ const TravelRequestModel = ({
               <View style={styles.travelDetailsRow}>
                 <Text style={styles.travelDetailsLabel}>End Time:</Text>
                 <Text style={styles.travelDetailsValue}>
-                  {moment.utc(rideDetails.expectedEndTime).format("HH:mm")}
+                  {formatUTCTimeToLocal(rideDetails.expectedEndTime, "HH:mm")}
                 </Text>
               </View>
             )}
             {rideDetails.createdAt && (
               <View style={styles.travelDetailsRow}>
-                <Text style={styles.travelDetailsLabel}>Created:</Text>
+                <Text style={styles.travelDetailsLabel}>Travel Date:</Text>
                 <Text style={styles.travelDetailsValue}>
-                  {moment.utc(rideDetails.createdAt).format("DD MMM YYYY HH:mm")}
+                  {formatUTCDateToLocal(rideDetails.expectedStartTime, "DD MMM YYYY")}
                 </Text>
               </View>
             )}

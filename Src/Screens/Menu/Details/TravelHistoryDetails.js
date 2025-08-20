@@ -20,6 +20,7 @@ import EarningDetails from "../../../Customer Traveller/EarningDetails";
 import Header from "../../../header";
 import commonStyles from "../../../styles";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { formatDate, formatTime } from "../../../Utils/dateTimeUtils";
 
 // Responsive scaling functions
 const { width, height } = Dimensions.get("window");
@@ -249,10 +250,13 @@ const TravelDetails = ({ route }) => {
     fetchTravelData();
   }, []);
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const options = { day: "numeric", month: "long", year: "numeric" };
-    return date.toLocaleDateString("en-GB", options);
+  // Using centralized date/time utilities
+  const formatDateLocal = (dateString) => {
+    return formatDate(dateString, 'DD MMMM YYYY');
+  };
+
+  const formatTimeLocal = (dateString) => {
+    return formatTime(dateString, 'hh:mm A');
   };
 
   const navigation = useNavigation();
@@ -438,15 +442,11 @@ const TravelDetails = ({ route }) => {
                   style={[styles.locationIcon, { marginLeft: scale(2) }]}
                 />
                 <Text style={styles.infoText}>
-                  {formatDate(ride.travelDate)}
+                  {formatDateLocal(ride.travelDate)}
                 </Text>
               </View>
               <Text style={styles.infoText}>
-                {new Date(ride.expectedStartTime).toLocaleTimeString("en-US", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  hour12: true,
-                })}
+                {formatTimeLocal(ride.expectedStartTime)}
               </Text>
             </View>
           </View>

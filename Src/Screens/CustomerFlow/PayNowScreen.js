@@ -16,6 +16,7 @@ import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
 import Icon from "react-native-vector-icons/FontAwesome";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import moment from "moment";
+import { formatTime, formatDate } from "../../Utils/dateTimeUtils";
 const PayNowScreen = ({ navigation, route }) => {
   const {
     consignmentId,
@@ -46,7 +47,7 @@ const PayNowScreen = ({ navigation, route }) => {
   const [lastName, setLastName] = useState("");
   const [pickupTime, setPickupTime] = useState("");
   const [dropoffTime, setDropoffTime] = useState("");
-  const [profilePic, setProfilePic] = useState(null);
+  // Removed profilePic state since we're using route params directly
   const [savedAmount, setSavedAmount] = useState(0);
   const [platformFee, setPlatformFee] = useState(20); // Default platform fee
   const [loading, setLoading] = useState(false);
@@ -69,6 +70,7 @@ const PayNowScreen = ({ navigation, route }) => {
     notificationType,
     profilepicture,
   });
+  console.log("Current travelModeNumber state:", travelModeNumber);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -82,12 +84,14 @@ const PayNowScreen = ({ navigation, route }) => {
         let dropoffT = dropofftime || notification?.rideDetails?.dropoffTime;
         let saved = notification?.rideDetails?.savedAmount || 0;
         let fee = notification?.rideDetails?.platformFee || 20;
+        let travelModeNum = notification?.rideDetails?.travelmode_number || "";
 
         // Debug notification object
         console.log(
           "NOTIFICATION OBJECT:",
           JSON.stringify(notification, null, 2)
         );
+        console.log("Travel mode number from notification:", notification?.rideDetails?.travelmode_number);
 
         // Fallback to AsyncStorage if locations are missing
         if (!startingLocation || !goingLocation) {
@@ -122,24 +126,21 @@ const PayNowScreen = ({ navigation, route }) => {
           });
         }
 
+        // Use fallback image if no profile picture from notification
         if (!profile) {
-          profile = await AsyncStorage.getItem("profilepic");
-          // Check alternate key names in case the key is inconsistent
-          if (!profile) {
-            profile = await AsyncStorage.getItem("profilePicture");
-            console.log("Tried alternate profilePicture key:", profile);
-          }
-          console.log("PROFILE PIC FROM ASYNCSTORAGE:", profile);
+          profile = null; // Don't use stored values, use fallback image
+          console.log("No profile picture from notification, using fallback image");
         }
 
         // Log final values before setting state
         console.log("FINAL VALUES:", {
           firstName: fname,
           lastName: lname,
-          profilePic: profile ? "exists" : "missing",
+          profilePicture: profilepicture ? "exists" : "missing",
           startLocation: startingLocation,
           endLocation: goingLocation,
           travelMode: mode,
+          travelModeNumber: travelModeNum,
           pickupTime: pickupT,
           dropoffTime: dropoffT,
         });
@@ -167,9 +168,10 @@ const PayNowScreen = ({ navigation, route }) => {
           setLastName(lname || ""); // Add fallback to empty string
           setPickupTime(pickupT);
           setDropoffTime(dropoffT);
-          setProfilePic(profile);
+          // Removed setProfilePic since we're using route params directly
           setSavedAmount(saved || Math.floor(amount * 0.5));
           setPlatformFee(fee);
+          setTravelModeNumber(travelModeNum);
 
           await Promise.all([
             fetchCoordinates(startingLocation, goingLocation),
@@ -333,8 +335,9 @@ const PayNowScreen = ({ navigation, route }) => {
     setFetchingTravelDetails(true);
     try {
       console.log("Fetching travel details for travelId:", travelId);
+      const baseurl = await AsyncStorage.getItem("apiBaseUrl")
       const response = await fetch(
-        `https://travel.timestringssystem.com/t/travel/${travelId}`
+        `${baseurl}t/travel/${travelId}`
       );
 
       if (response.ok) {
@@ -499,6 +502,12 @@ const PayNowScreen = ({ navigation, route }) => {
     switch (travelMode.toLowerCase()) {
       case "roadways":
         return <Icon name="car" size={24} color="#D83F3F" />;
+      case "car":
+        return <Icon name="car" size={24} color="#D83F3F" />;
+      case "bus":
+        return <Icon name="car" size={24} color="#D83F3F" />;
+      case "other":
+        return <Icon name="car" size={24} color="#D83F3F" />;
       case "airplane":
         return <Ionicons name="airplane" size={24} color="#D83F3F" />;
       case "train":
@@ -571,7 +580,10 @@ const PayNowScreen = ({ navigation, route }) => {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Traveler Details</Text>
           <View style={styles.traveler}>
-            <Image source={{ uri: profilepicture }} style={styles.profileImage} />
+            <Image 
+              source={profilepicture ? { uri: profilepicture } : require("../../Images/kyc.png")} 
+              style={styles.profileImage} 
+            />
             <View style={styles.travelerDetails}>
               <Text style={styles.travelerName}>
                 {travellername ? `${travellername}` : ""}
@@ -581,7 +593,9 @@ const PayNowScreen = ({ navigation, route }) => {
           <View style={styles.infoRow}>
             {getTravelIcon()}
             <Text style={styles.infoText}>
-              {travelMode === "roadways" ? "Roadways" : travelMode.charAt(0).toUpperCase() + travelMode.slice(1) + ({travelModeNumber})} 
+              {travelMode === "roadways" 
+                ? `Roadways ${travelModeNumber || ''}` 
+                : `${travelMode.charAt(0).toUpperCase() + travelMode.slice(1)} ${travelModeNumber || ''}`}
             </Text>
           </View>
         </View>
@@ -596,7 +610,7 @@ const PayNowScreen = ({ navigation, route }) => {
             />
             <View style={styles.locationDetails}>
               <Text style={styles.locationText}>{startLocation || "N/A"}</Text>
-              <Text style={styles.timeText}>Pick-up: {moment.utc(pickupTime).format("HH:mm") || "N/A"}</Text>
+              <Text style={styles.timeText}>Pick-up: {pickupTime ? formatTime(pickupTime, 'HH:mm') : "N/A"}</Text>
             </View>
           </View>
 
@@ -612,7 +626,7 @@ const PayNowScreen = ({ navigation, route }) => {
             <View style={styles.locationDetails}>
               <Text style={styles.locationText}>{endLocation || "N/A"}</Text>
               <Text style={styles.timeText}>
-                Drop-off: {moment.utc(dropoffTime).format("HH:mm") || "N/A"}
+                Drop-off: {dropoffTime ? formatTime(dropoffTime, 'HH:mm') : "N/A"}
               </Text>
             </View>
           </View>
@@ -636,7 +650,7 @@ const PayNowScreen = ({ navigation, route }) => {
               <View style={styles.travelDetailsRow}>
                 <Text style={styles.travelDetailsLabel}>Start Time:</Text>
                 <Text style={styles.travelDetailsValue}>
-                  {moment.utc(travelDetails.expectedStartTime).format("HH:mm")}
+                  {formatTime(travelDetails.expectedStartTime, 'HH:mm')}
                 </Text>
               </View>
             )}
@@ -644,7 +658,7 @@ const PayNowScreen = ({ navigation, route }) => {
               <View style={styles.travelDetailsRow}>
                 <Text style={styles.travelDetailsLabel}>End Time:</Text>
                 <Text style={styles.travelDetailsValue}>
-                  {moment.utc(travelDetails.expectedEndTime).format("HH:mm")}
+                  {formatTime(travelDetails.expectedEndTime, 'HH:mm')}
                 </Text>
               </View>
             )}
@@ -652,7 +666,7 @@ const PayNowScreen = ({ navigation, route }) => {
               <View style={styles.travelDetailsRow}>
                 <Text style={styles.travelDetailsLabel}>Travel Date:</Text>
                 <Text style={styles.travelDetailsValue}>
-                  {moment.utc(travelDetails.travelDate).format("DD MMM YYYY")}
+                  {formatDate(travelDetails.travelDate, 'DD MMM YYYY')}
                 </Text>
               </View>
             )}

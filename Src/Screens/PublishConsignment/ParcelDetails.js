@@ -4,7 +4,6 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  BackHandler,
   Image,
   ScrollView,
   StyleSheet,
@@ -38,8 +37,10 @@ import {
   formatDateForAPI,
   createConsignmentPublishData,
   getUserTimezone,
-  getUserTimezoneOffset 
+  getUserTimezoneOffset , 
+  formatDateForDisplay
 } from '../../Utils/dateUtils';
+import { formatDate } from '../../Utils/dateTimeUtils';
 
 const TravelDetails = ({ route }) => {
   const navigation = useNavigation();
@@ -315,7 +316,7 @@ const TravelDetails = ({ route }) => {
       }
 
       console.log("FormData being sent:", formData);
-
+      
       const response = await fetch(`${baseurl}api/consignment`, {
         method: "POST",
         headers: {
@@ -360,7 +361,7 @@ const TravelDetails = ({ route }) => {
         const storedData = await AsyncStorage.getItem("parcelDetails");
         const name = await AsyncStorage.getItem("firstName");
         const number = await AsyncStorage.getItem("phoneNumber");
-
+        console.log("Searching date: ", searchingDate)
         // setStartLocation(startingLocation);
         // setEndLocation(goingLocation);
         setTravelMode(travelMode);
@@ -406,16 +407,8 @@ const TravelDetails = ({ route }) => {
 
   // Handle back button for image modal
   useEffect(() => {
-    const handleBackButton = () => {
-      if (showImageModal) {
-        closeImageModal();
-        return true;
-      }
-      return false;
-    };
-
-    // const backHandler = BackHandler.addEventListener('hardwareBackPress', handleBackButton);
-    // return () => backHandler.remove();
+    // BackHandler implementation removed to fix compatibility issues
+    // Use navigation.goBack() instead for back button functionality
   }, [showImageModal]);
 
   return (
@@ -694,7 +687,7 @@ const TravelDetails = ({ route }) => {
                   },
                 ]}
               >
-                {parcelDetails?.date || "Loading..."}
+                {searchingDate ? formatDate(searchingDate, 'DD MMMM YYYY') : "Loading..."}
               </Text>
             </View>
 
@@ -851,7 +844,7 @@ const styles = StyleSheet.create({
     height: verticalScale(50),
     backgroundColor: '#D32F2F',
     left: scale(25),
-    top: verticalScale(55),
+    top: verticalScale(45),
     zIndex: 1,
   },
   locationRow: {

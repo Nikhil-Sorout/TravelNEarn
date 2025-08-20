@@ -28,6 +28,7 @@ import {
   screenWidth,
   screenHeight
 } from "../../../Utils/responsive";
+import { formatDate, formatTime } from "../../../Utils/dateTimeUtils";
 
 const { width, height } = Dimensions.get("window");
 
@@ -42,10 +43,13 @@ const TravelHistory = () => {
     fetchTravelHistory();
   }, []);
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const options = { day: "numeric", month: "long", year: "numeric" };
-    return date.toLocaleDateString("en-GB", options);
+  // Using centralized date/time utilities
+  const formatDateLocal = (dateString) => {
+    return formatDate(dateString, 'DD MMMM YYYY');
+  };
+
+  const formatTimeLocal = (dateString) => {
+    return formatTime(dateString, 'hh:mm A');
   };
 
   const extractCity = (fullLocation) => {
@@ -88,8 +92,10 @@ const TravelHistory = () => {
           status: travel.status || "UPCOMING",
           travelId: travel.travelId,
           expectedStartTime: travel.expectedStartTime,
+          expectedEndTime: travel.expectedendtime,
           consignmentDetails: travel.consignmentDetails || [],
         }));
+        console.log("Foramtted data: ", formattedData[0])
         setTravelData(formattedData);
       } else {
         setTravelData([]);
@@ -198,12 +204,8 @@ const TravelHistory = () => {
             style={[styles.locationIcon, { marginLeft: scale(5) }]}
           />
           <Text style={styles.infoText}>
-            {formatDate(item.travelDate)}{" "}
-            {new Date(item.travelDate).toLocaleTimeString("en-US", {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: true
-            })}
+            {formatDateLocal(item.travelDate)}{" "}
+            {formatTimeLocal(item.travelDate)}
           </Text>
         </View>
 

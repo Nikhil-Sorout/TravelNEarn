@@ -52,6 +52,7 @@ const ParcelDetails = ({ navigation, route }) => {
   const [isInch, setIsInch] = useState(false);
   const [selectedImages, setSelectedImages] = useState([]);
   const { fullTo, fullFrom, from, to, selectedDate, startCity, destCity } = route.params
+  console.log("Selected date:", selectedDate)
   const validateForm = () => {
     console.log(description, weight, dimensions)
     if (
@@ -151,7 +152,7 @@ const ParcelDetails = ({ navigation, route }) => {
         unit: isInch ? "INCH" : "CM",
         handleWithCare,
         specialRequest,
-        date: date.toDateString(),
+        date: selectedDate,
         duration,
         images: selectedImages,
       };

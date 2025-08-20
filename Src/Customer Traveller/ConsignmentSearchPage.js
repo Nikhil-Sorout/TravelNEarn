@@ -67,19 +67,44 @@ const SearchRide = ({ navigation, route }) => {
           `${baseUrl}api/getdetails?leavingLocation=${from}&goingLocation=${to}&date=${dateParam}&phoneNumber=${phoneNumber}&userTimezone=${getUserTimezone()}&timezoneOffset=${getUserTimezoneOffset()}`,
           { headers: { "Content-Type": "application/json" } }
         );
-        console.log("Response:", response.data.consignments[0]?.earning);
+        // console.log("Response:", response.data.consignments[0]?.earning);
+        console.log("Response:", response.data.consignments);
         
 
-        const consignments = Array.isArray(response?.data?.consignments)
-          ? response?.data?.consignments  
-          : [];
+        // Handle both array and single object responses
+        let rawConsignments = response?.data?.consignments;
+        if (!Array.isArray(rawConsignments)) {
+          // If it's a single object, wrap it in an array
+          rawConsignments = rawConsignments ? [rawConsignments] : [];
+        }
+        
+        const consignments = rawConsignments.map(item => {
+          // Extract the actual consignment data from the nested structure
+          const consignmentData = item._doc || item;
+          console.log("Processing item:", item);
+          console.log("Extracted consignmentData:", consignmentData);
+          
+          return {
+            ...consignmentData,
+            // Include additional properties from the outer object
+            calculatedPrice: item.calculatedPrice,
+            matchType: item.matchType,
+            priceCalculationMode: item.priceCalculationMode,
+            userTravelId: item.userTravelId,
+            userTravelMode: item.userTravelMode
+          };
+        });
+        
+        console.log("Final processed consignments:", consignments);
         setData(consignments);
         console.log("consignments", consignments)
         setError(
-          consignments.length > 0
+          consignments?.length > 0
             ? null
-            : "No rides found for the selected date"
+            : "No consignments found for the selected date"
         );
+        console.log("Data length:", consignments.length);
+        console.log("Error state:", consignments?.length > 0 ? null : "No consignments found for the selected date");
       } catch (err) {
         setData([]);
         setError("No rides found for the selected date");
@@ -95,6 +120,14 @@ const SearchRide = ({ navigation, route }) => {
       fetchData(selectedDate);
     }
   }, [selectedDate, phoneNumber, fetchData]);
+
+  // Debug useEffect to monitor data changes
+  useEffect(() => {
+    console.log("Data state changed:", data);
+    console.log("Data length:", data.length);
+    console.log("Loading state:", loading);
+    console.log("Error state:", error);
+  }, [data, loading, error]);
 
   useEffect(() => {
     if (!date) return;
@@ -115,101 +148,105 @@ const SearchRide = ({ navigation, route }) => {
     fetchData(formatDateForAPI(selectedDate));
   };
 
-  const renderItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => navigation.navigate("ConsignmentDetails", { item })}
-    >
-      <View style={styles.locationRow}>
-        <Image
-          source={require("../Images/locon.png")}
-          style={styles.locationIcon}
-        />
-        <Text style={styles.locationText}>{item.startinglocation}</Text>
-      </View>
-      <View style={styles.locationRow}>
-        <View style={styles.verticalseparator} />
-      </View>
-      <View style={styles.separator} />
-      <View style={styles.locationRow}>
-        <Image
-          source={require("../Images/locend.png")}
-          style={styles.locationIcon}
-        />
-        <Text style={styles.locationText}>{item.goinglocation}</Text>
-      </View>
-      <View style={styles.separator1} />
-      <View style={styles.otherInfo}>
-        <View style={styles.infoBlock}>
-          <View style={[styles.infoRow, { marginTop: 0 }]}>
-            <Image
-              source={require("../Images/weight.png")}
-              style={[
-                styles.locationIcon,
-                { marginLeft: 0, width: 24, height: 24, marginTop: -3 },
-              ]}
-            />
+  const renderItem = ({ item }) => {
+    console.log("Rendering item:", item);
+    
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() => navigation.navigate("ConsignmentDetails", { item })}
+      >
+        <View style={styles.locationRow}>
+          <Image
+            source={require("../Images/locon.png")}
+            style={styles.locationIcon}
+          />
+          <Text style={styles.locationText}>{item.startinglocation || "N/A"}</Text>
+        </View>
+        <View style={styles.locationRow}>
+          <View style={styles.verticalseparator} />
+        </View>
+        <View style={styles.separator} />
+        <View style={styles.locationRow}>
+          <Image
+            source={require("../Images/locend.png")}
+            style={styles.locationIcon}
+          />
+          <Text style={styles.locationText}>{item.goinglocation || "N/A"}</Text>
+        </View>
+        <View style={styles.separator1} />
+        <View style={styles.otherInfo}>
+          <View style={styles.infoBlock}>
+            <View style={[styles.infoRow, { marginTop: 0 }]}>
+              <Image
+                source={require("../Images/weight.png")}
+                style={[
+                  styles.locationIcon,
+                  { marginLeft: 0, width: 24, height: 24, marginTop: -3 },
+                ]}
+              />
+              <Text
+                style={[
+                  styles.infoTitle,
+                  { marginRight: 20, marginLeft: 5, marginTop: 0 },
+                ]}
+              >
+                Weight
+              </Text>
+            </View>
             <Text
               style={[
-                styles.infoTitle,
-                { marginRight: 20, marginLeft: 5, marginTop: 0 },
+                styles.infoSubtitle,
+                {
+                  marginRight: 20,
+                  marginLeft: -50,
+                  marginTop: 5,
+                  fontSize: 15,
+                  color: "black",
+                },
               ]}
             >
-              Weight
+              {item.weight || "N/A"} Kg
             </Text>
           </View>
-          <Text
-            style={[
-              styles.infoSubtitle,
-              {
-                marginRight: 20,
-                marginLeft: -50,
-                marginTop: 5,
-                fontSize: 15,
-                color: "black",
-              },
-            ]}
-          >
-            {item.weight} Kg
-          </Text>
-        </View>
-        <View style={styles.infoBlock}>
-          <View style={[styles.infoRow, { marginTop: 0 }]}>
-            <Image
-              source={require("../Images/dimension.png")}
-              style={[
-                styles.locationIcon,
-                { marginLeft: 0, width: 24, height: 24, marginTop: -3 },
-              ]}
-            />
+          <View style={styles.infoBlock}>
+            <View style={[styles.infoRow, { marginTop: 0 }]}>
+              <Image
+                source={require("../Images/dimension.png")}
+                style={[
+                  styles.locationIcon,
+                  { marginLeft: 0, width: 24, height: 24, marginTop: -3 },
+                ]}
+              />
+              <Text
+                style={[
+                  styles.infoTitle,
+                  { marginRight: 20, marginLeft: 5, marginTop: 0 },
+                ]}
+              >
+                Dimensions
+              </Text>
+            </View>
             <Text
               style={[
-                styles.infoTitle,
-                { marginRight: 20, marginLeft: 5, marginTop: 0 },
+                styles.infoSubtitle,
+                {
+                  marginRight: 20,
+                  marginLeft: -50,
+                  marginTop: 5,
+                  fontSize: 15,
+                  color: "black",
+                },
               ]}
             >
-              Dimensions
+              {item.dimensions?.length || "N/A"}X{item.dimensions?.breadth || "N/A"}X
+              {item.dimensions?.height || "N/A"}
             </Text>
           </View>
-          <Text
-            style={[
-              styles.infoSubtitle,
-              {
-                marginRight: 20,
-                marginLeft: -50,
-                marginTop: 5,
-                fontSize: 15,
-                color: "black",
-              },
-            ]}
-          >
-            {item.dimensions.length}X{item.dimensions.breadth}X
-            {item.dimensions.height}
-          </Text>
         </View>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -237,9 +274,16 @@ const SearchRide = ({ navigation, route }) => {
 
       <FlatList
         data={loading ? [] : data}
-        keyExtractor={(item, index) => item._id ?? index.toString()}
+        keyExtractor={(item, index) => item._id ?? item.consignmentId ?? index.toString()}
         renderItem={renderItem}
         contentContainerStyle={styles.rideList}
+        ListEmptyComponent={
+          !loading && data.length === 0 ? (
+            <Text style={{ color: "red", textAlign: "center", marginTop: 20 }}>
+              {error || "No consignments found"}
+            </Text>
+          ) : null
+        }
         ListHeaderComponent={
           <>
             <View style={styles.searchContainer}>

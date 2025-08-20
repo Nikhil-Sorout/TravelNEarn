@@ -711,7 +711,7 @@ const ConsignmentRequestModel = ({
                     { width: 24, height: 24, marginTop: -3 },
                   ]}
                 />
-                <Text style={[styles.infoTitle, { marginLeft: 5 }]}>
+                <Text style={[styles.infoTitle, { marginLeft: 5, color: "#000" }]}>
                   Weight
                 </Text>
               </View>
@@ -729,7 +729,7 @@ const ConsignmentRequestModel = ({
                     { width: 24, height: 24, marginTop: -3 },
                   ]}
                 />
-                <Text style={[styles.infoTitle, { marginLeft: 5 }]}>
+                <Text style={[styles.infoTitle, { marginLeft: 5, color: "#000" }]}>
                   Dimensions
                 </Text>
               </View>

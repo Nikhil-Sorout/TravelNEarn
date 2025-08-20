@@ -23,6 +23,7 @@ import RatingDetails from "../../../Customer Traveller/RatingDetails";
 import Header from "../../../header";
 import commonStyles from "../../../styles";
 import { getCurvedPolylinePoints } from "../../../Utils/getCurvedPolylinePonints";
+import { formatDate, formatTime } from "../../../Utils/dateTimeUtils";
 import {
   scale,
   verticalScale,
@@ -763,12 +764,62 @@ const TravelDetails = ({ route }) => {
         return <Ionicons name="help-circle-outline" size={30} color="gray" />;
     }
   };
-  const formatTime = (timeData) => {
+  const formatTimeLocal = (timeData) => {
     if (!timeData) return "N/A";
 
-    // If timeData is an object with a time property
-    if (typeof timeData === "object" && timeData.time) {
-      // Remove seconds from time string if present (e.g., "1:30:00 PM" -> "1:30 PM")
+    console.log("formatTimeLocal input:", JSON.stringify(timeData, null, 2));
+
+    // If timeData is an object with date, time, and day properties (formatted UTC timestamp)
+    if (typeof timeData === "object" && timeData.date && timeData.time && timeData.day) {
+      console.log("Converting formatted UTC timestamp to local time");
+      
+      try {
+        const dateStr = timeData.date; // e.g., "8/19/2025"
+        const timeStr = timeData.time; // e.g., "11:38:59 PM"
+        
+        console.log("Date string:", dateStr);
+        console.log("Time string:", timeStr);
+        
+        // Parse the date components
+        const [month, day, year] = dateStr.split('/').map(Number);
+        console.log("Parsed date components:", { month, day, year });
+        
+        // Parse the time components
+        const timeMatch = timeStr.match(/(\d+):(\d+):(\d+)\s*(AM|PM)/i);
+        if (timeMatch) {
+          let [_, hours, minutes, seconds, period] = timeMatch;
+          hours = parseInt(hours);
+          minutes = parseInt(minutes);
+          seconds = parseInt(seconds);
+          
+          // Convert to 24-hour format
+          if (period.toUpperCase() === 'PM' && hours !== 12) {
+            hours += 12;
+          } else if (period.toUpperCase() === 'AM' && hours === 12) {
+            hours = 0;
+          }
+          
+          console.log("Parsed time components:", { hours, minutes, seconds });
+          
+          // Create a Date object in UTC
+          const utcDate = new Date(Date.UTC(year, month - 1, day, hours, minutes, seconds));
+          console.log("Created UTC Date object:", utcDate.toISOString());
+          
+          if (!isNaN(utcDate.getTime())) {
+            // Use the imported formatTime function to convert to local time
+            const localTime = formatTime(utcDate, 'hh:mm A');
+            console.log("Converted to local time:", localTime);
+            return localTime;
+          }
+        } else {
+          console.warn("Could not parse time format:", timeStr);
+        }
+      } catch (error) {
+        console.warn("Error converting formatted timestamp:", error);
+      }
+      
+      // If conversion fails, return the original time without seconds
+      console.log("Conversion failed, returning original time without seconds");
       return timeData.time.replace(/:\d{2}\s/, " ");
     }
 
@@ -782,14 +833,10 @@ const TravelDetails = ({ route }) => {
       }
 
       try {
-        // Attempt to parse as a full datetime string
+        // Attempt to parse as a full datetime string and convert to local time
         const date = new Date(timeData);
         if (!isNaN(date.getTime())) {
-          return date.toLocaleTimeString("en-US", {
-            hour: "numeric",
-            minute: "2-digit",
-            hour12: true,
-          });
+          return formatTime(date, 'hh:mm A');
         }
 
         // If we can't parse it directly, return the original string
@@ -803,11 +850,51 @@ const TravelDetails = ({ route }) => {
     return "N/A";
   };
 
-  const formatDate = (dateString) => {
+  const formatDateLocal = (dateString) => {
     if (!dateString) return "N/A";
-    const date = new Date(dateString);
-    const options = { day: "numeric", month: "long", year: "numeric" };
-    return date.toLocaleDateString("en-GB", options);
+    
+    // If it's an object with date, time, and day properties (formatted UTC timestamp)
+    if (typeof dateString === "object" && dateString.date && dateString.time && dateString.day) {
+      try {
+        const dateStr = dateString.date; // e.g., "8/19/2025"
+        const timeStr = dateString.time; // e.g., "11:38:59 PM"
+        
+        // Parse the date components
+        const [month, day, year] = dateStr.split('/').map(Number);
+        
+        // Parse the time components
+        const timeMatch = timeStr.match(/(\d+):(\d+):(\d+)\s*(AM|PM)/i);
+        if (timeMatch) {
+          let [_, hours, minutes, seconds, period] = timeMatch;
+          hours = parseInt(hours);
+          minutes = parseInt(minutes);
+          seconds = parseInt(seconds);
+          
+          // Convert to 24-hour format
+          if (period.toUpperCase() === 'PM' && hours !== 12) {
+            hours += 12;
+          } else if (period.toUpperCase() === 'AM' && hours === 12) {
+            hours = 0;
+          }
+          
+          // Create a Date object in UTC
+          const utcDate = new Date(Date.UTC(year, month - 1, day, hours, minutes, seconds));
+          
+          if (!isNaN(utcDate.getTime())) {
+            // Use the imported formatDate function to convert to local time
+            return formatDate(utcDate, 'DD/MM/YYYY');
+          }
+        }
+      } catch (error) {
+        console.warn("Error converting formatted date:", error);
+      }
+      
+      // If conversion fails, return the original date
+      return dateString.date;
+    }
+    
+    // For regular date strings, use the imported formatDate function
+    return formatDate(dateString, 'DD/MM/YYYY');
   };
   const formatDayShort = (dayString) => {
     if (!dayString) return "";
@@ -2084,7 +2171,7 @@ const TravelDetails = ({ route }) => {
                   }}
                 >
                   <Text style={[styles.callNowText, { textAlign: "right" }]}>
-                    {pickupTime ? formatTime(pickupTime) : ""}
+                    {pickupTime ? formatTimeLocal(pickupTime) : ""}
                   </Text>
                   {pickupTime &&
                     typeof pickupTime === "object" &&
@@ -2095,7 +2182,7 @@ const TravelDetails = ({ route }) => {
                           { fontSize: fontScale(11), color: "#555", textAlign: "right" },
                         ]}
                       >
-                        {pickupTime.date}
+                        {formatDateLocal(pickupTime)}
                       </Text>
                     )}
                 </View>
@@ -2128,7 +2215,7 @@ const TravelDetails = ({ route }) => {
                     }}
                   >
                                       <Text style={[styles.callNowText, { textAlign: "right" }]}>
-                    {onTheWayTime ? formatTime(onTheWayTime) : ""}
+                    {onTheWayTime ? formatTimeLocal(onTheWayTime) : ""}
                   </Text>
                   {onTheWayTime &&
                     typeof onTheWayTime === "object" &&
@@ -2139,7 +2226,7 @@ const TravelDetails = ({ route }) => {
                           { fontSize: fontScale(11), color: "#555", textAlign: "right" },
                         ]}
                       >
-                        {onTheWayTime.date}
+                        {formatDateLocal(onTheWayTime)}
                       </Text>
                     )}
                   </View>
@@ -2180,7 +2267,7 @@ const TravelDetails = ({ route }) => {
                 >
                   <Text style={[styles.callNowText, { textAlign: "right" }]}>
                     {status === "Delivered" && dropTime
-                      ? formatTime(dropTime)
+                      ? formatTimeLocal(dropTime)
                       : ""}
                   </Text>
                   {status === "Delivered" &&
@@ -2193,7 +2280,7 @@ const TravelDetails = ({ route }) => {
                           { fontSize: fontScale(11), color: "#555", textAlign: "right" },
                         ]}
                       >
-                        {dropTime.date}
+                        {formatDateLocal(dropTime)}
                       </Text>
                     )}
                 </View>

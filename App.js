@@ -3,6 +3,10 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import React, { useEffect, useState } from "react";
 import { useFonts } from "expo-font";
+import { enableScreens } from 'react-native-screens';
+
+// Enable screens for better performance
+enableScreens();
 
 import {
   Inter_400Regular,
@@ -102,7 +106,7 @@ export default function App() {
       try {
         // Set required data for socket connection
         const apiBaseUrl = "https://travel.timestringssystem.com/";
-        // const apiBaseUrl = "http://192.168.64.93:5002/";
+        // const apiBaseUrl = "http://192.168.65.68:5002/";
         await AsyncStorage.setItem("apiBaseUrl", apiBaseUrl);
         await AsyncStorage.removeItem('addressFieldType')
         await AsyncStorage.removeItem('addressFrom')
@@ -139,8 +143,37 @@ export default function App() {
 
   return (
     <SocketProvider>
-      <NavigationContainer>
-        <Stack.Navigator initialRouteName={initialRoute}>
+      <NavigationContainer
+        onStateChange={(state) => {
+          // Handle navigation state changes
+          console.log('Navigation state changed:', state);
+        }}
+        onReady={() => {
+          // Navigation is ready
+          console.log('Navigation is ready');
+        }}
+      >
+        <Stack.Navigator 
+          initialRouteName={initialRoute}
+          screenOptions={{
+            headerShown: false,
+            gestureEnabled: true,
+            cardStyleInterpolator: ({ current, layouts }) => {
+              return {
+                cardStyle: {
+                  transform: [
+                    {
+                      translateX: current.progress.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [layouts.screen.width, 0],
+                      }),
+                    },
+                  ],
+                },
+              };
+            },
+          }}
+        >
           <Stack.Screen
             name="Search"
             component={Search}

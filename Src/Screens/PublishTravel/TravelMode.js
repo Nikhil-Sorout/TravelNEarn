@@ -299,6 +299,7 @@ const TravelMode = ({ navigation, route }) => {
         minute: "2-digit",
         hour12: true,
       });
+      console.log(formattedTime);
       setStartTime(formattedTime);
     }
   };
@@ -345,6 +346,12 @@ const TravelMode = ({ navigation, route }) => {
     }
     if (!endTime.trim()) {
       alert("Please select the end time.");
+      return;
+    }
+
+    // Validate that ending date is greater than or equal to starting date
+    if (endDate < travelDate) {
+      alert("Ending date cannot be before the starting date.");
       return;
     }
 
