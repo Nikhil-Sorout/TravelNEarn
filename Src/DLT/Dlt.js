@@ -13,6 +13,17 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import {
+  scale,
+  verticalScale,
+  moderateScale,
+  moderateVerticalScale,
+  fontScale,
+  responsivePadding,
+  responsiveFontSize,
+  responsiveDimensions,
+  screenWidth,
+} from '../Utils/responsive';
 
 const verifyDrivingLicense = async (dlNumber, dob, setDlRequestId) => {
   if (!dlNumber || !dob) {
@@ -365,7 +376,7 @@ const Dlt = () => {
   };
 
   return (
-    <ScrollView>
+    <ScrollView style={styles.scrollView}>
       <View style={styles.container}>
         <Text style={styles.header}>Profile Verification (KYC)</Text>
         <Text style={styles.subtitle}>VERIFY YOUR PROFILE IN 3 EASY STEPS</Text>
@@ -375,6 +386,7 @@ const Dlt = () => {
         <TextInput
           style={[styles.input, isDlVerified && styles.disabledInput]}
           placeholder="Enter Driving License Number"
+          placeholderTextColor="#666"
           value={dlNumber}
           onChangeText={setDlNumber}
           editable={!isDlVerified}
@@ -419,6 +431,7 @@ const Dlt = () => {
         <TextInput
           style={[styles.input, isPanVerified && styles.disabledInput]}
           placeholder="Enter PAN Number"
+          placeholderTextColor="#666"
           value={panNumber}
           onChangeText={setPanNumber}
           editable={!isPanVerified}
@@ -426,6 +439,7 @@ const Dlt = () => {
         <TextInput
           style={[styles.input, isPanVerified && styles.disabledInput]}
           placeholder="Enter Full Name as per PAN"
+          placeholderTextColor="#666"
           value={fullName}
           onChangeText={setFullName}
           editable={!isPanVerified}
@@ -499,47 +513,55 @@ const Dlt = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
+  scrollView: {
     flex: 1,
-    padding: 20,
     backgroundColor: '#f9f9f9',
   },
+  container: {
+    flex: 1,
+    paddingHorizontal: responsivePadding.horizontal,
+    paddingVertical: responsivePadding.vertical,
+    backgroundColor: '#f9f9f9',
+    minHeight: '100%',
+  },
   header: {
-    fontSize: 24,
+    fontSize: responsiveFontSize.xxl,
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
+    color: '#000000',
+    marginBottom: moderateVerticalScale(10),
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
-    color: '#555',
-    marginBottom: 20,
+    fontSize: responsiveFontSize.md,
+    color: '#000000',
+    marginBottom: moderateVerticalScale(20),
     textAlign: 'center',
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: responsiveFontSize.lg,
     fontWeight: 'bold',
-    color: '#333',
-    marginTop: 20,
-    marginBottom: 10,
+    color: '#000000',
+    marginTop: moderateVerticalScale(20),
+    marginBottom: moderateVerticalScale(10),
   },
   input: {
     width: '100%',
-    height: 50,
+    height: moderateVerticalScale(50),
     borderWidth: 1,
     borderColor: '#ccc',
-    borderRadius: 5,
-    paddingHorizontal: 10,
-    marginBottom: 15,
+    borderRadius: moderateScale(5),
+    paddingHorizontal: moderateScale(10),
+    marginBottom: moderateVerticalScale(15),
     backgroundColor: '#fff',
+    fontSize: responsiveFontSize.md,
+    color: '#000000',
   },
   dateButton: {
     justifyContent: 'center',
   },
   dateText: {
-    color: '#333',
-    fontSize: 16,
+    color: '#000000',
+    fontSize: responsiveFontSize.md,
   },
   disabledInput: {
     backgroundColor: '#e9ecef',
@@ -547,10 +569,12 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: '#007bff',
-    paddingVertical: 15,
-    borderRadius: 5,
-    marginVertical: 10,
+    paddingVertical: moderateVerticalScale(15),
+    borderRadius: moderateScale(5),
+    marginVertical: moderateVerticalScale(10),
     alignItems: 'center',
+    width: responsiveDimensions.button.width,
+    alignSelf: 'center',
   },
   disabledButton: {
     backgroundColor: '#6c757d',
@@ -558,13 +582,13 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: responsiveFontSize.md,
     fontWeight: 'bold',
   },
   statusText: {
-    fontSize: 14,
-    color: '#333',
-    marginVertical: 5,
+    fontSize: responsiveFontSize.sm,
+    color: '#000000',
+    marginVertical: moderateVerticalScale(5),
     textAlign: 'center',
   },
   successText: {
@@ -577,21 +601,25 @@ const styles = StyleSheet.create({
   radioContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 15,
+    marginBottom: moderateVerticalScale(15),
+    paddingHorizontal: moderateScale(10),
   },
   radioButton: {
-    padding: 10,
+    padding: moderateScale(10),
     borderWidth: 1,
     borderColor: '#ccc',
-    borderRadius: 5,
+    borderRadius: moderateScale(5),
+    flex: 1,
+    marginHorizontal: moderateScale(5),
+    alignItems: 'center',
   },
   radioSelected: {
     backgroundColor: '#007bff',
     borderColor: '#007bff',
   },
   radioText: {
-    color: '#333',
-    fontSize: 14,
+    color: '#000000',
+    fontSize: responsiveFontSize.sm,
   },
 });
 
