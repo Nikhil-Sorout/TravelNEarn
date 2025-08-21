@@ -17,6 +17,7 @@ import Icon from "react-native-vector-icons/FontAwesome";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import moment from "moment";
 import { formatTime, formatDate } from "../../Utils/dateTimeUtils";
+import { getCurvedPolylinePoints } from "../../Utils/getCurvedPolylinePonints";
 const PayNowScreen = ({ navigation, route }) => {
   const {
     consignmentId,
@@ -55,6 +56,12 @@ const PayNowScreen = ({ navigation, route }) => {
   const [fetchingTravelDetails, setFetchingTravelDetails] = useState(false);
   const [travelModeNumber, setTravelModeNumber] = useState(""); // Default to 4 seater
   const mapRef = useRef(null); // Reference to MapView
+
+  // Create curved polyline points for dashed route display
+  const curvedLinePoints =
+    originCoords && destinationCoords
+      ? getCurvedPolylinePoints(originCoords, destinationCoords)
+      : [];
 
   console.log("Travel ID:", travelId);
   console.log("Amount:", amount);
@@ -205,21 +212,21 @@ const PayNowScreen = ({ navigation, route }) => {
 
   // New useEffect to handle map zooming
   useEffect(() => {
-    
-    
     if (
       mapRef.current &&
       originCoords &&
-      destinationCoords &&
-      coordinates.length > 0
+      destinationCoords
     ) {
+      // Use curved line points if available, otherwise use regular coordinates
+      const routeCoords = curvedLinePoints.length > 0 ? curvedLinePoints : coordinates;
+      
       const coords = [
         { latitude: originCoords.latitude, longitude: originCoords.longitude },
         {
           latitude: destinationCoords.latitude,
           longitude: destinationCoords.longitude,
         },
-        ...coordinates,
+        ...routeCoords,
       ];
 
       mapRef.current.fitToCoordinates(coords, {
@@ -227,7 +234,7 @@ const PayNowScreen = ({ navigation, route }) => {
         animated: true,
       });
     }
-  }, [originCoords, destinationCoords, coordinates]); // Trigger when these values update
+  }, [originCoords, destinationCoords, coordinates, curvedLinePoints]); // Added curvedLinePoints to dependencies
 
   const fetchRoute = async (origin, destination) => {
     try {
@@ -551,11 +558,23 @@ const PayNowScreen = ({ navigation, route }) => {
             longitudeDelta: 0.5,
           }}
         >
-          {coordinates.length > 1 && (
+          {/* Dashed route line using curved polyline points */}
+          {curvedLinePoints.length > 0 && (
+            <Polyline
+              coordinates={curvedLinePoints}
+              strokeColor="rgba(0,0,255,0.6)"
+              strokeWidth={3}
+              lineDashPattern={[5, 5]}
+            />
+          )}
+
+          {/* Fallback to regular coordinates if curved points not available */}
+          {curvedLinePoints.length === 0 && coordinates.length > 1 && (
             <Polyline
               coordinates={coordinates}
-              strokeColor="blue"
-              strokeWidth={5}
+              strokeColor="rgba(0,0,255,0.6)"
+              strokeWidth={3}
+              lineDashPattern={[5, 5]}
             />
           )}
 

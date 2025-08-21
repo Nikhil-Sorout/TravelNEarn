@@ -36,6 +36,7 @@ import { getCurvedPolylinePoints } from "../../../Utils/getCurvedPolylinePonints
 const TravelStartEndDetails = ({ route }) => {
   const { ride, consignmentId } = route.params;
   const consignmentDetails = ride.consignmentDetails || [];
+  const mapRef = useRef(null); // Reference to MapView
 
   const [travelMode, setTravelMode] = useState("");
   const [travelNumber, setTravelNumber] = useState(null);
@@ -208,6 +209,32 @@ const TravelStartEndDetails = ({ route }) => {
     if (coordinates.length > 1) {
     }
   }, [coordinates]);
+
+  // useEffect to handle map zooming to show complete route
+  useEffect(() => {
+    if (
+      mapRef.current &&
+      originCoords &&
+      destinationCoords
+    ) {
+      // Use curved line points if available, otherwise use regular coordinates
+      const routeCoords = curvedLinePoints.length > 0 ? curvedLinePoints : coordinates;
+      
+      const coords = [
+        { latitude: originCoords.latitude, longitude: originCoords.longitude },
+        {
+          latitude: destinationCoords.latitude,
+          longitude: destinationCoords.longitude,
+        },
+        ...routeCoords,
+      ];
+
+      mapRef.current.fitToCoordinates(coords, {
+        edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+        animated: true,
+      });
+    }
+  }, [originCoords, destinationCoords, coordinates, curvedLinePoints]); // Added curvedLinePoints to dependencies
 
   const getTravelIcon = (travelMode) => {
     switch (travelMode) {
@@ -771,6 +798,7 @@ const TravelStartEndDetails = ({ route }) => {
           </Text>
           <MapView
             provider={PROVIDER_GOOGLE}
+            ref={mapRef} // Add ref to MapView
             key={curvedLinePoints.length}
             style={styles.map}
             initialRegion={{
