@@ -83,9 +83,9 @@ const TravelDetails = ({ route }) => {
   const getDisplayStatus = (statusStr) => {
     const status = statusStr || "";
     const lowerStatus = status.toLowerCase();
-    
+    console.log(lowerStatus)
     // Check for pending/not accepted statuses
-    const pendingStatuses = ["pending", "not started", "in progress", "rejected", "expired"];
+    const pendingStatuses = ["pending", "not started", "in progress", "rejected", "expired", "upcoming"];
     if (pendingStatuses.includes(lowerStatus)) {
       return "Upcoming";
     }
@@ -106,7 +106,7 @@ const TravelDetails = ({ route }) => {
     }
     
     // Default fallback
-    return status || "Yet To Start";
+    return status || "Yet To Collect";
   };
 
   const [status, setStatus] = useState(() => getDisplayStatus(ride.status));
@@ -161,9 +161,9 @@ const TravelDetails = ({ route }) => {
         console.error("Phone number not found in AsyncStorage");
         return;
       }
-
+      const baseurl = await AsyncStorage.getItem("apiBaseUrl")
       const response = await fetch(
-        `https://travel.timestringssystem.com/editp/consignment-collected-status/phoneNumber=${phoneNumber}?consignmentId=${ride.consignmentId}`
+        `${baseurl}editp/consignment-collected-status/phoneNumber=${phoneNumber}?consignmentId=${ride.consignmentId}`
       );
 
       if (!response.ok) {
@@ -193,7 +193,7 @@ const TravelDetails = ({ route }) => {
           // Check if the original status is pending/not accepted
           const originalStatus = ride.status || "";
           const lowerOriginalStatus = originalStatus.toLowerCase();
-          const pendingStatuses = ["pending", "not started", "in progress", "rejected", "expired"];
+          const pendingStatuses = ["pending", "not started", "in progress", "rejected", "expired", "upcoming"];
           
           if (pendingStatuses.includes(lowerOriginalStatus)) {
             setStatus("Upcoming");
@@ -218,6 +218,7 @@ const TravelDetails = ({ route }) => {
           try {
             // Try to parse updatedat as JSON if it's a string
             if (typeof collectedItem.updatedat === "string") {
+              console.log(collectedItem)
               try {
                 const parsedData = JSON.parse(collectedItem.updatedat);
                 setPickupTime(parsedData);
@@ -769,58 +770,33 @@ const TravelDetails = ({ route }) => {
 
     console.log("formatTimeLocal input:", JSON.stringify(timeData, null, 2));
 
-    // If timeData is an object with date, time, and day properties (formatted UTC timestamp)
-    if (typeof timeData === "object" && timeData.date && timeData.time && timeData.day) {
-      console.log("Converting formatted UTC timestamp to local time");
-      
+    // Handle UTC timestamp strings like "2025-08-25T03:28:33.778Z"
+    if (typeof timeData === "string" && timeData.includes("T") && timeData.includes("Z")) {
       try {
-        const dateStr = timeData.date; // e.g., "8/19/2025"
-        const timeStr = timeData.time; // e.g., "11:38:59 PM"
-        
-        console.log("Date string:", dateStr);
-        console.log("Time string:", timeStr);
-        
-        // Parse the date components
-        const [month, day, year] = dateStr.split('/').map(Number);
-        console.log("Parsed date components:", { month, day, year });
-        
-        // Parse the time components
-        const timeMatch = timeStr.match(/(\d+):(\d+):(\d+)\s*(AM|PM)/i);
-        if (timeMatch) {
-          let [_, hours, minutes, seconds, period] = timeMatch;
-          hours = parseInt(hours);
-          minutes = parseInt(minutes);
-          seconds = parseInt(seconds);
-          
-          // Convert to 24-hour format
-          if (period.toUpperCase() === 'PM' && hours !== 12) {
-            hours += 12;
-          } else if (period.toUpperCase() === 'AM' && hours === 12) {
-            hours = 0;
-          }
-          
-          console.log("Parsed time components:", { hours, minutes, seconds });
-          
-          // Create a Date object in UTC
-          const utcDate = new Date(Date.UTC(year, month - 1, day, hours, minutes, seconds));
-          console.log("Created UTC Date object:", utcDate.toISOString());
-          
-          if (!isNaN(utcDate.getTime())) {
-            // Use the imported formatTime function to convert to local time
-            const localTime = formatTime(utcDate, 'hh:mm A');
-            console.log("Converted to local time:", localTime);
-            return localTime;
-          }
-        } else {
-          console.warn("Could not parse time format:", timeStr);
+        const date = new Date(timeData);
+        if (!isNaN(date.getTime())) {
+          // Use direct toLocaleTimeString for more reliable timezone conversion
+          const localTime = date.toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          });
+          console.log("Converted UTC timestamp to local time:", localTime);
+          return localTime;
         }
       } catch (error) {
-        console.warn("Error converting formatted timestamp:", error);
+        console.error("Error parsing UTC timestamp:", error);
       }
+    }
+
+    // If timeData is an object with date, time, and day properties (pre-formatted local time)
+    if (typeof timeData === "object" && timeData.date && timeData.time && timeData.day) {
+      console.log("Processing pre-formatted local time object");
       
-      // If conversion fails, return the original time without seconds
-      console.log("Conversion failed, returning original time without seconds");
-      return timeData.time.replace(/:\d{2}\s/, " ");
+      // The time is already in local format, just return it without seconds
+      const timeWithoutSeconds = timeData.time.replace(/:\d{2}\s/, " ");
+      console.log("Returning time without seconds:", timeWithoutSeconds);
+      return timeWithoutSeconds;
     }
 
     // If it's a string that looks like a time (e.g., "1:30 PM")
@@ -836,7 +812,11 @@ const TravelDetails = ({ route }) => {
         // Attempt to parse as a full datetime string and convert to local time
         const date = new Date(timeData);
         if (!isNaN(date.getTime())) {
-          return formatTime(date, 'hh:mm A');
+          return date.toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          });
         }
 
         // If we can't parse it directly, return the original string
@@ -853,48 +833,50 @@ const TravelDetails = ({ route }) => {
   const formatDateLocal = (dateString) => {
     if (!dateString) return "N/A";
     
-    // If it's an object with date, time, and day properties (formatted UTC timestamp)
-    if (typeof dateString === "object" && dateString.date && dateString.time && dateString.day) {
+    // Handle UTC timestamp strings like "2025-08-25T03:28:33.778Z"
+    if (typeof dateString === "string" && dateString.includes("T") && dateString.includes("Z")) {
       try {
-        const dateStr = dateString.date; // e.g., "8/19/2025"
-        const timeStr = dateString.time; // e.g., "11:38:59 PM"
-        
-        // Parse the date components
-        const [month, day, year] = dateStr.split('/').map(Number);
-        
-        // Parse the time components
-        const timeMatch = timeStr.match(/(\d+):(\d+):(\d+)\s*(AM|PM)/i);
-        if (timeMatch) {
-          let [_, hours, minutes, seconds, period] = timeMatch;
-          hours = parseInt(hours);
-          minutes = parseInt(minutes);
-          seconds = parseInt(seconds);
-          
-          // Convert to 24-hour format
-          if (period.toUpperCase() === 'PM' && hours !== 12) {
-            hours += 12;
-          } else if (period.toUpperCase() === 'AM' && hours === 12) {
-            hours = 0;
-          }
-          
-          // Create a Date object in UTC
-          const utcDate = new Date(Date.UTC(year, month - 1, day, hours, minutes, seconds));
-          
-          if (!isNaN(utcDate.getTime())) {
-            // Use the imported formatDate function to convert to local time
-            return formatDate(utcDate, 'DD/MM/YYYY');
-          }
+        const date = new Date(dateString);
+        if (!isNaN(date.getTime())) {
+          // Use direct toLocaleDateString for more reliable timezone conversion
+          const localDate = date.toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+          });
+          console.log("Converted UTC timestamp to local date:", localDate);
+          return localDate;
         }
       } catch (error) {
-        console.warn("Error converting formatted date:", error);
+        console.error("Error parsing UTC timestamp for date:", error);
       }
+    }
+    
+    // If it's an object with date, time, and day properties (pre-formatted local date)
+    if (typeof dateString === "object" && dateString.date && dateString.time && dateString.day) {
+      console.log("Processing pre-formatted local date object");
       
-      // If conversion fails, return the original date
+      // The date is already in local format, just return it
+      console.log("Returning date:", dateString.date);
       return dateString.date;
     }
     
-    // For regular date strings, use the imported formatDate function
-    return formatDate(dateString, 'DD/MM/YYYY');
+    // For regular date strings, try to parse and format
+    try {
+      const date = new Date(dateString);
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        });
+      }
+    } catch (error) {
+      console.error("Error parsing date string:", error);
+    }
+    
+    // Fallback to original string
+    return dateString;
   };
   const formatDayShort = (dayString) => {
     if (!dayString) return "";
@@ -965,6 +947,9 @@ const TravelDetails = ({ route }) => {
         break;
       case "on the way":
         badgeColor = "#2196F3"; // Blue
+        break;
+      case "Yet To Collect":
+        badgeColor = "#FFC107"; // Yellow/Amber
         break;
       default:
         badgeColor = "#FFC107"; // Yellow/Amber

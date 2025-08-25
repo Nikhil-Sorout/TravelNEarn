@@ -41,9 +41,14 @@ const WebViewScreen = ({ route, navigation }) => {
       const verificationPhoneNumber =
         route.params?.verificationPhoneNumber ;
 
+      // Get consignmentId from route params
+      const consignmentId = route.params?.consignmentId;
+
       console.log(
         "Using phone number for verification:",
-        verificationPhoneNumber
+        verificationPhoneNumber,
+        "Consignment ID:",
+        consignmentId
       );
 
       // Extract totalFare and senderTotalPay from route params if available
@@ -72,6 +77,7 @@ const WebViewScreen = ({ route, navigation }) => {
             razorpay_signature: paymentData.signature,
             phoneNumber: verificationPhoneNumber,
             travelId: travelId,
+            consignmentId: consignmentId || null,
             amount: parseFloat(amount) || 0,
             totalFare: totalFare ? parseFloat(totalFare) : null,
             senderTotalPay: senderTotalPay ? parseFloat(senderTotalPay) : null,
@@ -86,7 +92,9 @@ const WebViewScreen = ({ route, navigation }) => {
         const paidNotifications = JSON.parse(
           (await AsyncStorage.getItem("paidNotifications")) || "{}"
         );
-        paidNotifications[travelId] = true;
+        // Use combination of travelId and consignmentId as key to avoid conflicts
+        const paymentKey = consignmentId ? `${travelId}_${consignmentId}` : travelId;
+        paidNotifications[paymentKey] = true;
         await AsyncStorage.setItem(
           "paidNotifications",
           JSON.stringify(paidNotifications)

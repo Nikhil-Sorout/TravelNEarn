@@ -22,9 +22,11 @@ import { getCurvedPolylinePoints } from "../Utils/getCurvedPolylinePonints";
 import { formatDate, formatTime } from "../Utils/dateTimeUtils";
 
 const TravelDetails = ({ route }) => {
-  const { ride, fareDetails, calculatedPrice } = route.params;
+  const { ride, fareDetails, calculatedPrices, userConsignments } = route.params;
   console.log("ride", ride);
   console.log("fare", fareDetails);
+  console.log("calculatedPrices", calculatedPrices);
+  console.log("userConsignments", userConsignments);
   
   const [travelMode, setTravelMode] = useState("");
   const [travelNumber, setTravelNumber] = useState(null);
@@ -33,6 +35,7 @@ const TravelDetails = ({ route }) => {
   const [endTime, setEndTime] = useState("");
   const [searchingDate, setSearchingDate] = useState("");
   const [loading, setLoading] = useState(false);
+  const [selectedConsignment, setSelectedConsignment] = useState(null);
 
   const [startLocation, setStartLocation] = useState("");
   const [endLocation, setEndLocation] = useState("");
@@ -46,6 +49,18 @@ const TravelDetails = ({ route }) => {
 
   const navigation = useNavigation();
   
+  // Auto-select the first valid consignment with pricing
+  useEffect(() => {
+    if (calculatedPrices && calculatedPrices.length > 0) {
+      const validConsignment = calculatedPrices.find(consignment => 
+        consignment.calculatedPrice && 
+        consignment.calculatedPrice.senderTotalPay && 
+        !isNaN(consignment.calculatedPrice.senderTotalPay)
+      );
+      setSelectedConsignment(validConsignment || calculatedPrices[0]);
+    }
+  }, [calculatedPrices]);
+
   // Calculate curved line points for hover path (exactly like ReceiverScreen)
   const curvedLinePoints =
     originCoords && destinationCoords
@@ -581,13 +596,74 @@ const TravelDetails = ({ route }) => {
           </View>
         </View>
 
+        {/* Consignment Options Card */}
+        {calculatedPrices && calculatedPrices.length > 0 && (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Available Consignment Options</Text>
+            <Text style={styles.sectionSubtitle}>Select your consignment to calculate the exact price:</Text>
+            
+            {calculatedPrices.map((consignment, index) => (
+              <TouchableOpacity
+                key={consignment.consignmentId || index}
+                style={[
+                  styles.consignmentOption,
+                  selectedConsignment?.consignmentId === consignment.consignmentId && styles.selectedConsignmentOption
+                ]}
+                onPress={() => setSelectedConsignment(consignment)}
+              >
+                <View style={styles.consignmentOptionHeader}>
+                  <View style={styles.consignmentInfoContainer}>
+                    <Text style={styles.consignmentTitle}>
+                      Consignment Option
+                    </Text>
+                    {consignment.weight && (
+                      <Text style={styles.consignmentDetails}>
+                        Weight: {consignment.weight} kg
+                      </Text>
+                    )}
+                    {consignment.dimensions && (
+                      <Text style={styles.consignmentDetails}>
+                        Size: {consignment.dimensions.length}×{consignment.dimensions.breadth}×{consignment.dimensions.height} {consignment.dimensions.unit}
+                      </Text>
+                    )}
+                  </View>
+                  <View style={styles.priceContainer}>
+                    {consignment.calculatedPrice ? (
+                      <Text style={styles.priceText}>
+                        ₹{consignment.calculatedPrice.senderTotalPay || 'N/A'}
+                      </Text>
+                    ) : (
+                      <Text style={styles.priceErrorText}>
+                        {consignment.priceError || 'Price not available'}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+                
+                {consignment.priceError && (
+                  <Text style={styles.errorText}>
+                    {consignment.priceError}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
         <View style={{ margin: 20, marginTop: -10 }}>
           <TouchableOpacity
-            style={styles.button}
+            style={[
+              styles.button,
+              !selectedConsignment && styles.disabledButton
+            ]}
             onPress={() => bottomSheetRef.current.open()}
+            disabled={!selectedConsignment}
           >
-            <Text style={styles.buttonText}>
-              Request to carry my consignment
+            <Text style={[
+              styles.buttonText,
+              !selectedConsignment && styles.disabledButtonText
+            ]}>
+              {selectedConsignment ? "Request to carry my consignment" : "Please select a consignment option"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -605,14 +681,17 @@ const TravelDetails = ({ route }) => {
           }}
         >
           <ReviewDetails
-            earning={calculatedPrice?.senderTotalPay}
+            earning={selectedConsignment?.calculatedPrice?.senderTotalPay || fareDetails?.senderTotalPay}
             id={ride.rideId}
             fromLocation={ride.Leavinglocation}
             toLocation={ride.Goinglocation}
-            deliveryFee={fareDetails.deliveryFee}
-            teFee={fareDetails.TE}
-            discount={fareDetails.discount}
-            baseFare={fareDetails}
+            deliveryFee={selectedConsignment?.calculatedPrice?.deliveryFee || fareDetails?.deliveryFee}
+            teFee={selectedConsignment?.calculatedPrice?.TE || fareDetails?.TE}
+            discount={selectedConsignment?.calculatedPrice?.discount || fareDetails?.discount}
+            baseFare={selectedConsignment?.calculatedPrice || fareDetails}
+            selectedConsignment={selectedConsignment}
+            userConsignments={userConsignments || []}
+            ride={ride} // Pass the ride object to get travel mode
           />
         </RBSheet>
       </ScrollView>
@@ -794,5 +873,71 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     marginRight: 10,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#000",
+    marginBottom: 5,
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    color: "#555",
+    marginBottom: 15,
+  },
+  consignmentOption: {
+    backgroundColor: "#f9f9f9",
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#eee",
+  },
+  selectedConsignmentOption: {
+    borderColor: "#53B175",
+    borderWidth: 2,
+  },
+  consignmentOptionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  consignmentInfoContainer: {
+    flex: 1,
+  },
+  consignmentTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#000",
+  },
+  consignmentDetails: {
+    fontSize: 14,
+    color: "#555",
+    marginTop: 2,
+  },
+  priceContainer: {
+    alignItems: "flex-end",
+  },
+  priceText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#53B175",
+  },
+  priceErrorText: {
+    fontSize: 16,
+    color: "#D83F3F",
+    fontWeight: "bold",
+  },
+  errorText: {
+    fontSize: 14,
+    color: "#D83F3F",
+    marginTop: 5,
+  },
+  disabledButton: {
+    backgroundColor: "#ccc",
+    opacity: 0.7,
+  },
+  disabledButtonText: {
+    color: "#888",
   },
 });

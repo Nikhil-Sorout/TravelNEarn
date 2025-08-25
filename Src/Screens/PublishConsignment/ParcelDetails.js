@@ -715,7 +715,7 @@ const TravelDetails = ({ route }) => {
                   },
                 ]}
               >
-                {category + ' ' + subCategory}
+                {category + (category === "nondocument" ? ' ' + subCategory : '')}
               </Text>
             </View>
           </View>

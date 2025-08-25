@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
 import { 
   scale, 
   verticalScale, 
@@ -34,55 +35,64 @@ const Account = ({ navigation, route }) => {
   const [profilePic, setProfilePic] = useState(null);
   const [phoneNumber, setPhoneNumber] = useState(phoneNumberFromParams || "");
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const storedProfilePic = await AsyncStorage.getItem("profilePicture");
-        if (storedProfilePic) {
-          setProfilePic(storedProfilePic);
-        }
-
-        let phoneNum = phoneNumber;
-        if (!phoneNum) {
-          phoneNum = await AsyncStorage.getItem("phoneNumber");
-          setPhoneNumber(phoneNum || "");
-        }
-
-        if (!phoneNum) {
-          return;
-        }
-
-        // Fetch user data from API
-        const response = await axios.get(
-          `https://travel.timestringssystem.com/api/getall/${phoneNum}`,
-          {
-            params: { phoneNumber: phoneNum },
-          }
-        );
-
-        if (response.data && response.data.user) {
-          const { firstName, lastName, profilePicture } = response.data.user;
-          const fullName = `${firstName} ${lastName}`.trim();
-          setUserName(fullName);
-          AsyncStorage.setItem("firstName", firstName);
-          AsyncStorage.setItem("lastName", lastName);
-
-          if (profilePicture && profilePicture !== storedProfilePic) {
-            let imageUrl = profilePicture;
-            if (!imageUrl.startsWith("http")) {
-              const filename =
-                imageUrl.split("\\").pop() || imageUrl.split("/").pop();
-              imageUrl = `https://travel.timestringssystem.com/uploads/${filename}`;
-            }
-            await AsyncStorage.setItem("profilePicture", imageUrl);
-            setProfilePic(imageUrl);
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching user data:", error);
+  const fetchUserData = async () => {
+    try {
+      const storedProfilePic = await AsyncStorage.getItem("profilePicture");
+      if (storedProfilePic) {
+        setProfilePic(storedProfilePic);
       }
-    };
 
+      let phoneNum = phoneNumber;
+      if (!phoneNum) {
+        phoneNum = await AsyncStorage.getItem("phoneNumber");
+        setPhoneNumber(phoneNum || "");
+      }
+
+      if (!phoneNum) {
+        return;
+      }
+
+      // Fetch user data from API
+      const baseurl = await AsyncStorage.getItem("apiBaseUrl");
+      const response = await axios.get(
+        `${baseurl}api/getall/${phoneNum}`,
+        {
+          params: { phoneNumber: phoneNum },
+        }
+      );
+
+      if (response.data && response.data.user) {
+        const { firstName, lastName, profilePicture } = response.data.user;
+        const fullName = `${firstName} ${lastName}`.trim();
+        setUserName(fullName);
+        AsyncStorage.setItem("firstName", firstName);
+        AsyncStorage.setItem("lastName", lastName);
+
+        if (profilePicture && profilePicture !== storedProfilePic) {
+          let imageUrl = profilePicture;
+          if (!imageUrl.startsWith("http")) {
+            const filename =
+              imageUrl.split("\\").pop() || imageUrl.split("/").pop();
+            imageUrl = `${baseurl}uploads/${filename}`;
+          }
+          await AsyncStorage.setItem("profilePicture", imageUrl);
+          setProfilePic(imageUrl);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+    }
+  };
+
+  // Use useFocusEffect to refresh data when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchUserData();
+    }, [phoneNumber])
+  );
+
+  // Initial load
+  useEffect(() => {
     fetchUserData();
   }, [phoneNumber]);
 

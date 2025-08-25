@@ -35,6 +35,7 @@ const Profile = () => {
   const { phoneNumber: phoneNumberFromParams } = route.params || {};
 
   const [profilePhotoUri, setProfilePhotoUri] = useState(DEFAULT_PROFILE_PHOTO);
+  const [isUserVerified, setIsUserVerified] = useState(false);
   const [profileData, setProfileData] = useState({
     profileImage: DEFAULT_PROFILE_PHOTO,
     email: "",
@@ -67,6 +68,7 @@ const Profile = () => {
         const firstName = (await AsyncStorage.getItem("firstName")) || "";
         const lastName = (await AsyncStorage.getItem("lastName")) || "";
         const email = (await AsyncStorage.getItem("email")) || "";
+        const isVerified = await AsyncStorage.getItem("isVerified");
 
         setProfileData((prev) => ({
           ...prev,
@@ -74,6 +76,9 @@ const Profile = () => {
           lastName,
           email,
         }));
+
+        // Set verification status
+        setIsUserVerified(isVerified === 'true');
 
         let phoneNum = phoneNumberFromParams;
         if (!phoneNum) {
@@ -104,12 +109,13 @@ const Profile = () => {
       console.log("Fetch API Response:", JSON.stringify(response.data));
 
       if (response.data && response.data.user) {
-        const { firstName, lastName, email } = response.data.user;
+        const { firstName, lastName, email, isVerified } = response.data.user;
 
         // Save to AsyncStorage
         if (firstName) await AsyncStorage.setItem("firstName", firstName);
         if (lastName) await AsyncStorage.setItem("lastName", lastName);
         if (email) await AsyncStorage.setItem("email", email);
+        if (isVerified !== undefined) await AsyncStorage.setItem("isVerified", isVerified.toString());
 
         // Update state with retrieved data
         setProfileData((prevState) => ({
@@ -118,6 +124,9 @@ const Profile = () => {
           lastName: lastName || prevState.lastName,
           email: email || prevState.email,
         }));
+
+        // Update verification status
+        setIsUserVerified(isVerified === true);
 
         console.log("Profile data saved to AsyncStorage");
       }
@@ -172,78 +181,91 @@ const Profile = () => {
 
       if (isNewImage) {
         // We have a new local image, we need to use FormData for multipart/form-data
-        try {
-          console.log("Uploading new profile image to ImageKit...");
+        const uploadImage = async (retryCount = 0) => {
+          try {
+            console.log(`Uploading new profile image to ImageKit... (attempt ${retryCount + 1})`);
 
-          // FormData object for multipart/form-data request
-          const formData = new FormData();
+            // FormData object for multipart/form-data request
+            const formData = new FormData();
 
-          // Add the image file
-          const fileInfo = await FileSystem.getInfoAsync(profilePhotoUri);
-          if (!fileInfo.exists) {
-            throw new Error("File does not exist");
-          }
-
-          // Get file name and extension
-          const fileName = profilePhotoUri.split("/").pop();
-          const fileType = fileName.split(".").pop().toLowerCase();
-          const mimeType =
-            fileType === "jpg" ? "image/jpeg" : `image/${fileType}`;
-
-          // Add file to formData - MUST use "profilePicture" to match the backend upload.single("profilePicture")
-          formData.append("profilePicture", {
-            uri: profilePhotoUri,
-            type: mimeType,
-            name: `profile_${phone}_${Date.now()}.${fileType}`,
-          });
-
-          // Add profile data to formData - use camelCase to match backend expectations
-          formData.append("firstName", profileData.firstName);
-          formData.append("lastName", profileData.lastName);
-          formData.append("email", profileData.email);
-          formData.append("phoneNumber", profileData.phoneNumber);
-          formData.append("accountNumber", profileData.accountNumber);
-          formData.append("accountName", profileData.accountName);
-          formData.append("ifscCode", profileData.ifscCode);
-          formData.append("bankName", profileData.bankName);
-          formData.append("branch", profileData.branch);
-
-          console.log("Sending image upload request...");
-
-          // Send request with image file
-          const baseurl = await AsyncStorage.getItem("apiBaseUrl");
-          const response = await fetch(
-            `${baseurl}api/update/${phone}`,
-            {
-              method: "PUT",
-              headers: {
-                "Content-Type": "multipart/form-data",
-              },
-              body: formData,
+            // Add the image file
+            const fileInfo = await FileSystem.getInfoAsync(profilePhotoUri);
+            if (!fileInfo.exists) {
+              throw new Error("File does not exist");
             }
-          );
 
-          // Parse JSON response - THIS WAS MISSING
-          const responseData = await response.json();
+            // Get file name and extension
+            const fileName = profilePhotoUri.split("/").pop();
+            const fileType = fileName.split(".").pop().toLowerCase();
+            const mimeType =
+              fileType === "jpg" ? "image/jpeg" : `image/${fileType}`;
 
-          console.log("Save API Response:", responseData);
+            // Add file to formData - MUST use "profilePicture" to match the backend upload.single("profilePicture")
+            formData.append("profilePicture", {
+              uri: profilePhotoUri,
+              type: mimeType,
+              name: `profile_${phone}_${Date.now()}.${fileType}`,
+            });
 
-          if (!response.ok) {
-            throw new Error(responseData.message || "Failed to update profile");
-          }
+            // Add profile data to formData - use camelCase to match backend expectations
+            formData.append("firstName", profileData.firstName);
+            formData.append("lastName", profileData.lastName);
+            formData.append("email", profileData.email);
+            formData.append("phoneNumber", profileData.phoneNumber);
+            formData.append("accountNumber", profileData.accountNumber);
+            formData.append("accountName", profileData.accountName);
+            formData.append("ifscCode", profileData.ifscCode);
+            formData.append("bankName", profileData.bankName);
+            formData.append("branch", profileData.branch);
 
-          // Update state with the ImageKit URL if available
-          if (responseData.user && responseData.user.profilePicture) {
-            setProfilePhotoUri(responseData.user.profilePicture);
-            await AsyncStorage.setItem(
-              "profilePicture",
-              responseData.user.profilePicture
+            console.log("Sending image upload request...");
+
+            // Send request with image file - REMOVE Content-Type header for FormData
+            const baseurl = await AsyncStorage.getItem("apiBaseUrl");
+            const response = await fetch(
+              `${baseurl}api/update/${phone}`,
+              {
+                method: "PUT",
+                // Remove Content-Type header - let fetch set it automatically for FormData
+                body: formData,
+              }
             );
+
+            // Parse JSON response
+            const responseData = await response.json();
+
+            console.log("Save API Response:", responseData);
+
+            if (!response.ok) {
+              throw new Error(responseData.message || "Failed to update profile");
+            }
+
+            // Update state with the ImageKit URL if available
+            if (responseData.user && responseData.user.profilePicture) {
+              setProfilePhotoUri(responseData.user.profilePicture);
+              await AsyncStorage.setItem(
+                "profilePicture",
+                responseData.user.profilePicture
+              );
+            }
+
+            return responseData;
+          } catch (error) {
+            console.error(`Image upload error (attempt ${retryCount + 1}):`, error);
+            
+            // Retry up to 2 times for network errors
+            if (retryCount < 2 && (error.message.includes('Network request failed') || error.message.includes('fetch'))) {
+              console.log(`Retrying upload... (attempt ${retryCount + 2})`);
+              // Wait 1 second before retrying
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              return uploadImage(retryCount + 1);
+            }
+            
+            throw error;
           }
-        } catch (error) {
-          console.error("Image upload error:", error);
-          throw new Error("Failed to upload profile picture: " + error.message);
-        }
+        };
+
+        await uploadImage();
       } else {
         // Use regular JSON request
         const requestData = {
@@ -262,9 +284,10 @@ const Profile = () => {
         if (profilePhotoUri !== DEFAULT_PROFILE_PHOTO) {
           requestData.profilePicture = profilePhotoUri;
         }
-
+        console.log("Request data ", requestData)
+        const baseurl = await AsyncStorage.getItem("apiBaseUrl")
         const response = await fetch(
-          `https://travel.timestringssystem.com/api//update/${phone}`,
+          `${baseurl}api/update/${phone}`,
           {
             method: "PUT",
             headers: {
@@ -281,13 +304,14 @@ const Profile = () => {
           throw new Error(responseData.message || "Failed to update profile");
         }
       }
-
+      console.log(profileData, profilePhotoUri)
       // Save to AsyncStorage
       await Promise.all([
         AsyncStorage.setItem("firstName", profileData.firstName),
         AsyncStorage.setItem("lastName", profileData.lastName),
         AsyncStorage.setItem("email", profileData.email),
         AsyncStorage.setItem("phoneNumber", profileData.phoneNumber),
+        AsyncStorage.setItem("profilePicture", profilePhotoUri),
       ]);
 
       alert("Success", "Profile saved successfully!");
@@ -346,12 +370,18 @@ const Profile = () => {
             value={profileData.phoneNumber}
             editable={false}
           />
+          {isUserVerified && (
+            <Text style={styles.verificationNote}>
+              Name fields are locked after verification
+            </Text>
+          )}
           <TextInputField
             label="First Name"
             value={profileData.firstName}
             onChangeText={(text) =>
               setProfileData((prevState) => ({ ...prevState, firstName: text }))
             }
+            editable={!isUserVerified}
           />
           <TextInputField
             label="Last Name"
@@ -359,6 +389,7 @@ const Profile = () => {
             onChangeText={(text) =>
               setProfileData((prevState) => ({ ...prevState, lastName: text }))
             }
+            editable={!isUserVerified}
           />
         </View>
 
@@ -538,6 +569,13 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   saveButtonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
+  verificationNote: { 
+    fontSize: 12, 
+    color: "#666", 
+    marginBottom: 10, 
+    fontStyle: "italic",
+    textAlign: "center"
+  },
 });
 
 export default Profile;

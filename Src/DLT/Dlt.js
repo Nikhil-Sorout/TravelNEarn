@@ -142,6 +142,105 @@ const parseDate = (dateString) => {
   return date;
 };
 
+const updateProfileVerification = async (panName) => {
+  try {
+    const phoneNumber = await AsyncStorage.getItem('phoneNumber');
+    const baseurl = await AsyncStorage.getItem('apiBaseUrl');
+    
+    if (!phoneNumber || !baseurl) {
+      console.error('Phone number or base URL not found');
+      return false;
+    }
+
+    // Split the PAN name into first and last name
+    const nameParts = panName.trim().split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+
+    // First, try to get existing profile data to preserve other fields
+    let existingProfileData = {};
+    try {
+      const existingResponse = await fetch(`${baseurl}api/getall/${phoneNumber}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (existingResponse.ok) {
+        const existingData = await existingResponse.json();
+        if (existingData && existingData.user) {
+          existingProfileData = existingData.user;
+          console.log('Existing profile data:', existingProfileData);
+        }
+      }
+    } catch (error) {
+      console.log('Could not fetch existing profile data, proceeding with new data');
+    }
+
+    const requestData = {
+      ...existingProfileData, // Preserve existing profile data
+      isVerified: true,
+      firstName: firstName,
+      lastName: lastName,
+      phoneNumber: phoneNumber
+    };
+
+    console.log('Updating profile verification with data:', requestData);
+    console.log('API URL:', `${baseurl}api/update/${phoneNumber}`);
+
+    const response = await fetch(`${baseurl}api/update/${phoneNumber}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestData),
+    });
+
+    const responseData = await response.json();
+    console.log('Profile update response:', responseData);
+    console.log('Response status:', response.status);
+
+    if (!response.ok) {
+      throw new Error(responseData.message || `Failed to update profile verification. Status: ${response.status}`);
+    }
+
+    // Update AsyncStorage with verification status
+    await AsyncStorage.setItem('isVerified', 'true');
+    await AsyncStorage.setItem('firstName', firstName);
+    await AsyncStorage.setItem('lastName', lastName);
+
+    // Verify the update was successful by fetching the updated profile
+    try {
+      const verifyResponse = await fetch(`${baseurl}api/getall/${phoneNumber}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (verifyResponse.ok) {
+        const verifyData = await verifyResponse.json();
+        console.log('Verification - Updated profile data:', verifyData);
+        if (verifyData && verifyData.user && verifyData.user.isVerified) {
+          console.log('✅ Profile verification successfully updated on backend');
+        } else {
+          console.log('⚠️ Profile verification may not have been updated on backend');
+        }
+      }
+    } catch (error) {
+      console.log('Could not verify profile update on backend:', error);
+    }
+
+    Alert.alert('Success', 'Profile verification completed successfully! Your profile has been updated on the backend.');
+    return true;
+  } catch (error) {
+    console.error('Profile update error:', error);
+    Alert.alert('Error', 'Failed to update profile verification: ' + error.message);
+    return false;
+  }
+};
+
 const checkVerificationStatus = async (requestId, setVerificationStatus, type, setDetails, attempt = 1, maxAttempts = 30) => {
   if (!requestId) {
     Alert.alert('Error', 'No request ID found. Please verify the document first.');
@@ -180,15 +279,36 @@ const checkVerificationStatus = async (requestId, setVerificationStatus, type, s
           await AsyncStorage.setItem('panDetails', JSON.stringify(details));
           setDetails(details);
           Alert.alert('Success', 'PAN verification successful! The PAN card is valid and matches the provided details.');
+          
+          // Check if both verifications are completed
+          const dlStatus = await AsyncStorage.getItem('dlStatus');
+          if (dlStatus === 'completed') {
+            await updateProfileVerification(details.fullName);
+          }
         } else if (type === 'ind_driving_license' && result?.status === 'id_found') {
+          console.log('DL API Response Result:', JSON.stringify(result));
+          
           const details = {
-            dlNumber: result.input_details?.input_id_number || '',
-            dob: result.input_details?.input_dob || '',
+            dlNumber: result.id_number || '',
+            dob: result.dob || '',
+            name: result.name || '',
           };
+          
+          console.log('Storing DL Details:', JSON.stringify(details));
           await AsyncStorage.setItem('dlStatus', 'completed');
           await AsyncStorage.setItem('dlDetails', JSON.stringify(details));
           setDetails(details);
           Alert.alert('Success', 'Driving License verification successful! The license is valid and matches the provided details.');
+          
+          // Check if both verifications are completed
+          const panStatus = await AsyncStorage.getItem('panStatus');
+          if (panStatus === 'completed') {
+            const panDetails = await AsyncStorage.getItem('panDetails');
+            if (panDetails) {
+              const { fullName: panName } = JSON.parse(panDetails);
+              await updateProfileVerification(panName);
+            }
+          }
         } else {
           Alert.alert('Verification Status', `Verification completed but with issues: ${result?.status || 'Unknown status'}`);
         }
@@ -230,6 +350,18 @@ const verifyDocument = async (dlNumber, dob, panNumber, fullName, setDlRequestId
       await checkVerificationStatus(panRequestId, setPanStatus, 'ind_pan', setPanDetails);
     }
   }
+
+  // Check if both verifications are completed and update profile
+  const finalDlStatus = await AsyncStorage.getItem('dlStatus');
+  const finalPanStatus = await AsyncStorage.getItem('panStatus');
+  
+  if (finalDlStatus === 'completed' && finalPanStatus === 'completed') {
+    const panDetails = await AsyncStorage.getItem('panDetails');
+    if (panDetails) {
+      const { fullName: panName } = JSON.parse(panDetails);
+      await updateProfileVerification(panName);
+    }
+  }
 };
 
 const Dlt = () => {
@@ -251,13 +383,18 @@ const Dlt = () => {
   useEffect(() => {
     const loadVerificationStatus = async () => {
       try {
+        // await AsyncStorage.setItem("dlStatus", "pending")
+        // await AsyncStorage.setItem("panStatus", "pending")
         const dlStatus = await AsyncStorage.getItem('dlStatus');
         const panStatus = await AsyncStorage.getItem('panStatus');
         const dlDetails = await AsyncStorage.getItem('dlDetails');
         const panDetails = await AsyncStorage.getItem('panDetails');
-
+        const globalVerificationStatus = await AsyncStorage.getItem('isVerified');
+        console.log(dlStatus, panStatus, dlDetails, panDetails, globalVerificationStatus)
         if (dlStatus === 'completed' && dlDetails) {
-          const { dlNumber, dob } = JSON.parse(dlDetails);
+          console.log('Loading DL Details from AsyncStorage:', dlDetails);
+          const { dlNumber, dob, name } = JSON.parse(dlDetails);
+          console.log('Parsed DL Details:', { dlNumber, dob, name });
           setDlStatus('completed');
           setIsDlVerified(true);
           setDlNumber(dlNumber || '');
@@ -277,6 +414,14 @@ const Dlt = () => {
           const parsedDate = parseDate(dob);
           if (parsedDate) {
             setDate(parsedDate);
+          }
+        }
+
+        // Check if both documents are verified but profile is not updated
+        if (dlStatus === 'completed' && panStatus === 'completed' && globalVerificationStatus !== 'true') {
+          if (panDetails) {
+            const { fullName: panName } = JSON.parse(panDetails);
+            await updateProfileVerification(panName);
           }
         }
       } catch (error) {
@@ -516,6 +661,7 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
     backgroundColor: '#f9f9f9',
+    paddingTop: 15
   },
   container: {
     flex: 1,

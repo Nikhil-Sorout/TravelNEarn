@@ -453,7 +453,7 @@ const TravelRequestModel = ({
           {/* Earning Card */}
           <View style={styles.card}>
             <View style={styles.rowBetween}>
-              <Text style={styles.boldText}>Expected Earning</Text>
+              <Text style={styles.boldText}>Expected Cost</Text>
               <Text style={styles.earningText}>₹{earning.senderTotalPay}</Text>
             </View>
           </View>

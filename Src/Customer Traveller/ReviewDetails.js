@@ -25,6 +25,9 @@ const ReviewDetails = ({
   teFee,
   discount,
   baseFare,
+  selectedConsignment,
+  userConsignments = [],
+  ride, // Add ride prop to get travel mode
 }) => {
   const navigation = useNavigation();
   const [loading, setLoading] = useState(false);
@@ -50,7 +53,16 @@ const ReviewDetails = ({
         return;
       }
 
-      const payload = { phoneNumber, rideId: id };
+      const payload = { 
+        phoneNumber, 
+        rideId: id,
+        consignmentId: selectedConsignment?.consignmentId,
+        travelMode: ride?.travelMode, // Use travel mode from ride details
+        calculatedPrice: selectedConsignment?.calculatedPrice,
+        // Add weight and distance for backend fare calculation
+        weight: selectedConsignment?.weight,
+        distance: selectedConsignment?.distance
+      };
       console.log("Sending payload:", payload);
       const baseurl = await AsyncStorage.getItem("apiBaseUrl");
       // const baseurl = "http://192.168.1.5:5002/";
@@ -135,6 +147,35 @@ const ReviewDetails = ({
             </View>
           </View>
         </View>
+
+        {/* Selected Consignment Details */}
+        {selectedConsignment && (
+          <View style={styles.consignmentContainer}>
+            <Text style={styles.consignmentTitle}>Selected Consignment</Text>
+            <View style={styles.consignmentDetails}>
+              {selectedConsignment.weight && (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Weight:</Text>
+                  <Text style={styles.detailValue}>{selectedConsignment.weight} kg</Text>
+                </View>
+              )}
+              {selectedConsignment.dimensions && (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Dimensions:</Text>
+                  <Text style={styles.detailValue}>
+                    {selectedConsignment.dimensions.length}×{selectedConsignment.dimensions.breadth}×{selectedConsignment.dimensions.height} {selectedConsignment.dimensions.unit}
+                  </Text>
+                </View>
+              )}
+              {selectedConsignment.distance && (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Distance:</Text>
+                  <Text style={styles.detailValue}>{selectedConsignment.distance}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
 
         <View style={styles.fareDetails}>
           {/* <View style={styles.row}>
@@ -324,6 +365,37 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 16,
     color: "#fff",
+    fontWeight: "bold",
+  },
+  consignmentContainer: {
+    backgroundColor: "#f9f9f9",
+    borderWidth: 1,
+    borderColor: "#53B175",
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+  },
+  consignmentTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 10,
+  },
+  consignmentDetails: {
+    marginTop: 10,
+  },
+  detailRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 5,
+  },
+  detailLabel: {
+    fontSize: 16,
+    color: "#666",
+  },
+  detailValue: {
+    fontSize: 16,
+    color: "#333",
     fontWeight: "bold",
   },
 });

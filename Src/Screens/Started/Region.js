@@ -9,6 +9,8 @@ import {
   responsivePadding,
   screenWidth 
 } from '../../Utils/responsive';
+import SafeAreaView from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const cities = ['Delhi', 'Gurugram', 'Noida', 'Jaipur', 'Bangalore', 'Hyderabad', 'Kolkata'];
 
@@ -27,13 +29,14 @@ const RegionPicker = ({ navigation }) => {
 
   const filteredCities = cities.filter(city => city.toLowerCase().includes(searchQuery.toLowerCase()));
 
-  const handleRegionSelect = (region) => {
+  const handleRegionSelect = async (region) => {
     setSelectedRegion(region);
+    await AsyncStorage.setItem("region", region)
     navigation.navigate('Navigation');
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Icon name="chevron-back" size={scale(24)} color="#fff" />
@@ -67,7 +70,7 @@ const RegionPicker = ({ navigation }) => {
           </TouchableOpacity>
         )}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 

@@ -29,6 +29,17 @@ import {
   calculateDurationFromUTC 
 } from "../Utils/dateTimeUtils";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+// Add status normalization function
+const normalizeConsignmentStatus = (consignments) => {
+  if (!Array.isArray(consignments)) return [];
+  
+  return consignments.map(consignment => ({
+    ...consignment,
+    status: consignment.status === "Yet to Collect" ? "Pending" : consignment.status
+  }));
+};
+
 const SearchRide = ({ navigation, route }) => {
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
@@ -46,6 +57,7 @@ const SearchRide = ({ navigation, route }) => {
   const [searchDate, setSearchDate] = useState(route.params.date || "");
   const [waitingForCorrectMode, setWaitingForCorrectMode] = useState(false);
   const [calculatedPrice, setCalculatedPrice] = useState(null);
+  const [userConsignments, setUserConsignments] = useState([]);
 
   useEffect(() => {
     const getPhoneNumber = async () => {
@@ -107,10 +119,20 @@ const SearchRide = ({ navigation, route }) => {
         //   "Search rides response:",
         //   JSON.stringify(response.data, null, 2)
         // );
-        setCalculatedPrice(response?.data?.calculatedPrice);
-        const rides = await response.data.availableRides || [];
-        const profiles = await response.data.ridesWithProfile || [];
-
+        console.log("Full API response:", JSON.stringify(response.data, null, 2));
+        
+        // Handle different possible response structures
+        const responseData = response.data;
+        const rides = responseData?.availableRides || responseData?.rides || [];
+        const profiles = responseData?.ridesWithProfile || [];
+        const calculatedPrices = Array.isArray(responseData?.calculatedPrices) ? responseData.calculatedPrices : 
+                                Array.isArray(responseData?.calculatedPrice) ? responseData.calculatedPrice : 
+                                responseData?.calculatedPrice ? [responseData.calculatedPrice] : [];
+        const userConsignments = responseData?.userConsignments || [];
+        const estimatedFareData = responseData?.estimatedFare || responseData?.fareDetails || null;
+        
+        setCalculatedPrice(calculatedPrices);
+        
         // Merge rides with profiles based on index
         const mergedRides = await rides.map((ride, index) => ({
           ...ride,
@@ -120,10 +142,14 @@ const SearchRide = ({ navigation, route }) => {
         }));
 
         console.log("Merged rides:", JSON.stringify(mergedRides, null, 2));
+        console.log("Calculated prices:", JSON.stringify(calculatedPrices, null, 2));
+        console.log("User consignments:", JSON.stringify(userConsignments, null, 2));
+        
         setData(mergedRides);
         setFilteredData(mergedRides);
-        setEstimatedFare(response.data.estimatedFare);
+        setEstimatedFare(estimatedFareData);
         setRidesWithProfile(profiles);
+        setUserConsignments(normalizeConsignmentStatus(userConsignments));
         setError(null);
         
         // Clear waiting state when we get the correct mode data
@@ -139,6 +165,7 @@ const SearchRide = ({ navigation, route }) => {
         setFilteredData([]);
         setEstimatedFare(null);
         setRidesWithProfile(null);
+        setUserConsignments(normalizeConsignmentStatus([]));
         setWaitingForCorrectMode(false);
       } finally {
         setLoading(false);
@@ -276,13 +303,20 @@ const SearchRide = ({ navigation, route }) => {
     return (
       <TouchableOpacity
         style={styles.card}
-        onPress={() =>
+        onPress={() => {
+          console.log("Navigating to TravelDetails with data:", {
+            ride: item,
+            fareDetails: estimatedFare,
+            calculatedPrices: calculatedPrice,
+            userConsignments: userConsignments
+          });
           navigation.navigate("TravelDetails", {
             ride: item,
             fareDetails: estimatedFare,
-            calculatedPrice: calculatedPrice,
-          })
-        }
+            calculatedPrices: calculatedPrice || [],
+            userConsignments: userConsignments || [],
+          });
+        }}
       >
         <View style={styles.timelineContainer}>
           <View style={styles.timelineContent}>
@@ -344,9 +378,22 @@ const SearchRide = ({ navigation, route }) => {
               </Text>
             </View>
           </View>
-          <Text style={styles.price}>
-            ₹{calculatedPrice?.senderTotalPay|| "N/A"}
-          </Text>
+          <View style={styles.priceContainer}>
+            {calculatedPrice && calculatedPrice.length > 0 ? (
+              <View>
+                <Text style={styles.price}>
+                  ₹{calculatedPrice[0]?.calculatedPrice?.senderTotalPay || calculatedPrice[0]?.calculatedPrice?.totalFare || "N/A"}
+                </Text>
+                <Text style={styles.priceSubtext}>
+                  {calculatedPrice.length} payment option{calculatedPrice.length > 1 ? 's' : ''} available
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.price}>
+                ₹{estimatedFare?.senderTotalPay || estimatedFare?.totalFare || "N/A"}
+              </Text>
+            )}
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -594,6 +641,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     color: "#D83F3F",
+  },
+  priceContainer: {
+    alignItems: "flex-end",
+  },
+  priceSubtext: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 2,
   },
 });
 

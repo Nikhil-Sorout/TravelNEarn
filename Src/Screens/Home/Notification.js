@@ -41,6 +41,17 @@ const NotificationsScreen = ({ navigation, route }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const { socket } = useSocket();
 
+  // Helper function to get payment key for a notification
+  const getPaymentKey = (travelId, consignmentId) => {
+    return consignmentId ? `${travelId}_${consignmentId}` : travelId;
+  };
+
+  // Helper function to check if a notification is paid
+  const isNotificationPaid = (travelId, consignmentId) => {
+    const paymentKey = getPaymentKey(travelId, consignmentId);
+    return paidNotifications[paymentKey] === true;
+  };
+
   useEffect(() => {
     const loadPhoneNumber = async () => {
       try {
@@ -274,10 +285,11 @@ const NotificationsScreen = ({ navigation, route }) => {
     phoneNumber: paymentPhoneNumber,
     amount,
     travelId,
+    consignmentId,
     title = "Ride Payment",
     notification = null,
   }) => {
-    console.log("Verifying payment for Travel ID:", travelId);
+    console.log("Verifying payment for Travel ID:", travelId, "Consignment ID:", consignmentId);
     try {
       const finalPhoneNumber = paymentPhoneNumber || phoneNumber;
       if (!finalPhoneNumber || !/^\d{10}$/.test(finalPhoneNumber)) {
@@ -311,6 +323,7 @@ const NotificationsScreen = ({ navigation, route }) => {
         totalFare,
         senderTotalPay,
         travelId,
+        consignmentId,
         title,
       });
 
@@ -332,6 +345,7 @@ const NotificationsScreen = ({ navigation, route }) => {
             totalFare: totalFare ? parseFloat(totalFare) : null,
             senderTotalPay: senderTotalPay ? parseFloat(senderTotalPay) : null,
             travelId: travelId || "N/A",
+            consignmentId: consignmentId || null,
             title,
           }),
         }
@@ -347,7 +361,8 @@ const NotificationsScreen = ({ navigation, route }) => {
       if (json.success) {
         Alert.alert("Success", "Payment verified successfully");
 
-        const notificationId = travelId || `placeholder-${Date.now()}`;
+        // Use combination of travelId and consignmentId as key to avoid conflicts
+        const notificationId = consignmentId ? `${travelId}_${consignmentId}` : (travelId || `placeholder-${Date.now()}`);
         setPaidNotifications((prev) => ({
           ...prev,
           [notificationId]: true,
@@ -681,7 +696,7 @@ const NotificationsScreen = ({ navigation, route }) => {
 
                   {(item.title === "Consignment Accepted" ||
                     item.title === "Ride Request accept") &&
-                    !paidNotifications[item.travelId] &&
+                    !isNotificationPaid(item.travelId, item.consignmentId) &&
                     item.paymentstatus !== "successful" && item.paymentstatus !== "declined" && (
                       <View style={styles.buttonContainer}>
                         <TouchableOpacity
@@ -763,7 +778,7 @@ const NotificationsScreen = ({ navigation, route }) => {
 
                   {(item.title === "Consignment Accepted" ||
                     item.title === "Ride Request accept") &&
-                    (paidNotifications[item.travelId] || item.paymentstatus === "successful") && (
+                    (isNotificationPaid(item.travelId, item.consignmentId) || item.paymentstatus === "successful") && (
                       <View style={styles.buttonContainer}>
                         <TouchableOpacity
                           style={styles.successButton}
@@ -829,7 +844,7 @@ const NotificationsScreen = ({ navigation, route }) => {
 
                   {(item.title === "Consignment Accepted" ||
                     item.title === " Ride Request accept") &&
-                    (!paidNotifications[item.travelId] && item.paymentstatus === "declined") && (
+                    (!isNotificationPaid(item.travelId, item.consignmentId) && item.paymentstatus === "declined") && (
                       <View style={styles.buttonContainer}>
                         <TouchableOpacity
                           style={[styles.successButton, {backgroundColor: 'darkred'}]}

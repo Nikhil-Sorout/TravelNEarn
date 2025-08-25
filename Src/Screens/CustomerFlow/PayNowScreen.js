@@ -477,7 +477,7 @@ const PayNowScreen = ({ navigation, route }) => {
           userEmail,
           travelId: finalTravelId,
           time: finalConsignmentId,
-          consignmentId: finalConsignmentId,
+          consignmentId: finalConsignmentId, // Ensure consignmentId is passed
           keyId: "rzp_test_HYwz1gfxytH2ci",
           verificationPhoneNumber,
           notificationType,

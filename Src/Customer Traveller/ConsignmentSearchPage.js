@@ -87,11 +87,9 @@ const SearchRide = ({ navigation, route }) => {
           return {
             ...consignmentData,
             // Include additional properties from the outer object
-            calculatedPrice: item.calculatedPrice,
+            availableTravels: item.availableTravels || [],
             matchType: item.matchType,
-            priceCalculationMode: item.priceCalculationMode,
-            userTravelId: item.userTravelId,
-            userTravelMode: item.userTravelMode
+            userTravels: response?.data?.userTravels || []
           };
         });
         
@@ -244,6 +242,32 @@ const SearchRide = ({ navigation, route }) => {
             </Text>
           </View>
         </View>
+        
+        {/* Travel Options Preview */}
+        {item.availableTravels && item.availableTravels.length > 0 && (
+          <View style={styles.travelOptionsPreview}>
+            <Text style={styles.travelOptionsText}>
+              {item.availableTravels.length} travel option{item.availableTravels.length > 1 ? 's' : ''} available
+            </Text>
+            <Text style={styles.travelOptionsSubtext}>
+              {(() => {
+                const validPrices = item.availableTravels
+                  .map(t => t.calculatedPrice?.totalFare)
+                  .filter(price => price && !isNaN(price));
+                
+                if (validPrices.length > 0) {
+                  const minPrice = Math.min(...validPrices);
+                  const maxPrice = Math.max(...validPrices);
+                  return minPrice === maxPrice 
+                    ? `₹${minPrice}` 
+                    : `From ₹${minPrice} to ₹${maxPrice}`;
+                } else {
+                  return 'Price varies by travel option';
+                }
+              })()}
+            </Text>
+          </View>
+        )}
       </TouchableOpacity>
     );
   };
@@ -447,6 +471,23 @@ const styles = StyleSheet.create({
   infoSubtitle: {
     fontSize: 14,
     color: "#555",
+  },
+  travelOptionsPreview: {
+    marginTop: 10,
+    padding: 10,
+    backgroundColor: "#f0f0f0",
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  travelOptionsText: {
+    fontSize: 14,
+    fontFamily: "Inter-SemiBold",
+    color: "#333",
+  },
+  travelOptionsSubtext: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 2,
   },
 });
 

@@ -26,6 +26,32 @@ const ConsignmentDetails = () => {
   const [loading, setLoading] = useState(false); // Loading state
   const [earning, setEarning] = useState({}); // Changed to object instead of array
   const [error, setError] = useState(null); // Added error state
+  const [selectedTravel, setSelectedTravel] = useState(null); // Selected travel option
+
+  // Auto-select the first available travel option
+  useEffect(() => {
+    if (item.availableTravels && item.availableTravels.length > 0) {
+      console.log("=== AUTO-SELECTION DEBUG ===");
+      console.log("Available travels:", JSON.stringify(item.availableTravels, null, 2));
+      console.log("Current consignment weight:", item.weight);
+      
+      // Find the first travel option with valid pricing
+      const validTravel = item.availableTravels.find(travel => 
+        travel.calculatedPrice && 
+        travel.calculatedPrice.totalFare && 
+        !isNaN(travel.calculatedPrice.totalFare)
+      );
+      
+      console.log("Valid travel found:", validTravel ? validTravel.travelId : "None");
+      console.log("First travel option:", item.availableTravels[0]?.travelId);
+      
+      const selectedOption = validTravel || item.availableTravels[0];
+      console.log("Final selected option:", selectedOption?.travelId);
+      console.log("Selected option price:", selectedOption?.calculatedPrice?.totalFare);
+      
+      setSelectedTravel(selectedOption);
+    }
+  }, [item.availableTravels]);
 
   // console.log("ridedetails11", item.sotp);
 
@@ -102,7 +128,51 @@ const ConsignmentDetails = () => {
         console.error("Phone number not found");
         return;
       }
-      console.log(item.consignmentId, phoneNumber)
+      
+      if (!selectedTravel) {
+        alert("Please select a travel option first!");
+        return;
+      }
+      
+      // Debug logging to track the selected consignment and travel details
+      console.log("=== REQUEST DEBUG INFO ===");
+      console.log("Selected Consignment ID:", item.consignmentId);
+      console.log("Selected Consignment Weight:", item.weight);
+      console.log("Selected Travel ID:", selectedTravel.travelId);
+      console.log("Selected Travel Mode:", selectedTravel.travelMode);
+      console.log("Selected Travel Vehicle Type:", selectedTravel.vehicleType);
+      console.log("Selected Travel Calculated Price:", selectedTravel.calculatedPrice);
+      console.log("Full selectedTravel object:", JSON.stringify(selectedTravel, null, 2));
+      console.log("Full item object:", JSON.stringify(item, null, 2));
+      
+      const requestPayload = {
+        consignmentId: item.consignmentId,
+        phoneNumber: phoneNumber,
+        travelId: selectedTravel.travelId,
+        travelMode: selectedTravel.travelMode, // Use travel mode from selected travel option
+        vehicleType: selectedTravel.vehicleType,
+        calculatedPrice: selectedTravel.calculatedPrice,
+        // Add weight and distance for backend fare calculation
+        weight: item.weight,
+        distance: item.distance
+      };
+      
+      // Validate that all required fields are present
+      if (!requestPayload.travelMode) {
+        console.error("ERROR: travelMode is undefined!");
+        console.error("selectedTravel object:", JSON.stringify(selectedTravel, null, 2));
+        alert("Error: Travel mode is missing. Please try selecting a different travel option.");
+        return;
+      }
+      
+      if (!requestPayload.travelId) {
+        console.error("ERROR: travelId is undefined!");
+        alert("Error: Travel ID is missing. Please try selecting a different travel option.");
+        return;
+      }
+      
+      console.log("Request payload being sent:", JSON.stringify(requestPayload, null, 2));
+      
       const response = await fetch(
         `${baseurl}api/getearning`,
         {
@@ -110,10 +180,7 @@ const ConsignmentDetails = () => {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            consignmentId: item.consignmentId,
-            phoneNumber: phoneNumber,
-          }),
+          body: JSON.stringify(requestPayload),
         }
       );
 
@@ -130,7 +197,7 @@ const ConsignmentDetails = () => {
       console.error("Request failed:", error);
     }
   };
-
+  
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor="#D32F2F" />
@@ -305,19 +372,137 @@ const ConsignmentDetails = () => {
         </View>
       </View>
 
-      {/* Card 3 - Earning */}
+      {/* Card 3 - Travel Options */}
+      {item.availableTravels && item.availableTravels.length > 0 && (
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Available Travel Options</Text>
+          <Text style={styles.sectionSubtitle}>Select your preferred travel option:</Text>
+          
+          {item.availableTravels.map((travel, index) => {
+            console.log(`Travel option ${index}:`, {
+              travelId: travel.travelId,
+              travelMode: travel.travelMode,
+              vehicleType: travel.vehicleType,
+              calculatedPrice: travel.calculatedPrice
+            });
+            
+            return (
+              <TouchableOpacity
+                key={travel.travelId || index}
+                style={[
+                  styles.travelOption,
+                  selectedTravel?.travelId === travel.travelId && styles.selectedTravelOption
+                ]}
+                onPress={() => {
+                  console.log("=== TRAVEL OPTION SELECTED ===");
+                  console.log("Selected travel ID:", travel.travelId);
+                  console.log("Selected travel mode:", travel.travelMode);
+                  console.log("Selected travel vehicle type:", travel.vehicleType);
+                  console.log("Selected travel calculated price:", travel.calculatedPrice);
+                  console.log("Current consignment weight:", item.weight);
+                  setSelectedTravel(travel);
+                }}
+              >
+              <View style={styles.travelOptionHeader}>
+                <View style={styles.travelModeContainer}>
+                  <Text style={styles.travelModeText}>
+                    {travel.travelMode?.charAt(0).toUpperCase() + travel.travelMode?.slice(1) || 'N/A'}
+                  </Text>
+                  {travel.vehicleType && (
+                    <Text style={styles.vehicleTypeText}>
+                      ({travel.vehicleType})
+                    </Text>
+                  )}
+                </View>
+                <View style={styles.priceContainer}>
+                  {travel.calculatedPrice ? (
+                    <Text style={styles.priceText}>
+                      ₹{travel.calculatedPrice.totalFare || 'N/A'}
+                    </Text>
+                  ) : (
+                    <Text style={styles.priceErrorText}>
+                      {travel.priceError || 'Price not available'}
+                    </Text>
+                  )}
+                </View>
+              </View>
+              
+              <View style={styles.travelDetails}>
+                <Text style={styles.travelDetailText}>
+                  <Text style={styles.detailLabel}>Travel ID: </Text>
+                  {travel.travelId || 'N/A'}
+                </Text>
+                <Text style={styles.travelDetailText}>
+                  <Text style={styles.detailLabel}>Status: </Text>
+                  {travel.status || 'N/A'}
+                </Text>
+                {travel.expectedStartTime && (
+                  <Text style={styles.travelDetailText}>
+                    <Text style={styles.detailLabel}>Start Time: </Text>
+                    {new Date(travel.expectedStartTime).toLocaleString("en-US", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: true,
+                    })}
+                  </Text>
+                )}
+                {travel.expectedEndTime && (
+                  <Text style={styles.travelDetailText}>
+                    <Text style={styles.detailLabel}>End Time: </Text>
+                    {new Date(travel.expectedEndTime).toLocaleString("en-US", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: true,
+                    })}
+                  </Text>
+                )}
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+        </View>
+      )}
+
+      {/* Card 4 - Earning */}
       <View style={styles.card}>
         <View style={styles.rowBetween}>
           <Text style={styles.boldText}>Total expected Earning</Text>
           <Text style={styles.earningText}>
-            ₹{loading ? "Fetching..." : item?.calculatedPrice?.totalFare || "N/A"}
+            ₹{loading ? "Fetching..." : selectedTravel?.calculatedPrice?.totalFare || "N/A"}
           </Text>
         </View>
+        {selectedTravel && (
+          <View style={styles.rowBetween}>
+            <Text style={styles.boldText}>Travel Mode</Text>
+            <Text style={styles.travelModeDisplay}>
+              {selectedTravel.travelMode?.charAt(0).toUpperCase() + selectedTravel.travelMode?.slice(1) || 'N/A'}
+              {selectedTravel.vehicleType && ` (${selectedTravel.vehicleType})`}
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* Footer Button */}
-      <TouchableOpacity style={styles.footerButton} onPress={handleRequest}>
-        <Text style={styles.buttonText}>Request to Carry the Consignment</Text>
+      <TouchableOpacity 
+        style={[
+          styles.footerButton, 
+          !selectedTravel && styles.disabledButton
+        ]} 
+        onPress={handleRequest}
+        disabled={!selectedTravel}
+      >
+        <Text style={[
+          styles.buttonText,
+          !selectedTravel && styles.disabledButtonText
+        ]}>
+          {selectedTravel ? "Request to Carry the Consignment" : "Please select a travel option"}
+        </Text>
       </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -519,6 +704,81 @@ const styles = StyleSheet.create({
   infoRow: {
     flexDirection: "row",
     marginVertical: 10,
+  },
+  travelOption: {
+    backgroundColor: "#f9f9f9",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#eee",
+  },
+  selectedTravelOption: {
+    borderColor: "#53B175",
+    borderWidth: 2,
+    backgroundColor: "#f0f8f0",
+  },
+  travelOptionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  travelModeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  travelModeText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  vehicleTypeText: {
+    fontSize: 14,
+    color: "#666",
+    marginLeft: 5,
+  },
+  priceContainer: {
+    alignItems: "flex-end",
+  },
+  priceText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "green",
+  },
+  priceErrorText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "red",
+  },
+  travelDetails: {
+    marginTop: 8,
+  },
+  travelDetailText: {
+    fontSize: 14,
+    color: "#555",
+    marginBottom: 2,
+  },
+  detailLabel: {
+    fontWeight: "bold",
+    color: "#333",
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 10,
+  },
+  travelModeDisplay: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  disabledButton: {
+    backgroundColor: "#ccc",
+    opacity: 0.7,
+  },
+  disabledButtonText: {
+    color: "#888",
   },
 });
 

@@ -135,8 +135,8 @@ const TravelPayRequest = ({ route, navigation }) => {
     try {
       setLoading(true);
       setError(null);
-
-      const endpoint = `https://travel.timestringssystem.com/t/search?from=${encodeURIComponent(
+      const baseurl = await AsyncStorage.getItem("apiBaseUrl")
+      const endpoint = `${baseurl}t/search?from=${encodeURIComponent(
         searchFrom
       )}&to=${encodeURIComponent(searchTo)}&date=${encodeURIComponent(
         formattedDate

@@ -19,8 +19,13 @@ import commonStyles from "../../styles";
 import { 
   scale, 
   verticalScale, 
+  moderateScale,
+  moderateVerticalScale,
   responsiveFontSize, 
-  responsivePadding 
+  responsivePadding,
+  responsiveDimensions,
+  screenWidth,
+  screenHeight
 } from "../../Utils/responsive";
 
 const DEFAULT_PROFILE_PHOTO =
@@ -95,7 +100,7 @@ const Verification = ({ route }) => {
       Alert.alert("Action Cancelled", "No image was selected.");
     }
   }, []);
-
+  console.log(isNewUser)
   // Function to save profile with FormData (only for new users)
   const saveProfile = useCallback(async () => {
     if (isNewUser === null) {
@@ -107,8 +112,9 @@ const Verification = ({ route }) => {
     if (!isNewUser) {
       // Fetch user data again or use stored data to get userId
       try {
+        const baseurl = await AsyncStorage.getItem("apiBaseUrl")
         const response = await fetch(
-          `https://travel.timestringssystem.com/api/user/${phoneNumber}`,
+          `${baseurl}api/user/${phoneNumber}`,
           {
             method: "GET",
             headers: {
@@ -117,7 +123,7 @@ const Verification = ({ route }) => {
           }
         );
 
-        if (response.ok) {
+        if (!response.ok) {
           const userData = await response.json();
           await AsyncStorage.setItem("userLog", "1");
           await AsyncStorage.setItem("firstName", userData.firstName || "");
@@ -179,7 +185,8 @@ const Verification = ({ route }) => {
     console.log("Sending form data to API");
 
     try {
-      const response = await fetch("https://travel.timestringssystem.com/api/create", {
+      const baseurl = await AsyncStorage.getItem("apiBaseUrl")
+      const response = await fetch(`${baseurl}api/create`, {
         method: "POST",
         body: formData,
         headers: {
@@ -219,154 +226,213 @@ const Verification = ({ route }) => {
   ]);
 
   return (
-    // <KeyboardAvoidingView
-    //   style={styles.container}
-    //   behavior={Platform.OS === "ios" ? "padding" : "height"}
-    // >
-    <ScrollView keyboardShouldPersistTaps="handled">
-      <View style={styles.innerContainer}>
-        {/* Profile Photo Section */}
-        <View style={styles.profilePhotoContainer}>
-          <Image
-            source={{ uri: profilePhotoUri }}
-            style={styles.profilePhoto}
-          />
-          <TouchableOpacity style={styles.editIcon} onPress={selectImage}>
-            <Image source={require("../../Images/Vector.png")} />
-          </TouchableOpacity>
-          <Text style={styles.profilePhotoText}>Profile Photo</Text>
-        </View>
-
-        {/* Phone Number Section */}
-        <View style={styles.inputContainer}>
-          <View style={styles.labelContainer}>
-            <Text style={styles.label}>Phone Number </Text>
-            <View style={styles.verifiedContainer}>
-              <Icon name="verified" size={scale(24)} color="#1B5E20" />
-              <Text style={styles.verifiedText}>VERIFIED</Text>
-            </View>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <ScrollView 
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.innerContainer}>
+          {/* Profile Photo Section */}
+          <View style={styles.profilePhotoContainer}>
+            <Image
+              source={{ uri: profilePhotoUri }}
+              style={styles.profilePhoto}
+            />
+            <TouchableOpacity style={styles.editIcon} onPress={selectImage}>
+              <Image 
+                source={require("../../Images/Vector.png")} 
+                style={styles.editIconImage}
+              />
+            </TouchableOpacity>
+            <Text style={styles.profilePhotoText}>Profile Photo</Text>
           </View>
-          <TextInput
-            style={[styles.input, styles.disabledInput]}
-            value={phoneNumber}
-            editable={false}
-          />
-        </View>
 
-        {/* First Name */}
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>First Name</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter First Name"
-            value={firstName}
-            onChangeText={setFirstName}
-          />
-        </View>
+          {/* Phone Number Section */}
+          <View style={styles.inputContainer}>
+            <View style={styles.labelContainer}>
+              <Text style={styles.label}>Phone Number </Text>
+              <View style={styles.verifiedContainer}>
+                <Icon 
+                  name="verified" 
+                  size={responsiveDimensions.icon.medium} 
+                  color={commonStyles.Colors.successTextColor} 
+                />
+                <Text style={styles.verifiedText}>VERIFIED</Text>
+              </View>
+            </View>
+            <TextInput
+              style={[styles.input, styles.disabledInput]}
+              value={phoneNumber}
+              placeholderTextColor={commonStyles.Colors.secondColor}
+              editable={false}
+            />
+          </View>
 
-        {/* Last Name */}
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Last Name</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter Last Name"
-            value={lastName}
-            onChangeText={setLastName}
-          />
-        </View>
+          {/* First Name */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>First Name</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter First Name"
+              placeholderTextColor={commonStyles.Colors.secondColor}
+              value={firstName}
+              onChangeText={setFirstName}
+            />
+          </View>
 
-        {/* Email Address */}
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Email Address (Optional)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter Email"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-          />
-        </View>
+          {/* Last Name */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Last Name</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter Last Name"
+              placeholderTextColor={commonStyles.Colors.secondColor}
+              value={lastName}
+              onChangeText={setLastName}
+            />
+          </View>
 
-        {/* Save Button */}
-        <TouchableOpacity style={styles.saveButton} onPress={saveProfile}>
-          <Text style={styles.saveButtonText}>Save</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
-    // </KeyboardAvoidingView>
+          {/* Email Address */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Email Address (Optional)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter Email"
+              placeholderTextColor={commonStyles.Colors.secondColor}
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+            />
+          </View>
+
+          {/* Save Button */}
+          <TouchableOpacity style={styles.saveButton} onPress={saveProfile}>
+            <Text style={styles.saveButtonText}>Save</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  innerContainer: { padding: responsivePadding.horizontal },
+  container: { 
+    flex: 1, 
+    backgroundColor: "#fff" 
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: verticalScale(40),
+  },
+  innerContainer: { 
+    paddingHorizontal: responsivePadding.horizontal,
+    paddingTop: responsivePadding.vertical,
+    paddingBottom: responsivePadding.medium,
+  },
   profilePhotoContainer: {
     alignItems: "center",
     marginBottom: verticalScale(30),
-    marginTop: verticalScale(40),
+    marginTop: verticalScale(20),
   },
   profilePhoto: { 
-    width: scale(120), 
-    height: scale(120), 
-    borderRadius: scale(60) 
+    width: responsiveDimensions.logo.width, 
+    height: responsiveDimensions.logo.height, 
+    borderRadius: scale(60),
+    borderWidth: 2,
+    borderColor: commonStyles.Colors.primary,
   },
   editIcon: {
     position: "absolute",
     bottom: verticalScale(50),
     left: "60%",
-    backgroundColor: "#006EFF",
+    backgroundColor: commonStyles.Colors.linkColor,
     borderRadius: scale(15),
     padding: scale(5),
     borderWidth: 1,
     borderColor: "#ddd",
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  editIconImage: {
+    width: scale(20),
+    height: scale(20),
   },
   profilePhotoText: {
     marginTop: verticalScale(10),
     fontSize: responsiveFontSize.md,
     color: commonStyles.Colors.blackColor,
     fontWeight: "500",
+    fontFamily: commonStyles.fonts.interMedium,
   },
   label: {
     fontSize: responsiveFontSize.md,
     color: commonStyles.Colors.secondColor,
     marginBottom: verticalScale(10),
     fontWeight: "bold",
+    fontFamily: commonStyles.fonts.interSemiBold,
   },
-  inputContainer: { marginBottom: verticalScale(15) },
+  inputContainer: { 
+    marginBottom: verticalScale(20) 
+  },
   labelContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: verticalScale(5),
   },
   verifiedText: {
-    color: commonStyles.Colors.successTextColor, // Dark green text
+    color: commonStyles.Colors.successTextColor,
     fontWeight: "bold",
     marginLeft: scale(5),
+    fontSize: responsiveFontSize.sm,
+    fontFamily: commonStyles.fonts.interSemiBold,
   },
   input: {
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: scale(8),
-    padding: scale(12),
+    paddingHorizontal: scale(12),
+    paddingVertical: verticalScale(12),
     fontSize: responsiveFontSize.md,
+    color: commonStyles.Colors.blackColor,
+    fontFamily: commonStyles.fonts.interRegular,
+    backgroundColor: "#fff",
   },
-  disabledInput: { backgroundColor: "#f0f0f0", color: "#888" },
+  disabledInput: { 
+    backgroundColor: "#f0f0f0", 
+    color: commonStyles.Colors.secondColor,
+    fontFamily: commonStyles.fonts.interMedium,
+  },
   saveButton: {
     backgroundColor: commonStyles.Colors.primary,
     paddingVertical: verticalScale(15),
     borderRadius: scale(8),
     alignItems: "center",
-    marginTop: verticalScale(20),
+    marginTop: verticalScale(30),
+    marginBottom: verticalScale(20),
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   saveButtonText: { 
     color: "#fff", 
     fontSize: responsiveFontSize.lg, 
-    fontWeight: "bold" 
+    fontWeight: "bold",
+    fontFamily: commonStyles.fonts.interBold,
   },
   verifiedContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: commonStyles.Colors.successBackgroundColor, // Light green background
+    backgroundColor: commonStyles.Colors.successBackgroundColor,
     paddingVertical: verticalScale(5),
     paddingHorizontal: scale(10),
     borderRadius: scale(8),

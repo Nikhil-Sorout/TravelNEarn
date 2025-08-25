@@ -110,21 +110,57 @@ const ConsignmentHistory = () => {
   }, []);
 
   const renderStatusBadge = (status) => {
+    // Helper function to determine display status (consistent with ConsignmentHistoryDetails)
+    const getDisplayStatus = (statusStr) => {
+      const status = statusStr || "";
+      const lowerStatus = status.toLowerCase();
+      
+      // Check for pending/not accepted statuses
+      const pendingStatuses = ["pending", "not started", "in progress", "rejected", "expired"];
+      if (pendingStatuses.includes(lowerStatus)) {
+        return "UPCOMING";
+      }
+      
+      // Check for accepted status
+      if (lowerStatus === "accepted") {
+        return "ACCEPTED";
+      }
+      
+      // Check for completed status
+      if (lowerStatus === "completed") {
+        return "COMPLETED";
+      }
+      
+      // Check for collected status
+      if (lowerStatus === "collected") {
+        return "ON THE WAY";
+      }
+      
+      // Default fallback
+      return status.toUpperCase() || "YET TO COLLECT";
+    };
+
     const colors = {
       "YET TO COLLECT": "#FFF1A6",
-      CANCELLED: "#FFEEEB",
-      COMPLETED: "#F3FFFA",
-      EXPIRED: "#FFE6E6",
+      "UPCOMING": "#FFF1A6",
+      "ACCEPTED": "#E8F5E8",
+      "ON THE WAY": "#E3F2FD",
+      "COMPLETED": "#F3FFFA",
+      "CANCELLED": "#FFEEEB",
+      "EXPIRED": "#FFE6E6",
     };
 
     const textColors = {
       "YET TO COLLECT": "#A18800",
-      CANCELLED: "#C92603",
-      COMPLETED: "#006939",
-      EXPIRED: "#CC0000",
+      "UPCOMING": "#A18800",
+      "ACCEPTED": "#2E7D32",
+      "ON THE WAY": "#1976D2",
+      "COMPLETED": "#006939",
+      "CANCELLED": "#C92603",
+      "EXPIRED": "#CC0000",
     };
 
-    const displayStatus = status ? status.toUpperCase() : "UPCOMING";
+    const displayStatus = getDisplayStatus(status);
 
     return (
       <View
